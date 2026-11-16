@@ -1,0 +1,3 @@
+# OVERTAKE — applied direction
+
+Overrides for this project: Manrope sans serif for Cyrillic readability; cool off-white #f8f9fb, ink #202126, primary violet #7050e8, supporting blue #4a9de6 and cyan. User explicitly requested violet / blue / cyan instead of orange. Glass is limited to navigation and floating hero labels. Large type, restrained border treatment, generous spacing. Magic UI BlurFade for one-time section reveals, BorderBeam only on hero label, Motion for slow sculpture movement. Reduced motion renders all content without animated effects. Public portfolio concepts are identified as concepts. No invented customers, revenue claims or reviews.
