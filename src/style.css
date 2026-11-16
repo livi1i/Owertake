@@ -804,9 +804,7 @@ h2 {
   opacity: 1;
   transform: translateY(0);
 }
-.project-card:hover .mock-store,
-.project-card:hover .mock-crm,
-.project-card:hover .phone {
+.project-card:hover .mock-store {
   transform: rotate(0) scale(1.03);
 }
 .project-info {

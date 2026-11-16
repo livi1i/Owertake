@@ -1466,9 +1466,6 @@ h2 {
   overflow: hidden;
   transition: transform 0.6s;
 }
-.project-card:hover .portfolio-web-page {
-  transform: rotate(0) scale(1.025);
-}
 .portfolio-web-page .website-design h3 {
   font-size: 32px;
 }

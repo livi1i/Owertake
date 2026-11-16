@@ -35,6 +35,8 @@ import { BlurFade } from "./components/magicui/blur-fade";
 import { BorderBeam } from "./components/magicui/border-beam";
 import "./style.css";
 import "./premium.css";
+import "./polish.css";
+import { PageScrollbar } from "./components/page-scrollbar";
 import { WebsiteBook, WebsitePage } from "./components/website-book";
 import { ServiceMotion, SectionSign } from "./components/service-motion";
 type User = { id: string; name: string; email: string; role: string };
@@ -222,6 +224,7 @@ function App() {
   const dashboard = route.startsWith("#cabinet");
   return (
     <MotionConfig reducedMotion="user">
+      <PageScrollbar />
       <a className="skip" href="#main">
         Перейти к содержимому
       </a>
@@ -928,15 +931,17 @@ function Portfolio({
                 onClick={() => onSelect(p)}
               >
                 <div className="project-image">
-                  {p.image ? (
-                    <img
-                      src={p.image}
-                      alt={"Интерфейс " + p.title}
-                      loading="lazy"
-                    />
-                  ) : (
-                    <ProjectVisual index={i} />
-                  )}
+                  <div className="portfolio-hover">
+                    {p.image ? (
+                      <img
+                        src={p.image}
+                        alt={"Интерфейс " + p.title}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <ProjectVisual index={i} />
+                    )}
+                  </div>
                   <span className="project-open">
                     <ArrowUpRight size={22} />
                   </span>
