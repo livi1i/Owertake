@@ -34,6 +34,9 @@ import {
 import { BlurFade } from "./components/magicui/blur-fade";
 import { BorderBeam } from "./components/magicui/border-beam";
 import "./style.css";
+import "./premium.css";
+import { WebsiteBook, WebsitePage } from "./components/website-book";
+import { ServiceMotion, SectionSign } from "./components/service-motion";
 type User = { id: string; name: string; email: string; role: string };
 type Project = {
   title: string;
@@ -160,6 +163,20 @@ function Reveal({
   );
 }
 function App() {
+  const [effectsPaused, setEffectsPaused] = useState(false);
+  useEffect(() => {
+    document.documentElement.classList.toggle("effects-paused", effectsPaused);
+    return () => document.documentElement.classList.remove("effects-paused");
+  }, [effectsPaused]);
+  useEffect(() => {
+    const update = () =>
+      document.documentElement.classList.toggle("page-hidden", document.hidden);
+    document.addEventListener("visibilitychange", update);
+    return () => {
+      document.removeEventListener("visibilitychange", update);
+      document.documentElement.classList.remove("page-hidden");
+    };
+  }, []);
   const [user, setUser] = useState<User | null>(null),
     [content, setContent] = useState<Content>({
       projects: [],
@@ -213,11 +230,26 @@ function App() {
           <Logo />
         </a>
         <nav className={menu ? "nav open" : "nav"} aria-label="Главное меню">
-          <a href="#services">Услуги</a>
-          <a href="#work">Проекты</a>
-          <a href="#approach">Подход</a>
-          <a href="#about">О нас</a>
-          <a href="#contacts">Контакты</a>
+          <a href="#services">
+            <span>Услуги</span>
+            <small>От идеи к продукту</small>
+          </a>
+          <a href="#work">
+            <span>Проекты</span>
+            <small>Возможности в деле</small>
+          </a>
+          <a href="#approach">
+            <span>Подход</span>
+            <small>Как всё устроено</small>
+          </a>
+          <a href="#about">
+            <span>О нас</span>
+            <small>Кто за этим стоит</small>
+          </a>
+          <a href="#contacts">
+            <span>Контакты</span>
+            <small>Начнём с разговора</small>
+          </a>
         </nav>
         <div className="header-actions">
           <button className="login-link" onClick={openLogin}>
@@ -295,7 +327,7 @@ function App() {
                   </div>
                 </Reveal>
               </div>
-              <HeroArt />
+              <HeroArt paused={effectsPaused} />
             </div>
             <div className="hero-bottom">
               <span>Технологии, которые работают на вас.</span>
@@ -315,7 +347,7 @@ function App() {
             <Reveal>
               <div className="section-title">
                 <div>
-                  <span className="eyebrow muted">01 / ЧТО МЫ ДЕЛАЕМ</span>
+                  <SectionSign number="01" label="ЧТО МЫ ДЕЛАЕМ" />
                   <h2>
                     Идея ваша.
                     <br />
@@ -335,12 +367,13 @@ function App() {
               {services.map((s, i) => (
                 <Reveal key={s.name} delay={(i % 3) * 0.06}>
                   <button
-                    className="service-card"
+                    className={"service-card service-card-" + i}
                     onClick={() => {
                       setSelected(s.name);
                       setModal("service");
                     }}
                   >
+                    <ServiceMotion index={i} />
                     <div className="card-top">
                       <span className="service-icon">
                         <s.icon size={23} strokeWidth={1.5} />
@@ -369,7 +402,7 @@ function App() {
             <Reveal>
               <div className="section-title">
                 <div>
-                  <span className="eyebrow muted">02 / НАШИ ВОЗМОЖНОСТИ</span>
+                  <SectionSign number="02" label="НАШИ ВОЗМОЖНОСТИ" />
                   <h2>
                     Меньше слов.
                     <br />
@@ -472,7 +505,7 @@ function App() {
             <Reveal>
               <div className="section-title">
                 <div>
-                  <span className="eyebrow muted">03 / КАК МЫ РАБОТАЕМ</span>
+                  <SectionSign number="03" label="КАК МЫ РАБОТАЕМ" />
                   <h2>
                     От «есть идея»
                     <br />
@@ -521,7 +554,7 @@ function App() {
           </section>
           <section className="about section" id="about">
             <Reveal>
-              <span className="eyebrow muted">04 / КТО ЗА ЭТИМ СТОИТ</span>
+              <SectionSign number="04" label="КТО ЗА ЭТИМ СТОИТ" />
               <div className="about-layout">
                 <h2>
                   Два основателя.
@@ -647,6 +680,13 @@ function App() {
           <button onClick={() => setModal("legal")}>
             Реквизиты и документы
           </button>
+          <button
+            className="motion-control"
+            aria-pressed={effectsPaused}
+            onClick={() => setEffectsPaused(!effectsPaused)}
+          >
+            {effectsPaused ? "Включить анимации" : "Приостановить анимации"}
+          </button>
           <a href="#home">Наверх ↑</a>
         </div>
       </footer>
@@ -764,58 +804,15 @@ function App() {
     </MotionConfig>
   );
 }
-function HeroArt() {
-  const reduced = useReducedMotion();
-  return (
-    <div className="hero-art" aria-label="Цифровая экосистема OVERTAKE">
-      <div className="art-grid" />
-      <div className="orbit orbit-one" />
-      <div className="orbit orbit-two" />
-      <div className="orbit orbit-three" />
-      <div className="art-cross cross-one">+</div>
-      <div className="art-cross cross-two">+</div>
-      <motion.div
-        className="sculpture"
-        animate={reduced ? {} : { y: [0, -13, 0], rotateZ: [-13, -9, -13] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-      >
-        <div className="sculpture-shadow" />
-        <div className="metal-ring ring-back" />
-        <div className="metal-ring ring-front" />
-        <div className="ring-gloss" />
-      </motion.div>
-      <div className="float-label label-top">
-        <span className="code-icon">
-          <Code2 size={17} />
-        </span>{" "}
-        Идея становится продуктом <span className="live-dot" />
-      </div>
-      <div className="float-label label-bottom">
-        <span className="small-orb" />
-        <div>
-          <b>Ваш следующий уровень</b>
-          <span>Ближе, чем кажется</span>
-        </div>
-        <ArrowUpRight size={22} />
-        {!reduced && (
-          <BorderBeam
-            colorFrom="#8b5cf6"
-            colorTo="#38bdf8"
-            size={70}
-            duration={9}
-          />
-        )}
-      </div>
-      <span className="art-caption">BUILT TO MOVE YOU FORWARD.</span>
-    </div>
-  );
+function HeroArt({ paused }: { paused: boolean }) {
+  return <WebsiteBook globalPaused={paused} />;
 }
 const concepts: Project[] = [
   {
-    title: "Forma",
+    title: "AURA Studio",
     category: "Сайты",
     description:
-      "Концепция интернет-магазина предметов интерьера. Спокойный дизайн, каталог и короткий путь к покупке.",
+      "Концепция сайта архитектурного бюро: выразительная типографика, пространственная композиция и знакомство с проектами студии.",
   },
   {
     title: "Flow CRM",
@@ -832,32 +829,8 @@ const concepts: Project[] = [
 ];
 function ProjectVisual({ index = 0 }: { index?: number }) {
   return index % 3 === 0 ? (
-    <div className="mock-store">
-      <div className="mock-nav">
-        <b>forma.</b>
-        <span>Коллекция　 О бренде　 ☰</span>
-      </div>
-      <div className="mock-store-body">
-        <div>
-          <span>ЖИТЬ В СВОЁМ РИТМЕ</span>
-          <h4>
-            Пространство
-            <br />
-            для жизни.
-          </h4>
-          <small>
-            Предметы с характером.
-            <br />
-            Для дома с историей.
-          </small>
-          <span className="mock-shop-button">Смотреть коллекцию ↗</span>
-        </div>
-        <div className="lamp">
-          <i />
-          <b />
-          <span />
-        </div>
-      </div>
+    <div className="portfolio-web-page">
+      <WebsitePage index={0} />
     </div>
   ) : index % 3 === 1 ? (
     <div className="mock-crm">
@@ -996,8 +969,8 @@ function CaseDetail({
       <p>{project.description}</p>
       {project.image && <img src={project.image} alt={project.title} />}
       <p>
-        Фокус решения: понятный интерфейс, удобство на мобильных устройствах и
-        возможность дальнейшего развития.
+        Фокус решения: выразительный интерфейс, удобство на мобильных
+        устройствах и возможность дальнейшего развития.
       </p>
       {project.url && (
         <a
