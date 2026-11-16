@@ -1,0 +1,6 @@
+import {watch} from 'node:fs';import {spawn} from 'node:child_process';import {dirname,join} from 'node:path';
+const npm=process.env.npm_execpath||join(dirname(process.execPath),'node_modules/npm/bin/npm-cli.js');
+const run=(args)=>new Promise((resolve,reject)=>{const child=spawn(process.execPath,args,{stdio:'inherit',windowsHide:true});child.on('error',reject);child.on('exit',code=>code===0?resolve():reject(Error('Command failed: '+code)))});
+let running=false,pending=false,timer;
+async function update(){if(running){pending=true;return}running=true;try{await run([npm,'test']);await run([npm,'run','build']);await run(['scripts/timeweb.mjs','deploy']);console.log('Timeweb updated successfully')}catch(e){console.error('Timeweb update stopped; previous live release remains unchanged:',e.message);if(!process.argv.includes('--watch'))process.exitCode=1}finally{running=false;if(pending){pending=false;update()}}}
+if(process.argv.includes('--watch')){console.log('Watching OVERTAKE source. Changes will be published to the configured Timeweb origin after tests and build.');const changed=()=>{clearTimeout(timer);timer=setTimeout(update,1500)};for(const path of ['src','server'])watch(path,{recursive:true},changed);for(const file of ['index.html','package.json','package-lock.json'])watch(file,changed)}else await update();
