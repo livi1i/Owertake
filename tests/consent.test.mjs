@@ -1,0 +1,21 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {api} from '../server/api.mjs';
+import {database} from '../scripts/local-db.mjs';
+test('consent evidence is versioned, purpose-bound and not public',async()=>{
+ const db=database(); const env={DB:db};
+ const call=(path,body,cookie='')=>api(new Request('https://test.local/api/'+path,{method:body?'POST':'GET',headers:{'Content-Type':'application/json',cookie},body:body?JSON.stringify(body):undefined}),env);
+ const data={name:'Consent test',contact:'test@example.test',service:'Website',description:'A sufficiently detailed project brief',consentVersion:'2026-11-16.1'};
+ assert.equal((await call('leads',{...data,consent:false})).status,400);
+ assert.equal(db.sqlite.prepare("SELECT count(*) n FROM content WHERE id LIKE 'consent:%'").get().n,0);
+ const response=await call('leads',{...data,consent:true});assert.equal(response.status,200);const {id}=await response.json();
+ const evidence=JSON.parse(db.sqlite.prepare('SELECT data FROM content WHERE id=?').get('consent:'+id).data);
+ assert.equal(evidence.version,data.consentVersion);assert.equal(evidence.purpose,'inquiry');assert.equal(evidence.recordId,id);assert.equal(evidence.accepted,true);assert.ok(Date.parse(evidence.created));
+ assert.equal((await call('admin/consents')).status,401);
+ assert.equal(JSON.stringify(await (await call('content')).json()).includes(id),false);
+ await call('register',{name:'Test',email:'consent@example.test',password:'Secure-test-12345',consent:true,consentVersion:data.consentVersion});
+ const rows=db.sqlite.prepare("SELECT data FROM content WHERE id LIKE 'consent:%'").all().map(r=>JSON.parse(r.data));assert.ok(rows.some(r=>r.purpose==='account'));
+ const login=await call('login',{email:'consent@example.test',password:'Secure-test-12345'});const cookie=login.headers.get('set-cookie').split(';')[0];
+ assert.equal((await call('admin/consents',undefined,cookie)).status,403);
+ db.sqlite.close();
+});

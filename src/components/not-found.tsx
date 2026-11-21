@@ -1,0 +1,2 @@
+import React from 'react';
+export function NotFound(){return <main className="catalog-page" id="main"><div className="catalog-empty"><span className="catalog-kicker">OVERTAKE / 404</span><h1>Страница не найдена</h1><p>Адрес мог измениться. Выберите нужный раздел или вернитесь на главную.</p><a className="btn purple" href="/services">Каталог услуг</a><a className="catalog-home-link" style={{marginLeft:24}} href="/">На главную →</a></div></main>}

@@ -5,3 +5,9 @@ dist/
 .env
 *.zip
 *.tar.gz
+.env.*
+!.env.example
+*.sqlite
+*.sqlite-*
+*.pem
+*.key

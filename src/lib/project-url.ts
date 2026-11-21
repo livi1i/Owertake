@@ -1,0 +1,1 @@
+export function projectUrl(value?:string){try{if(!value)return null;const url=new URL(value);if(url.protocol!=='https:'||url.username||url.password||url.hostname==='localhost'||url.hostname.endsWith('.local')||url.hostname.endsWith('.localhost')||!url.hostname.includes('.')||/^[\d.]+$/.test(url.hostname)||url.hostname.includes(':'))return null;return url;}catch{return null;}}

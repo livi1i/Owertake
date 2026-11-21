@@ -12,9 +12,9 @@ export function ExtraWebsitePage({ index }: { index: number }) {
         <div className="mono-body">
           <span className="design-kicker">OBJECTS WITH A POINT OF VIEW.</span>
           <h3>
-            Меньше вещей.
+            Меньше вещей
             <br />
-            <em>Больше смысла.</em>
+            <em>Больше смысла</em>
           </h3>
           <div className="mono-chair">
             <i />
@@ -47,9 +47,9 @@ export function ExtraWebsitePage({ index }: { index: number }) {
         <div className="echo-body">
           <span className="design-kicker">FEEL EVERY FREQUENCY.</span>
           <h3>
-            Слушай.
+            Слушай
             <br />
-            <em>Чувствуй.</em>
+            <em>Чувствуй</em>
           </h3>
           <div className="echo-headphones">
             <i />
@@ -86,7 +86,7 @@ export function ExtraWebsitePage({ index }: { index: number }) {
         <h3>
           Свет, который
           <br />
-          <em>остаётся.</em>
+          <em>остаётся</em>
         </h3>
         <div className="lumi-lamp">
           <i />

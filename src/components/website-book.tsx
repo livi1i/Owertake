@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { motion, useInView, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useInView, useReducedMotion } from "motion/react";
 import { ArrowLeft, ArrowRight, Pause, Play } from "lucide-react";
 import { WebsitePage, names } from "./website-pages";
-import { nextBookPage, bookLayers } from "./book-model";
+import { nextBookPage } from "./book-model";
 import { BorderBeam } from "./magicui/border-beam";
+import "./showcase.css";
 export { WebsitePage } from "./website-pages";
 type Turn = { from: number; to: number };
-const marks = ["AURA", "ORBIT", "F/ORM", "MONO", "ECHO", "LUMI"];
+
 export function WebsiteBook({
   globalPaused = false,
 }: {
@@ -20,7 +21,7 @@ export function WebsiteBook({
     [visible, setVisible] = useState(true),
     [turn, setTurn] = useState<Turn | null>(null);
   const direction = useRef(1),
-    locked = useRef(false);
+    locked = useRef(false), focusWidget = useRef(false), widget = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     const update = () => setVisible(!document.hidden);
     document.addEventListener("visibilitychange", update);
@@ -35,12 +36,13 @@ export function WebsiteBook({
     )
       return;
     direction.current = target > page ? 1 : -1;
-    if (reduced) {
+    if (reduced || globalPaused) {
       setPage(target);
       return;
     }
     locked.current = true;
     setTurn({ from: page, to: target });
+    setPage(target);
   };
   useEffect(() => {
     if (reduced || paused || globalPaused || !visible || !inView || turn)
@@ -55,7 +57,7 @@ export function WebsiteBook({
     setPaused(true);
     startTurn(page + step);
   };
-  const layers = turn ? bookLayers(turn.from, turn.to) : null;
+
   const finish = () => {
     if (!turn) return;
     setPage(turn.to);
@@ -69,59 +71,20 @@ export function WebsiteBook({
       <div className="book-annotation">
         <span className="live-dot" /> ИДЕИ ОБРЕТАЮТ ФОРМУ
       </div>
-      <div
-        className="book-scene"
-        role="img"
-        aria-busy={!!turn}
-        aria-label={
-          "Перелистывающиеся концепции сайтов. Сейчас: " +
-          names[turn?.to ?? page]
-        }
-      >
-        <div className="book-spread stable-book">
-          <div className="book-base" />
-          <div className="book-stationary">
-            <WebsitePage index={layers?.base ?? page} />
-          </div>
-          {turn && layers && (
-            <motion.div
-              key={turn.from + "-" + turn.to}
-              className="book-turning-sheet"
-              initial={{
-                rotateY: layers.forward ? 0 : -112,
-                opacity: layers.forward ? 1 : 0,
-              }}
-              animate={{
-                rotateY: layers.forward ? -112 : 0,
-                opacity: layers.forward ? [1, 1, 0] : [0, 1, 1],
-              }}
-              transition={{
-                duration: 1.9,
-                ease: [0.45, 0, 0.18, 1],
-                opacity: {
-                  duration: 1.9,
-                  times: layers.forward ? [0, 0.8, 1] : [0, 0.2, 1],
-                },
-              }}
-              onAnimationComplete={finish}
-            >
-              <div className="leaf-front">
-                <WebsitePage index={layers.sheet} />
-              </div>
-              <div className={"leaf-back leaf-back-" + layers.sheet}>
-                <span>OVERTAKE®</span>
-                <span>{marks[layers.sheet]}</span>
-                <small>DESIGNED TO GO FURTHER.</small>
-              </div>
-              <motion.div
-                className="page-turn-shade"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: [0, 0.24, 0] }}
-                transition={{ duration: 1.9, times: [0, 0.5, 1] }}
-              />
-            </motion.div>
-          )}
-        </div>
+      <div className="book-scene showcase-stage" aria-busy={!!turn}>
+        <AnimatePresence mode="wait" initial={false} custom={direction.current}>
+          <motion.button ref={widget} key={page} className="showcase-frame" type="button"
+            aria-label={"Показать следующий сайт. Сейчас: "+names[page]}
+            custom={direction.current}
+            variants={{enter:(d:number)=>({x:55*d,opacity:0,scale:.97}),visible:{x:0,opacity:1,scale:1},exit:(d:number)=>({x:-90*d,opacity:0,scale:.96})}}
+            initial="enter" animate="visible" exit="exit"
+            transition={{duration:reduced||globalPaused?0:.58,ease:[.22,.75,.2,1]}}
+            onAnimationComplete={definition=>{if(definition==='visible'){finish();if(focusWidget.current){widget.current?.focus({preventScroll:true});focusWidget.current=false;}}}}
+            onClick={()=>{focusWidget.current=true;setPaused(true);startTurn(page===names.length-1?0:page+1);}}
+            disabled={!!turn}>
+            <WebsitePage index={page}/>
+          </motion.button>
+        </AnimatePresence>
       </div>
       <div className="book-controls">
         <div>

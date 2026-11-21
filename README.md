@@ -47,3 +47,8 @@ UI/UX Pro Max: https://github.com/nextlevelbuilder/ui-ux-pro-max-skill. Сохр
 Официальный Magic UI MCP `@magicuidesign/mcp@2.1.0` запускался через MCP SDK. Результаты вызовов — `references/magicui`. Компоненты скачаны из официального реестра. BlurFade — появление секций; BorderBeam — контур карточки; Motion — мягкое движение графики. CSS адаптация BorderBeam заменяет Tailwind-утилиты, сохраняя механику компонента. Источники: https://magicui.design/docs/mcp, https://magicui.design/docs/components/blur-fade, https://magicui.design/docs/components/border-beam. Уважает `prefers-reduced-motion`.
 
 MCP является инструментом разработки и не попадает в клиентскую или серверную сборку. Конфигурация для запуска в другом MCP-клиенте — `mcp.example.json`.
+
+## Совместная разработка
+
+Пошаговая инструкция для второго разработчика и публикации на Timeweb находится в [TEAM.md](TEAM.md).
+

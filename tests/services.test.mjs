@@ -1,0 +1,30 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {database} from '../scripts/local-db.mjs';
+import {api} from '../server/api.mjs';
+import {defaultAgencyServices,mergeServices,filterServices} from '../src/lib/services.ts';
+test('catalog search, categories and hidden overrides',()=>{
+ assert.equal(defaultAgencyServices.length,18);
+ assert.ok(filterServices(defaultAgencyServices,'1С','Все').some(s=>s.slug==='integrations'));
+ assert.ok(filterServices(defaultAgencyServices,'','ИИ').every(s=>s.category==='ИИ'));
+ assert.equal(filterServices(mergeServices([{slug:'landing',status:'Скрыта'}]),'','Все').some(s=>s.slug==='landing'),false);
+ assert.equal(filterServices(defaultAgencyServices,'неизвестная услуга','Все').length,0);
+});
+test('service editor requires admin, validates inputs and keeps hidden text private',async()=>{
+ const db=database();const env={DB:db};
+ const call=(path,body,cookie='',method)=>api(new Request('https://test.local/api/'+path,{method:method||(body?'POST':'GET'),headers:{'Content-Type':'application/json',cookie},body:body?JSON.stringify(body):undefined}),env);
+ assert.equal((await call('admin/services')).status,401);
+ await call('register',{name:'Test',email:'catalog@example.test',password:'Secure-test-12345',consent:true});
+ const login=await call('login',{email:'catalog@example.test',password:'Secure-test-12345'});const cookie=login.headers.get('set-cookie').split(';')[0];
+ const item={...defaultAgencyServices[0],description:'Private draft',status:'Скрыта'};
+ assert.equal((await call('admin/services',item,cookie,'PUT')).status,403);
+ db.sqlite.exec("UPDATE users SET role='admin'");
+ assert.equal((await call('admin/services',{...item,slug:'../bad'},cookie,'PUT')).status,400);
+ assert.equal((await call('admin/services',item,cookie,'PUT')).status,200);
+ const publicItems=(await (await call('services')).json()).services;
+ assert.deepEqual(publicItems,[{slug:'landing',status:'Скрыта'}]);
+ assert.equal((await (await call('admin/services',undefined,cookie)).json()).services[0].description,'Private draft');
+ assert.equal((await call('admin/services',{...item,status:'Доступна'},cookie,'PUT')).status,200);
+ assert.equal((await (await call('services')).json()).services[0].status,'Доступна');
+ db.sqlite.close();
+});

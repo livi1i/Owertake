@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { createRoot } from "react-dom/client";
-import { MotionConfig, useReducedMotion, motion } from "motion/react";
+import { LoadBoundary } from "./components/load-boundary";
+import { MotionConfig } from "motion/react";
 import {
   ArrowUpRight,
   ArrowRight,
@@ -31,103 +32,25 @@ import {
   Users,
   Mail,
 } from "lucide-react";
-import { BlurFade } from "./components/magicui/blur-fade";
-import { BorderBeam } from "./components/magicui/border-beam";
 import "./style.css";
 import "./premium.css";
 import "./polish.css";
+import "./components/catalog-common.css";
 import { PageScrollbar } from "./components/page-scrollbar";
-import { WebsiteBook, WebsitePage } from "./components/website-book";
-import { ServiceMotion, SectionSign } from "./components/service-motion";
-type User = { id: string; name: string; email: string; role: string };
-type Project = {
-  title: string;
-  category: string;
-  description: string;
-  url?: string;
-  image?: string;
-};
-type Content = {
-  projects: Project[];
-  prices: Record<string, string>;
-  contacts: Record<string, string>;
-};
-type Lead = {
-  id: string;
-  name: string;
-  contact: string;
-  service: string;
-  description: string;
-  status: string;
-  price: number;
-  due: string;
-  created: string;
-};
-const services = [
-  {
-    name: "Сайты и интернет-магазины",
-    short: "Сайты",
-    text: "От первого впечатления до первого заказа. Быстрые сайты, которые раскрывают ваш бренд и помогают продавать.",
-    icon: Globe,
-    tags: ["Лендинги", "Корпоративные сайты", "E-commerce"],
-  },
-  {
-    name: "Telegram-боты",
-    short: "Telegram-боты",
-    text: "Запись, продажи и поддержка — прямо в мессенджере. Освобождаем команду от повторяющихся задач.",
-    icon: Send,
-    tags: ["Продажи", "Поддержка", "Интеграции"],
-  },
-  {
-    name: "CRM и автоматизация",
-    short: "CRM-системы",
-    text: "Клиенты, сделки и процессы в одной системе. Разрабатываем инструменты под логику вашего бизнеса.",
-    icon: Workflow,
-    tags: ["CRM", "API", "Бизнес-процессы"],
-  },
-  {
-    name: "Веб-приложения",
-    short: "Веб-приложения",
-    text: "Ваша идея в работающем продукте. Личные кабинеты, сервисы и платформы с возможностью развития.",
-    icon: Layers,
-    tags: ["SaaS", "Платформы", "Кабинеты"],
-  },
-  {
-    name: "Социальные сети",
-    short: "Соцсети",
-    text: "Помогаем бренду говорить своим голосом. Контент, оформление и регулярное ведение социальных сетей.",
-    icon: MessageSquare,
-    tags: ["Контент", "Дизайн", "SMM"],
-  },
-  {
-    name: "Разработка под задачу",
-    short: "Другое",
-    text: "Не нашли подходящую категорию? Обсудим вашу задачу и подберём решение, которое имеет смысл.",
-    icon: Code2,
-    tags: ["Индивидуальные решения", "Поддержка"],
-  },
-];
-const statuses = [
-  "Заявка получена",
-  "Обсуждение",
-  "Подготовка предложения",
-  "Согласование договора",
-  "В работе",
-  "На проверке",
-  "Завершён",
-  "На сопровождении",
-];
-const money = (n: number) => new Intl.NumberFormat("ru-RU").format(n) + " ₽";
-async function api(path: string, body?: unknown, method?: string) {
-  const r = await fetch("/api/" + path, {
-    method: method || (body ? "POST" : "GET"),
-    headers: body ? { "Content-Type": "application/json" } : {},
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const j = await r.json();
-  if (!r.ok) throw new Error(j.error || "Не удалось выполнить запрос");
-  return j;
-}
+import { LegalPage, legalTitles, ConsentLabel, LEGAL_VERSION } from "./components/legal-pages";
+import { CookiePreferences } from "./components/cookie-preferences";
+import { ThemePicker } from "./components/theme-picker";
+const ServiceCatalog = React.lazy(() => import("./components/service-catalog").then(m=>({default:m.ServiceCatalog})));
+const PricingPage = React.lazy(() => import("./components/pricing-page").then(m => ({default:m.PricingPage})));
+const ProjectCalculator = React.lazy(() => import("./components/project-calculator").then(m => ({default:m.ProjectCalculator})));
+const BriefWizard = React.lazy(() => import("./components/brief-wizard").then(m => ({default:m.BriefWizard})));
+const FaqPage = React.lazy(() => import("./components/faq-page").then(m => ({default:m.FaqPage})));
+const ContactsPage = React.lazy(() => import("./components/contacts-page").then(m => ({default:m.ContactsPage})));
+const PortfolioPage = React.lazy(() => import("./components/portfolio-page").then(m => ({default:m.PortfolioPage})));
+const NotFound = React.lazy(() => import("./components/not-found").then(m => ({default:m.NotFound})));
+import {api,services,type User,type Project,type Content} from "./lib/app-shared";
+const HomePage = React.lazy(() => import("./components/home-page").then(m=>({default:m.HomePage})));
+const Dashboard = React.lazy(() => import("./components/dashboard").then(m=>({default:m.Dashboard})));
 function Logo() {
   return (
     <span className="logo">
@@ -137,31 +60,6 @@ function Logo() {
       </span>
       OVERTAKE<span className="logo-dot">®</span>
     </span>
-  );
-}
-function Reveal({
-  children,
-  className = "",
-  delay = 0,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  delay?: number;
-}) {
-  const reduced = useReducedMotion();
-  return reduced ? (
-    <div className={className}>{children}</div>
-  ) : (
-    <BlurFade
-      className={className}
-      inView
-      delay={delay}
-      duration={0.65}
-      direction="up"
-      offset={16}
-    >
-      {children}
-    </BlurFade>
   );
 }
 function App() {
@@ -188,15 +86,15 @@ function App() {
     [route, setRoute] = useState(location.hash || "#home"),
     [modal, setModal] = useState(""),
     [selected, setSelected] = useState(services[0].name),
+    [briefContext, setBriefContext] = useState(""),
     [menu, setMenu] = useState(false),
     [toast, setToast] = useState("");
   useEffect(() => {
     api("me")
       .then((j) => setUser(j.user))
       .catch(() => {});
-    api("content")
-      .then(setContent)
-      .catch(() => {});
+    const needsPublicContent = (location.pathname === "/" && !location.hash.startsWith("#cabinet")) || location.pathname === "/contacts" || Object.hasOwn(legalTitles,location.pathname);
+    if(needsPublicContent) api("content").then(setContent).catch(() => {});
     const h = () => {
       setRoute(location.hash || "#home");
       setMenu(false);
@@ -210,18 +108,24 @@ function App() {
       return () => clearTimeout(t);
     }
   }, [toast]);
-  const order = (service = services[0].name) => {
+  const order = (service = services[0].name, context = "") => {
+    service = typeof service === "string" ? service : services[0].name;
+    try { sessionStorage.setItem("overtake:brief-handoff", JSON.stringify({service,context})); location.href = "/brief"; return; } catch { setToast("Не удалось перенести параметры. Можно отправить короткую заявку в этом окне."); }
+    setBriefContext(context);
     setSelected(service);
     setModal("brief");
   };
   const openLogin = () =>
-    user ? (location.hash = "#cabinet") : setModal("auth");
+    user ? (location.href = "/#cabinet") : setModal("auth");
   const logout = async () => {
     await api("logout", {});
     setUser(null);
     location.hash = "#home";
   };
-  const dashboard = route.startsWith("#cabinet");
+  const catalogPath = location.pathname === "/services" || location.pathname.startsWith("/services/");
+  const dashboard = route.startsWith("#cabinet") || ["/account","/admin"].includes(location.pathname);
+  const knownRoute = ["/","/account","/admin","/contacts","/faq","/brief","/calculator","/pricing","/services","/portfolio",...Object.keys(legalTitles)].includes(location.pathname) || /^\/(services|portfolio)\/[a-z0-9-]+$/.test(location.pathname);
+  const legalPath = legalTitles[location.pathname] ? location.pathname : "";
   return (
     <MotionConfig reducedMotion="user">
       <PageScrollbar />
@@ -229,34 +133,30 @@ function App() {
         Перейти к содержимому
       </a>
       <header className="header">
-        <a href="#home" aria-label="OVERTAKE — главная">
+        <a href="/#home" aria-label="OVERTAKE — главная">
           <Logo />
         </a>
         <nav className={menu ? "nav open" : "nav"} aria-label="Главное меню">
-          <a href="#services">
+          <a href="/services">
             <span>Услуги</span>
-            <small>От идеи к продукту</small>
           </a>
-          <a href="#work">
+          <a href="/portfolio">
             <span>Проекты</span>
-            <small>Возможности в деле</small>
           </a>
-          <a href="#approach">
-            <span>Подход</span>
-            <small>Как всё устроено</small>
+          <a href="/pricing">
+            <span>Стоимость</span>
           </a>
-          <a href="#about">
+          <a href="/#about">
             <span>О нас</span>
-            <small>Кто за этим стоит</small>
           </a>
-          <a href="#contacts">
+          <a href="/contacts">
             <span>Контакты</span>
-            <small>Начнём с разговора</small>
           </a>
         </nav>
         <div className="header-actions">
-          <button className="login-link" onClick={openLogin}>
-            {user ? user.name : "Личный кабинет"} <ArrowUpRight size={14} />
+          <ThemePicker />
+          <button className="login-link" aria-label={user ? `Личный кабинет: ${user.name}` : "Личный кабинет"} onClick={openLogin}>
+            <span className="login-label">{user ? user.name : "Личный кабинет"}</span> <ArrowUpRight size={14} />
           </button>
           <button className="btn small dark" onClick={() => order()}>
             Обсудить проект <ArrowUpRight size={15} />
@@ -271,8 +171,8 @@ function App() {
           </button>
         </div>
       </header>
-      {dashboard ? (
-        <Dashboard
+      {!knownRoute ? <React.Suspense fallback={<main id="main" className="catalog-page">Страница не найдена</main>}><NotFound /></React.Suspense> : (location.pathname === "/admin" && user && user.role!=="admin") ? <main className="catalog-page" id="main"><h1>Доступ только для команды</h1><a className="catalog-home-link" href="/account">Открыть свой кабинет →</a></main> : (location.pathname === "/portfolio" || location.pathname.startsWith("/portfolio/")) ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем портфолио…</main>}><PortfolioPage order={order} /></React.Suspense> : location.pathname === "/contacts" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем контакты…</main>}><ContactsPage contacts={content.contacts} order={order} /></React.Suspense> : location.pathname === "/faq" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем вопросы…</main>}><FaqPage /></React.Suspense> : location.pathname === "/brief" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем бриф…</main>}><BriefWizard user={user} /></React.Suspense> : location.pathname === "/calculator" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем параметры проекта…</main>}><ProjectCalculator order={order} /></React.Suspense> : location.pathname === "/pricing" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем страницу стоимости…</main>}><PricingPage order={order} /></React.Suspense> : catalogPath ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем услуги…</main>}><ServiceCatalog path={location.pathname} order={order} /></React.Suspense> : legalPath ? <LegalPage path={legalPath} contacts={content.contacts} /> : dashboard ? (
+        <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем кабинет…</main>}><Dashboard
           user={user}
           content={content}
           setContent={setContent}
@@ -280,409 +180,27 @@ function App() {
           login={() => setModal("auth")}
           logout={logout}
           notify={setToast}
-        />
+        /></React.Suspense>
       ) : (
-        <main id="main">
-          <section className="hero" id="home">
-            <div className="hero-top">
-              <span className="eyebrow">
-                <span className="live-dot" /> DIGITAL AGENCY · ОТ ИДЕИ ДО
-                ЗАПУСКА
-              </span>
-              <span className="hero-coordinate">
-                DEVELOPMENT / DESIGN / GROWTH
-              </span>
-            </div>
-            <div className="hero-grid">
-              <div className="hero-copy">
-                <Reveal>
-                  <h1>
-                    Ваш бизнес.
-                    <br />
-                    На шаг
-                    <br />
-                    <span className="gradient-text">впереди.</span>
-                    <span className="heading-dot">↗</span>
-                  </h1>
-                </Reveal>
-                <Reveal delay={0.12}>
-                  <p className="hero-description">
-                    Создаём сайты, ботов и цифровые продукты,
-                    <br className="desktop" /> которые помогают вашему бизнесу
-                    расти.
-                  </p>
-                  <div className="hero-buttons">
-                    <button className="btn purple" onClick={() => order()}>
-                      Обсудить проект <ArrowUpRight size={18} />
-                    </button>
-                    <a className="text-link" href="#work">
-                      Смотреть проекты <ArrowRight size={18} />
-                    </a>
-                  </div>
-                </Reveal>
-                <Reveal delay={0.2}>
-                  <div className="hero-proof">
-                    <span className="mini-icon">
-                      <Check size={13} />
-                    </span>{" "}
-                    Работаем по договору <span className="proof-divider" /> От
-                    первой идеи до поддержки
-                  </div>
-                </Reveal>
-              </div>
-              <HeroArt paused={effectsPaused} />
-            </div>
-            <div className="hero-bottom">
-              <span>Технологии, которые работают на вас.</span>
-              <a href="#services">
-                Листайте, чтобы познакомиться <span>↓</span>
-              </a>
-            </div>
-          </section>
-          <div className="expertise-strip">
-            <span>ДЕЛАЕМ СЛОЖНОЕ ПОНЯТНЫМ</span>
-            <div>
-              Сайты <i>✳</i> Telegram-боты <i>✳</i> CRM-системы <i>✳</i>{" "}
-              Веб-приложения <i>✳</i> Социальные сети
-            </div>
-          </div>
-          <section className="section" id="services">
-            <Reveal>
-              <div className="section-title">
-                <div>
-                  <SectionSign number="01" label="ЧТО МЫ ДЕЛАЕМ" />
-                  <h2>
-                    Идея ваша.
-                    <br />
-                    <span className="muted">Решение — наше.</span>
-                  </h2>
-                </div>
-                <p>
-                  Подключаемся там, где вашему бизнесу
-                  <br />
-                  нужны технологии. От одной задачи
-                  <br />
-                  до целой цифровой экосистемы.
-                </p>
-              </div>
-            </Reveal>
-            <div className="services-grid">
-              {services.map((s, i) => (
-                <Reveal key={s.name} delay={(i % 3) * 0.06}>
-                  <button
-                    className={"service-card service-card-" + i}
-                    onClick={() => {
-                      setSelected(s.name);
-                      setModal("service");
-                    }}
-                  >
-                    <ServiceMotion index={i} />
-                    <div className="card-top">
-                      <span className="service-icon">
-                        <s.icon size={23} strokeWidth={1.5} />
-                      </span>
-                      <span className="card-number">0{i + 1}</span>
-                    </div>
-                    <h3>{s.name}</h3>
-                    <p>{s.text}</p>
-                    <div className="tags">
-                      {s.tags.map((t) => (
-                        <span key={t}>{t}</span>
-                      ))}
-                    </div>
-                    <div className="card-bottom">
-                      <span>
-                        {content.prices[s.name] || "Стоимость после обсуждения"}
-                      </span>
-                      <ArrowUpRight size={19} />
-                    </div>
-                  </button>
-                </Reveal>
-              ))}
-            </div>
-          </section>
-          <section className="work-section section" id="work">
-            <Reveal>
-              <div className="section-title">
-                <div>
-                  <SectionSign number="02" label="НАШИ ВОЗМОЖНОСТИ" />
-                  <h2>
-                    Меньше слов.
-                    <br />
-                    <span className="muted">Больше продукта.</span>
-                  </h2>
-                </div>
-                <p>
-                  Каждый проект начинается с задачи.
-                  <br />
-                  Показываем, как может выглядеть
-                  <br />
-                  её цифровое решение.
-                </p>
-              </div>
-            </Reveal>
-            <Portfolio
-              projects={content.projects}
-              onSelect={(p) => {
-                setSelected(JSON.stringify(p));
-                setModal("case");
-              }}
-            />
-            <p className="section-note">
-              Концепты иллюстрируют направления работы. Реальные клиентские
-              кейсы появятся после согласования публикации.
-            </p>
-          </section>
-          <section className="cabinet-promo section">
-            <Reveal className="cabinet-promo-copy">
-              <span className="eyebrow">ВСЁ ПОД КОНТРОЛЕМ</span>
-              <h2>
-                Ваш проект.
-                <br />
-                Без «а что там?»
-              </h2>
-              <p>
-                Личный кабинет, где всё на своих местах: статус проекта,
-                согласованная стоимость и переписка с командой.
-              </p>
-              <ul>
-                <li>
-                  <Check size={17} /> Понятный статус на каждом этапе
-                </li>
-                <li>
-                  <Check size={17} /> Прямой диалог с командой
-                </li>
-                <li>
-                  <Check size={17} /> История заявок в одном месте
-                </li>
-              </ul>
-              <button className="btn white" onClick={openLogin}>
-                Перейти в личный кабинет <ArrowUpRight size={18} />
-              </button>
-            </Reveal>
-            <Reveal className="dashboard-preview">
-              <div className="preview-toolbar">
-                <span>
-                  <span className="live-dot" /> OVERTAKE / КАБИНЕТ
-                </span>
-                <span className="sample-badge">Пример интерфейса</span>
-              </div>
-              <div className="preview-content">
-                <div className="preview-greeting">
-                  Всё идёт по плану <span>↗</span>
-                </div>
-                <p>Ваш следующий большой шаг — уже в работе.</p>
-                <div className="preview-project">
-                  <div>
-                    <span className="tag-purple">В работе</span>
-                    <span className="muted tiny">Веб-разработка</span>
-                  </div>
-                  <h3>Новый сайт компании</h3>
-                  <div className="progress-line">
-                    <span />
-                  </div>
-                  <div className="preview-steps">
-                    <span>
-                      <CheckCircle2 size={15} /> Концепция
-                    </span>
-                    <span>
-                      <CheckCircle2 size={15} /> Дизайн
-                    </span>
-                    <span>
-                      <Code2 size={15} /> Разработка
-                    </span>
-                  </div>
-                </div>
-                <div className="preview-message">
-                  <span className="avatar">O</span>
-                  <div>
-                    <b>Команда OVERTAKE</b>
-                    <p>Дизайн согласован. Переходим к разработке!</p>
-                  </div>
-                  <span className="live-dot" />
-                </div>
-              </div>
-            </Reveal>
-          </section>
-          <section className="section" id="approach">
-            <Reveal>
-              <div className="section-title">
-                <div>
-                  <SectionSign number="03" label="КАК МЫ РАБОТАЕМ" />
-                  <h2>
-                    От «есть идея»
-                    <br />
-                    <span className="muted">до «всё работает».</span>
-                  </h2>
-                </div>
-                <p>
-                  На каждом этапе вы понимаете,
-                  <br />
-                  что происходит, что будет дальше
-                  <br />и за что вы платите.
-                </p>
-              </div>
-            </Reveal>
-            <div className="process-grid">
-              {[
-                {
-                  title: "Знакомимся",
-                  text: "Слушаем, задаём вопросы и разбираемся в вашей задаче.",
-                },
-                {
-                  title: "Договариваемся",
-                  text: "Фиксируем объём, стоимость и сроки в договоре.",
-                },
-                {
-                  title: "Создаём",
-                  text: "Проектируем, разрабатываем и показываем промежуточный результат.",
-                },
-                {
-                  title: "Запускаем",
-                  text: "Тестируем, передаём проект и обсуждаем дальнейшую поддержку.",
-                },
-              ].map((s, i) => (
-                <Reveal key={s.title} delay={i * 0.08}>
-                  <div className="process-item">
-                    <div>
-                      <span>0{i + 1}</span>
-                      <ArrowRight size={19} />
-                    </div>
-                    <h3>{s.title}</h3>
-                    <p>{s.text}</p>
-                  </div>
-                </Reveal>
-              ))}
-            </div>
-          </section>
-          <section className="about section" id="about">
-            <Reveal>
-              <SectionSign number="04" label="КТО ЗА ЭТИМ СТОИТ" />
-              <div className="about-layout">
-                <h2>
-                  Два основателя.
-                  <br />
-                  Один подход:
-                  <br />
-                  <span className="gradient-text">делать с толком.</span>
-                </h2>
-                <div>
-                  <p className="large-copy">
-                    OVERTAKE — независимое цифровое агентство. Объединяем
-                    разработку, дизайн и продвижение, чтобы решать задачи
-                    бизнеса целиком.
-                  </p>
-                  <p>
-                    Вы общаетесь с людьми, которые погружены в ваш проект.
-                    Объясняем решения простым языком и не предлагаем лишнего.
-                  </p>
-                  <div className="about-points">
-                    <span>
-                      <FileText size={20} /> Официально, через ИП
-                    </span>
-                    <span>
-                      <MessageSquare size={20} /> На связи с вами
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </Reveal>
-          </section>
-          <section className="section faq-section">
-            <div>
-              <span className="eyebrow muted">ПОЛЕЗНО ЗНАТЬ</span>
-              <h2>
-                Хорошие <br />
-                вопросы.
-              </h2>
-            </div>
-            <div className="faq-list">
-              {[
-                {
-                  q: "Сколько стоит разработка?",
-                  a: "Стоимость зависит от объёма, функций и интеграций. Расскажите о задаче — подготовим индивидуальное предложение. Итоговую сумму согласуем до начала работы.",
-                },
-                {
-                  q: "Можно прийти только с идеей?",
-                  a: "Да. Необязательно иметь готовое техническое задание. Поможем определить главное, выбрать формат продукта и составить план запуска.",
-                },
-                {
-                  q: "Как мы будем заключать договор?",
-                  a: "Работаем через ИП. Состав работ, сроки, стоимость и порядок оплаты фиксируются в договоре до старта проекта. Реквизиты предоставляются при согласовании.",
-                },
-                {
-                  q: "Вы поддерживаете проекты после запуска?",
-                  a: "Да, формат поддержки и развития обсуждается отдельно. Можем продолжить развитие продукта и сопровождать его в рамках согласованных условий.",
-                },
-                {
-                  q: "Можно встретиться лично?",
-                  a: content.contacts.address
-                    ? "Да. Адрес офиса: " +
-                      content.contacts.address +
-                      ". Оставьте заявку, чтобы согласовать время встречи."
-                    : "Планируем очные встречи в офисе. Адрес и график будут опубликованы после открытия. Пока можно оставить заявку на обсуждение проекта.",
-                },
-              ].map((f) => (
-                <details key={f.q}>
-                  <summary>
-                    {f.q}
-                    <Plus size={20} />
-                  </summary>
-                  <p>{f.a}</p>
-                </details>
-              ))}
-            </div>
-          </section>
-          <section className="contact-section section" id="contacts">
-            <Reveal>
-              <span className="eyebrow">СЛЕДУЮЩИЙ ХОД — ЗА ВАМИ</span>
-              <h2>
-                Давайте сделаем
-                <br />
-                <span>что-то значимое.</span>
-                <ArrowUpRight />
-              </h2>
-              <div className="contact-bottom">
-                <p>
-                  Расскажите о вашей идее.
-                  <br />
-                  Вместе найдём способ воплотить её в жизнь.
-                </p>
-                <button className="btn white" onClick={() => order()}>
-                  Обсудить проект <ArrowUpRight size={20} />
-                </button>
-              </div>
-              {content.contacts.email && (
-                <a
-                  className="contact-email"
-                  href={"mailto:" + content.contacts.email}
-                >
-                  {content.contacts.email}
-                </a>
-              )}
-              {content.contacts.address && <p>{content.contacts.address}</p>}
-            </Reveal>
-          </section>
-        </main>
+        <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем главную…</main>}><HomePage content={content} effectsPaused={effectsPaused} order={order} openLogin={openLogin} showService={name=>{setSelected(name);setModal("service");}} /></React.Suspense>
       )}
       <footer className="footer">
         <div className="footer-top">
-          <a href="#home">
+          <a href="/#home">
             <Logo />
           </a>
           <p>Помогаем бизнесу быть впереди.</p>
-          <a href="#contacts">
+          <a href="/contacts">
             Начнём с разговора <ArrowUpRight size={16} />
           </a>
         </div>
+        <div className="footer-operator"><span>ИП Игнатенко Илья Анатольевич</span><span>ИНН 511007182150</span><span>ОГРНИП 325600000016430</span><a href="tel:+79517506700">+7 (951) 750-67-00</a></div>
         <div className="footer-bottom">
           <span>© {new Date().getFullYear()} OVERTAKE · Digital agency</span>
-          <button onClick={() => setModal("privacy")}>
-            Политика конфиденциальности
-          </button>
-          <button onClick={() => setModal("legal")}>
-            Реквизиты и документы
-          </button>
+          <a href="/privacy">Политика обработки данных</a>
+          <a href="/legal">Реквизиты и документы</a>
+          <a href="/faq">Вопросы и ответы</a>
+          <button onClick={() => window.dispatchEvent(new Event("overtake:cookie-settings"))}>Настройки cookie</button>
           <button
             className="motion-control"
             aria-pressed={effectsPaused}
@@ -690,9 +208,10 @@ function App() {
           >
             {effectsPaused ? "Включить анимации" : "Приостановить анимации"}
           </button>
-          <a href="#home">Наверх ↑</a>
+          <a href="/#home">Наверх ↑</a>
         </div>
       </footer>
+      <CookiePreferences />
       {modal && (
         <Modal
           close={() => setModal("")}
@@ -716,13 +235,14 @@ function App() {
                 const j = await api("me");
                 setUser(j.user);
                 setModal("");
-                location.hash = "#cabinet";
+                location.href = "/#cabinet";
               }}
             />
           ) : modal === "brief" ? (
             <Brief
               user={user}
               service={selected}
+              context={briefContext}
               onSuccess={() => {
                 setModal("");
                 window.dispatchEvent(new Event("overtake:leads"));
@@ -805,159 +325,6 @@ function App() {
         </div>
       )}
     </MotionConfig>
-  );
-}
-function HeroArt({ paused }: { paused: boolean }) {
-  return <WebsiteBook globalPaused={paused} />;
-}
-const concepts: Project[] = [
-  {
-    title: "AURA Studio",
-    category: "Сайты",
-    description:
-      "Концепция сайта архитектурного бюро: выразительная типографика, пространственная композиция и знакомство с проектами студии.",
-  },
-  {
-    title: "Flow CRM",
-    category: "CRM-системы",
-    description:
-      "Концепция рабочего пространства для команды: сделки, клиенты и задачи без лишних переключений.",
-  },
-  {
-    title: "Pulse Bot",
-    category: "Telegram-боты",
-    description:
-      "Концепция Telegram-бота для записи: выбор услуги, удобного времени и подтверждение визита.",
-  },
-];
-function ProjectVisual({ index = 0 }: { index?: number }) {
-  return index % 3 === 0 ? (
-    <div className="portfolio-web-page">
-      <WebsitePage index={0} />
-    </div>
-  ) : index % 3 === 1 ? (
-    <div className="mock-crm">
-      <div className="mock-sidebar">
-        <b>f /</b>
-        <span>Обзор</span>
-        <span>Сделки</span>
-        <span>Контакты</span>
-        <span>Задачи</span>
-      </div>
-      <div className="mock-crm-body">
-        <div className="mock-crm-title">
-          Обзор <span>Этот месяц ⌄</span>
-        </div>
-        <div className="mock-stats">
-          <div>
-            Выручка<b>1 280 000 ₽</b>
-            <small>↑ 18,6%</small>
-          </div>
-          <div>
-            Новые сделки<b>24</b>
-            <small>↑ 12,4%</small>
-          </div>
-        </div>
-        <div className="chart-label">Динамика продаж</div>
-        <div className="bar-chart">
-          {[30, 45, 37, 60, 48, 70, 65, 83, 72, 90, 79, 100].map((h, i) => (
-            <i key={i} style={{ height: h + "%" }} />
-          ))}
-        </div>
-      </div>
-    </div>
-  ) : (
-    <div className="mock-bot">
-      <div className="phone">
-        <div className="phone-notch" />
-        <div className="phone-title">
-          <span>p</span>
-          <b>
-            Pulse Bot<small>бот</small>
-          </b>
-          <i>⋮</i>
-        </div>
-        <div className="chat-bubble">
-          Привет! Давайте найдём
-          <br />
-          время для вашей записи 👋
-        </div>
-        <div className="chat-bubble right">Хочу записаться</div>
-        <div className="chat-bubble">Отлично! Выберите услугу:</div>
-        <div className="chat-buttons">
-          <span>Консультация　↗</span>
-          <span>Первая встреча　↗</span>
-          <span>Мои записи　↗</span>
-        </div>
-      </div>
-      <span className="bot-caption">
-        <Send size={17} /> Всегда на связи.
-      </span>
-    </div>
-  );
-}
-function Portfolio({
-  projects,
-  onSelect,
-}: {
-  projects: Project[];
-  onSelect: (p: Project) => void;
-}) {
-  const [filter, setFilter] = useState("Все");
-  const list = projects.length ? projects : concepts;
-  const cats = ["Все", ...new Set(list.map((p) => p.category))];
-  return (
-    <>
-      <div className="filters" aria-label="Категории проектов">
-        {cats.map((c) => (
-          <button
-            key={c}
-            className={filter === c ? "active" : ""}
-            onClick={() => setFilter(c)}
-          >
-            {c}
-            {c === "Все" && (
-              <span>{list.length.toString().padStart(2, "0")}</span>
-            )}
-          </button>
-        ))}
-      </div>
-      <div className="portfolio-grid">
-        {list.map((p, i) =>
-          filter !== "Все" && p.category !== filter ? null : (
-            <Reveal key={p.title} delay={i * 0.05}>
-              <button
-                className={"project-card project-" + (i % 3)}
-                onClick={() => onSelect(p)}
-              >
-                <div className="project-image">
-                  <div className="portfolio-hover">
-                    {p.image ? (
-                      <img
-                        src={p.image}
-                        alt={"Интерфейс " + p.title}
-                        loading="lazy"
-                      />
-                    ) : (
-                      <ProjectVisual index={i} />
-                    )}
-                  </div>
-                  <span className="project-open">
-                    <ArrowUpRight size={22} />
-                  </span>
-                </div>
-                <div className="project-info">
-                  <h3>{p.title}</h3>
-                  <span>
-                    {p.category} / {projects.length ? "Проект" : "Концепт"}
-                  </span>
-                </div>
-              </button>
-            </Reveal>
-          ),
-        )}
-      </div>
-    </>
   );
 }
 function CaseDetail({
@@ -1100,7 +467,7 @@ function Auth({ onSuccess }: { onSuccess: () => void }) {
           const f = Object.fromEntries(new FormData(e.currentTarget));
           try {
             if (tab === "register") {
-              await api("register", { ...f, consent: !!f.consent });
+              await api("register", { ...f, consent: !!f.consent, consentVersion: LEGAL_VERSION });
               setInfo(
                 "Аккаунт создан. Теперь войдите с вашей почтой и паролем.",
               );
@@ -1140,11 +507,7 @@ function Auth({ onSuccess }: { onSuccess: () => void }) {
         {tab === "register" && (
           <>
             <small className="muted">Не менее 10 символов.</small>
-            <label className="checkbox">
-              <input type="checkbox" name="consent" required />
-              Согласен на обработку данных для создания аккаунта. Сайт находится
-              на этапе подготовки к запуску.
-            </label>
+            <ConsentLabel purpose="для создания аккаунта" />
           </>
         )}
         {info && (
@@ -1181,10 +544,12 @@ function Auth({ onSuccess }: { onSuccess: () => void }) {
 function Brief({
   user,
   service,
+  context = "",
   onSuccess,
 }: {
   user: User | null;
   service: string;
+  context?: string;
   onSuccess: () => void;
 }) {
   const [error, setError] = useState(""),
@@ -1197,7 +562,7 @@ function Brief({
         setError("");
         const f = Object.fromEntries(new FormData(e.currentTarget));
         try {
-          await api("leads", { ...f, consent: !!f.consent });
+          await api("leads", { ...f, description: context ? context + "\n\nЗадача клиента:\n" + String(f.description) : f.description, consent: !!f.consent, consentVersion: LEGAL_VERSION });
           onSuccess();
         } catch (e) {
           setError((e as Error).message);
@@ -1207,6 +572,7 @@ function Brief({
       }}
     >
       <p className="muted">Не нужно готовое ТЗ. Начнём с вашей идеи.</p>
+      {context && <div className="pricing-brief-context"><b>Вы выбрали</b><p>{context}</p></div>}
       <div className="form-grid">
         <label>
           Как вас зовут
@@ -1232,6 +598,7 @@ function Brief({
       <label>
         Что нужно сделать
         <select name="service" defaultValue={service}>
+          {!services.some(s => s.name === service) && <option value={service}>{service}</option>}
           {services.map((s) => (
             <option key={s.name}>{s.name}</option>
           ))}
@@ -1244,15 +611,11 @@ function Brief({
           placeholder="Что хотите создать и какую задачу это должно решить?"
           required
           minLength={10}
-          maxLength={5000}
+          maxLength={context ? 4000 : 5000}
           rows={4}
         />
       </label>
-      <label className="checkbox">
-        <input type="checkbox" required name="consent" />
-        Согласен на обработку имени, контакта и описания задачи для ответа на
-        обращение.
-      </label>
+      <ConsentLabel purpose="для ответа на обращение и обсуждения проекта" />
       {!user && (
         <p className="form-note">
           Для отслеживания проекта в кабинете войдите до отправки заявки. Без
@@ -1272,709 +635,8 @@ function Brief({
     </form>
   );
 }
-function Dashboard({
-  user,
-  content,
-  setContent,
-  order,
-  login,
-  logout,
-  notify,
-}: {
-  user: User | null;
-  content: Content;
-  setContent: (c: Content) => void;
-  order: () => void;
-  login: () => void;
-  logout: () => void;
-  notify: (s: string) => void;
-}) {
-  const [tab, setTab] = useState("overview"),
-    [leads, setLeads] = useState<Lead[]>([]),
-    [selected, setSelected] = useState<Lead | null>(null),
-    [error, setError] = useState("");
-  const refresh = () =>
-    api("leads")
-      .then((j) => {
-        setLeads(j.leads);
-        setSelected((old) =>
-          old ? j.leads.find((l: Lead) => l.id === old.id) || null : null,
-        );
-      })
-      .catch((e) => setError(e.message));
-  useEffect(() => {
-    if (user) refresh();
-    const update = () => {
-      if (user) refresh();
-    };
-    window.addEventListener("overtake:leads", update);
-    return () => window.removeEventListener("overtake:leads", update);
-  }, [user, tab]);
-  const admin = user?.role === "admin";
-  if (!user)
-    return (
-      <main className="cabinet-login">
-        <LockKeyhole size={36} />
-        <h1>Ваше рабочее пространство</h1>
-        <p>Войдите, чтобы видеть свои проекты и общаться с командой.</p>
-        <button className="btn purple" onClick={login}>
-          Войти в кабинет <ArrowRight size={18} />
-        </button>
-      </main>
-    );
-  const tabs = [
-    { id: "overview", label: "Обзор", icon: LayoutDashboard },
-    {
-      id: "projects",
-      label: admin ? "Заявки и проекты" : "Мои проекты",
-      icon: FolderOpen,
-    },
-    { id: "documents", label: "Документы", icon: FileText },
-    ...(admin
-      ? [
-          { id: "calculator", label: "Калькулятор", icon: Calculator },
-          { id: "content", label: "Управление сайтом", icon: Settings },
-        ]
-      : []),
-    { id: "profile", label: "Профиль", icon: Users },
-  ];
-  return (
-    <main className="dashboard" id="main">
-      <aside className="dashboard-sidebar">
-        <span className="eyebrow muted">
-          {admin ? "ПРОСТРАНСТВО КОМАНДЫ" : "ЛИЧНЫЙ КАБИНЕТ"}
-        </span>
-        <nav>
-          {tabs.map((t) => (
-            <button
-              className={tab === t.id ? "active" : ""}
-              key={t.id}
-              onClick={() => {
-                setTab(t.id);
-                setSelected(null);
-              }}
-            >
-              <t.icon size={18} />
-              {t.label}
-            </button>
-          ))}
-        </nav>
-        <button className="logout" onClick={logout}>
-          <LogOut size={17} /> Выйти
-        </button>
-      </aside>
-      <div className="dashboard-main">
-        <div className="dashboard-heading">
-          <div>
-            <span className="eyebrow muted">
-              OVERTAKE / {admin ? "КОМАНДА" : "КАБИНЕТ"}
-            </span>
-            <h1>
-              {tab === "overview"
-                ? `Здравствуйте, ${user.name}.`
-                : tabs.find((t) => t.id === tab)?.label}
-            </h1>
-            <p className="muted">Ваш следующий большой шаг начинается здесь.</p>
-          </div>
-          <button className="btn purple" onClick={order}>
-            Новая заявка <Plus size={17} />
-          </button>
-        </div>
-        {error && <p className="error">{error}</p>}
-        {tab === "overview" && (
-          <>
-            <div className="dashboard-stats">
-              <div>
-                <FolderOpen size={20} />
-                <span>Всего проектов</span>
-                <b>{leads.length}</b>
-              </div>
-              <div>
-                <Clock size={20} />
-                <span>В работе</span>
-                <b>
-                  {
-                    leads.filter(
-                      (l) =>
-                        !["Завершён", "Заявка получена"].includes(l.status),
-                    ).length
-                  }
-                </b>
-              </div>
-              <div>
-                <CheckCircle2 size={20} />
-                <span>Завершено</span>
-                <b>{leads.filter((l) => l.status === "Завершён").length}</b>
-              </div>
-            </div>
-            <h3>Последние проекты</h3>
-          </>
-        )}
-        {["overview", "projects"].includes(tab) &&
-          (selected ? (
-            <ProjectPanel
-              lead={selected}
-              admin={admin}
-              back={() => setSelected(null)}
-              refresh={refresh}
-            />
-          ) : leads.length ? (
-            <div className="lead-list">
-              {leads.map((l) => (
-                <button
-                  className="lead-row"
-                  key={l.id}
-                  onClick={() => setSelected(l)}
-                >
-                  <span className="lead-icon">
-                    <Layers size={22} />
-                  </span>
-                  <span>
-                    <b>{l.service}</b>
-                    <small>
-                      {admin
-                        ? l.name
-                        : new Date(l.created).toLocaleDateString("ru-RU")}
-                    </small>
-                  </span>
-                  <span className="tag-purple">{l.status}</span>
-                  <span>{l.price ? money(l.price) : "Оценка готовится"}</span>
-                  <ArrowUpRight size={19} />
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state">
-              <FolderOpen size={36} />
-              <h3>Здесь начнётся ваша история</h3>
-              <p>
-                Отправьте первую заявку. Её статус и обсуждение появятся здесь.
-              </p>
-              <button className="btn dark" onClick={order}>
-                Обсудить проект <ArrowUpRight size={17} />
-              </button>
-            </div>
-          ))}
-        {tab === "documents" && (
-          <div className="empty-state">
-            <FileText size={36} />
-            <h3>Документы по проектам</h3>
-            <p>
-              Раздел подготовлен для договоров, счетов и актов.
-              <br />
-              Загрузка файлов и электронное подписание пока не подключены.
-              <br />
-              Документы согласуются с командой отдельно.
-            </p>
-          </div>
-        )}
-        {tab === "calculator" && admin && <Estimate notify={notify} />}{" "}
-        {tab === "content" && admin && (
-          <ContentEditor
-            content={content}
-            save={(c) => {
-              setContent(c);
-              notify("Содержимое сайта сохранено");
-            }}
-          />
-        )}
-        {tab === "profile" && (
-          <form
-            className="profile-form"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              try {
-                await api(
-                  "profile",
-                  Object.fromEntries(new FormData(e.currentTarget)),
-                  "PUT",
-                );
-                notify(
-                  "Имя сохранено. Обновите страницу, чтобы увидеть изменения в приветствии.",
-                );
-              } catch (e) {
-                notify((e as Error).message);
-              }
-            }}
-          >
-            <label>
-              Имя
-              <input name="name" required defaultValue={user.name} />
-            </label>
-            <label>
-              Электронная почта
-              <input value={user.email} readOnly />
-            </label>
-            <p className="muted">Роль: {admin ? "администратор" : "клиент"}</p>
-            <button className="btn purple">
-              Сохранить изменения <Check size={17} />
-            </button>
-            {!admin && (
-              <details className="setup-details">
-                <summary>
-                  Настройка агентства <ChevronDown size={16} />
-                </summary>
-                <p className="muted">
-                  Только для основателей. Используйте одноразовый ключ
-                  настройки.
-                </p>
-                <input
-                  id="admin-key"
-                  aria-label="Ключ настройки"
-                  type="password"
-                  autoComplete="off"
-                />
-                <button
-                  type="button"
-                  className="btn dark"
-                  onClick={async () => {
-                    try {
-                      await api("admin/claim", {
-                        key: (
-                          document.getElementById(
-                            "admin-key",
-                          ) as HTMLInputElement
-                        ).value,
-                      });
-                      location.reload();
-                    } catch (e) {
-                      notify((e as Error).message);
-                    }
-                  }}
-                >
-                  Активировать кабинет команды
-                </button>
-              </details>
-            )}
-          </form>
-        )}
-      </div>
-    </main>
-  );
-}
-function ProjectPanel({
-  lead,
-  admin,
-  back,
-  refresh,
-}: {
-  lead: Lead;
-  admin: boolean;
-  back: () => void;
-  refresh: () => void;
-}) {
-  const [messages, setMessages] = useState<
-      {
-        id: string;
-        name: string;
-        text: string;
-        created: string;
-        role: string;
-      }[]
-    >([]),
-    [error, setError] = useState(""),
-    [busy, setBusy] = useState(false);
-  const load = () =>
-    api("leads/" + lead.id + "/messages")
-      .then((j) => setMessages(j.messages))
-      .catch((e) => setError(e.message));
-  useEffect(() => {
-    load();
-  }, [lead.id]);
-  return (
-    <div className="project-panel">
-      <button className="text-link" onClick={back}>
-        ← Все проекты
-      </button>
-      <div className="panel-title">
-        <h2>{lead.service}</h2>
-        <span className="tag-purple">{lead.status}</span>
-      </div>
-      <p className="project-description">{lead.description}</p>
-      <div className="project-facts">
-        <span>
-          Стоимость<b>{lead.price ? money(lead.price) : "После обсуждения"}</b>
-        </span>
-        <span>
-          Срок<b>{lead.due || "На согласовании"}</b>
-        </span>
-        {admin && (
-          <span>
-            Контакт<b>{lead.contact}</b>
-          </span>
-        )}
-      </div>
-      {admin && (
-        <form
-          className="admin-project-form"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            try {
-              const f = Object.fromEntries(new FormData(e.currentTarget));
-              await api(
-                "leads/" + lead.id,
-                { ...f, price: Number(f.price) },
-                "PATCH",
-              );
-              refresh();
-            } catch (e) {
-              setError((e as Error).message);
-            }
-          }}
-        >
-          <label>
-            Статус
-            <select name="status" defaultValue={lead.status}>
-              {statuses.map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Согласованная стоимость, ₽
-            <input
-              type="number"
-              min="0"
-              step="1"
-              name="price"
-              defaultValue={lead.price}
-            />
-          </label>
-          <label>
-            Согласованный срок
-            <input
-              name="due"
-              defaultValue={lead.due}
-              placeholder="Например, 20 декабря"
-            />
-          </label>
-          <button className="btn dark">Сохранить</button>
-        </form>
-      )}
-      <h3>Обсуждение проекта</h3>
-      <div className="messages">
-        {messages.length ? (
-          messages.map((m) => (
-            <div
-              className={"message " + (m.role === "admin" ? "team" : "")}
-              key={m.id}
-            >
-              <b>
-                {m.name} {m.role === "admin" && <small>· Команда</small>}
-              </b>
-              <p>{m.text}</p>
-              <time>{new Date(m.created).toLocaleString("ru-RU")}</time>
-            </div>
-          ))
-        ) : (
-          <p className="muted">
-            Сообщений пока нет. Здесь можно уточнить детали проекта.
-          </p>
-        )}
-      </div>
-      <form
-        className="message-form"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          const form = e.currentTarget;
-          setBusy(true);
-          try {
-            await api(
-              "leads/" + lead.id + "/messages",
-              Object.fromEntries(new FormData(form)),
-            );
-            form.reset();
-            await load();
-          } catch (e) {
-            setError((e as Error).message);
-          } finally {
-            setBusy(false);
-          }
-        }}
-      >
-        <label>
-          Сообщение
-          <textarea
-            name="text"
-            required
-            maxLength={3000}
-            rows={3}
-            placeholder="Напишите команде…"
-          />
-        </label>
-        <button className="btn purple" disabled={busy}>
-          Отправить <Send size={17} />
-        </button>
-      </form>
-      {error && <p className="error">{error}</p>}
-    </div>
-  );
-}
-function Estimate({ notify }: { notify: (s: string) => void }) {
-  const [hours, setHours] = useState(40),
-    [rate, setRate] = useState(2000),
-    [factor, setFactor] = useState(1),
-    [costs, setCosts] = useState(0),
-    [margin, setMargin] = useState(25),
-    [discount, setDiscount] = useState(0),
-    [title, setTitle] = useState("Новый проект"),
-    [saved, setSaved] = useState<
-      { id: string; title: string; total: number }[]
-    >([]);
-  const total = Math.max(
-    0,
-    Math.round(
-      (hours * rate * factor + costs) *
-        (1 + margin / 100) *
-        (1 - discount / 100),
-    ),
-  );
-  const load = () => api("estimates").then((j) => setSaved(j.estimates));
-  useEffect(() => {
-    load();
-  }, []);
-  return (
-    <div className="estimate">
-      <p className="notice">
-        <LockKeyhole size={17} /> Внутренний инструмент. Клиенты не видят
-        расчёты и себестоимость.
-      </p>
-      <div className="estimate-grid">
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            try {
-              await api("estimates", {
-                title,
-                total,
-                data: { hours, rate, factor, costs, margin, discount },
-              });
-              notify("Расчёт сохранён");
-              load();
-            } catch (e) {
-              notify((e as Error).message);
-            }
-          }}
-        >
-          <label>
-            Название проекта
-            <input
-              value={title}
-              required
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </label>
-          <div className="form-grid">
-            {[
-              { name: "Трудозатраты, часов", v: hours, set: setHours, min: 1 },
-              { name: "Ставка, ₽ / час", v: rate, set: setRate, min: 0 },
-              {
-                name: "Сложность / срочность",
-                v: factor,
-                set: setFactor,
-                min: 1,
-                step: 0.1,
-              },
-              { name: "Внешние расходы, ₽", v: costs, set: setCosts, min: 0 },
-              { name: "Наценка, %", v: margin, set: setMargin, min: 0 },
-              {
-                name: "Скидка, %",
-                v: discount,
-                set: setDiscount,
-                min: 0,
-                max: 100,
-              },
-            ].map((f) => (
-              <label key={f.name}>
-                {f.name}
-                <input
-                  type="number"
-                  value={f.v}
-                  min={f.min}
-                  max={f.max}
-                  step={f.step || 1}
-                  required
-                  onChange={(e) => f.set(Number(e.target.value))}
-                />
-              </label>
-            ))}
-          </div>
-          <button className="btn purple">
-            Сохранить расчёт <Check size={17} />
-          </button>
-        </form>
-        <div className="estimate-result">
-          <span className="eyebrow muted">ИТОГОВАЯ СТОИМОСТЬ</span>
-          <h2>{money(total)}</h2>
-          <p>Затраты: {money(hours * rate * factor + costs)}</p>
-          <p className="muted">
-            Расчёт предварительный. Стоимость для клиента фиксируется после
-            согласования.
-          </p>
-          <button
-            className="btn dark"
-            onClick={() => {
-              const text = `OVERTAKE — коммерческое предложение\n${title}\nПредварительная стоимость: ${money(total)}\nСостав работ и сроки согласуются отдельно.\n`;
-              const u = URL.createObjectURL(
-                new Blob([text], { type: "text/plain;charset=utf-8" }),
-              );
-              const a = document.createElement("a");
-              a.href = u;
-              a.download = "OVERTAKE-предложение.txt";
-              a.click();
-              setTimeout(() => URL.revokeObjectURL(u), 1000);
-            }}
-          >
-            <Download size={17} /> Скачать предложение
-          </button>
-        </div>
-      </div>
-      <h3>Сохранённые расчёты</h3>
-      {saved.map((s) => (
-        <div className="saved-estimate" key={s.id}>
-          <span>{s.title}</span>
-          <b>{money(s.total)}</b>
-        </div>
-      ))}
-    </div>
-  );
-}
-function ContentEditor({
-  content,
-  save,
-}: {
-  content: Content;
-  save: (c: Content) => void;
-}) {
-  const [draft, setDraft] = useState<Content>(structuredClone(content)),
-    [error, setError] = useState("");
-  return (
-    <form
-      className="content-editor"
-      onSubmit={async (e) => {
-        e.preventDefault();
-        try {
-          await api("content", draft, "PUT");
-          save(draft);
-        } catch (e) {
-          setError((e as Error).message);
-        }
-      }}
-    >
-      <h3>Контакты и реквизиты</h3>
-      <div className="form-grid">
-        {[
-          ["email", "Электронная почта"],
-          ["address", "Адрес офиса"],
-          ["legal", "Реквизиты ИП"],
-        ].map(([key, label]) => (
-          <label key={key}>
-            {label}
-            <input
-              value={draft.contacts[key] || ""}
-              onChange={(e) =>
-                setDraft({
-                  ...draft,
-                  contacts: { ...draft.contacts, [key]: e.target.value },
-                })
-              }
-            />
-          </label>
-        ))}
-      </div>
-      <h3>Публичные цены</h3>
-      <p className="muted">
-        Оставьте поле пустым, чтобы показать «Стоимость после обсуждения».
-      </p>
-      <div className="form-grid">
-        {services.map((s) => (
-          <label key={s.name}>
-            {s.name}
-            <input
-              value={draft.prices[s.name] || ""}
-              placeholder="Например, от 80 000 ₽"
-              onChange={(e) =>
-                setDraft({
-                  ...draft,
-                  prices: { ...draft.prices, [s.name]: e.target.value },
-                })
-              }
-            />
-          </label>
-        ))}
-      </div>
-      <h3>Реальные проекты</h3>
-      <p className="muted">
-        После добавления работ они заменят демонстрационные концепты. Публикуйте
-        только согласованные материалы.
-      </p>
-      {draft.projects.map((p, i) => (
-        <div className="editor-project" key={i}>
-          {(["title", "category", "description", "url", "image"] as const).map(
-            (key, k) => (
-              <label key={key}>
-                {
-                  [
-                    "Название",
-                    "Категория",
-                    "Описание",
-                    "Ссылка (https://)",
-                    "Изображение (https://)",
-                  ][k]
-                }
-                <input
-                  value={p[key] || ""}
-                  required={k < 3}
-                  onChange={(e) =>
-                    setDraft({
-                      ...draft,
-                      projects: draft.projects.map((v, j) =>
-                        i === j ? { ...v, [key]: e.target.value } : v,
-                      ),
-                    })
-                  }
-                />
-              </label>
-            ),
-          )}
-          <button
-            type="button"
-            className="text-link"
-            onClick={() =>
-              setDraft({
-                ...draft,
-                projects: draft.projects.filter((_, j) => i !== j),
-              })
-            }
-          >
-            Удалить проект <X size={16} />
-          </button>
-        </div>
-      ))}
-      <button
-        type="button"
-        className="btn light"
-        onClick={() =>
-          setDraft({
-            ...draft,
-            projects: [
-              ...draft.projects,
-              { title: "", category: "Сайты", description: "" },
-            ],
-          })
-        }
-      >
-        Добавить проект <Plus size={17} />
-      </button>
-      {error && <p className="error">{error}</p>}
-      <button className="btn purple">
-        Сохранить содержимое <Check size={17} />
-      </button>
-    </form>
-  );
-}
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <App />
+    <LoadBoundary><App /></LoadBoundary>
   </React.StrictMode>,
 );

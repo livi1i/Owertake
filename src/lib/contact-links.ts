@@ -1,0 +1,2 @@
+export function contactEmail(value:string){const email=value.trim();return /^[^\s<>;,]+@[^\s<>;,]+\.[^\s<>;,]+$/.test(email)?'mailto:'+encodeURIComponent(email):null;}
+export function contactTelegram(value:string){let name=value.trim();if(name.startsWith('https://t.me/'))name=name.slice(13);if(name.startsWith('@'))name=name.slice(1);return /^[A-Za-z0-9_]{1,64}$/.test(name)?'https://t.me/'+name:null;}

@@ -1,0 +1,18 @@
+[
+  {
+    "title": "AMORETERNO",
+    "slug": "amoreterno",
+    "category": "Сайты",
+    "url": "https://amoreterno.ru/#lead",
+    "description": "Сайт студии свадебных приглашений: коллекция дизайнов, примеры и обращение в студию.",
+    "confirmed": true
+  },
+  {
+    "title": "Холодилка",
+    "slug": "holodilka",
+    "category": "Сайты",
+    "url": "https://holodilka60.ru/",
+    "description": "Каталог холодильного оборудования и комплектующих: поиск товаров и информация о сервисе в Пскове.",
+    "confirmed": true
+  }
+]

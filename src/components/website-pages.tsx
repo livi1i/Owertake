@@ -55,7 +55,7 @@ export function WebsitePage({ index }: { index: number }) {
             <h3>
               За пределами
               <br />
-              <em>привычного.</em>
+              <em>привычного</em>
             </h3>
             <div className="architecture">
               <div className="arch-building b-one" />
@@ -87,9 +87,9 @@ export function WebsitePage({ index }: { index: number }) {
           <div className="orbit-body">
             <span className="design-kicker">YOUR MONEY. YOUR UNIVERSE.</span>
             <h3>
-              Финансы.
+              Финансы
               <br />
-              <em>Без границ.</em>
+              <em>Без границ</em>
             </h3>
             <p>Больше свободы для больших идей.</p>
             <div className="finance-art">
@@ -120,7 +120,7 @@ export function WebsitePage({ index }: { index: number }) {
             <h3>
               В твоём
               <br />
-              <em>ритме.</em>
+              <em>ритме</em>
             </h3>
             <div className="form-ribbon">
               <i />
