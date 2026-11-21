@@ -660,7 +660,7 @@ function ContentEditor({
       </div>
       <h3>Публичные цены</h3>
       <p className="muted">Укажите сумму в рублях. Пустое поле возвращает цену из исходной таблицы. Период оплаты и состав работ указаны в прайсе.</p>
-      {defaultAgencyServices.map(service => {
+      {[...defaultAgencyServices,{slug:"extra-work",name:"Дополнительные работы"}].map(service => {
         const offers = offersFor(service.slug);
         if (!offers.length) return null;
         return <details key={service.slug} className="operator-price-group">

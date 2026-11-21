@@ -1,21 +1,107 @@
-import React,{useEffect,useState} from 'react';
-import {ArrowLeft,ArrowUpRight,Check,Download,Printer,SlidersHorizontal,RotateCcw} from 'lucide-react';
+import {useEffect,useRef,useState} from 'react';
+import {ArrowLeft,ArrowUpRight,Bolt,Calculator,Check} from 'lucide-react';
 import {mergeServices,serviceCategories,servicesRequest,type AgencyService} from '../lib/services';
-import {projectSchema,normalizeProject,projectSummary,complexities,urgencies,type ProjectOptions} from '../lib/project-config';
+import {offerPrice,type PriceOverrides} from '../lib/public-prices';
+import {buildProjectQuote,designLevels,projectPresets,type DesignLevel} from '../lib/project-quote';
+import {LeadSection,type LeadPrefill} from './lead-section';
 import './project-calculator.css';
-import {offersFor, offerPrice, type PriceOverrides} from '../lib/public-prices';
-const initial:ProjectOptions={volume:1,complexity:complexities[0],urgency:urgencies[0],features:[]};
-export function ProjectCalculator({order,prices}:{order:(name:string,context?:string)=>void;prices:PriceOverrides}){
- const [items,setItems]=useState<AgencyService[]>([]),[slug,setSlug]=useState(''),[offerCode,setOfferCode]=useState(''),[options,setOptions]=useState<ProjectOptions>(initial),[loading,setLoading]=useState(true),[error,setError]=useState(''),[notice,setNotice]=useState('');
- const service=items.find(s=>s.slug===slug),schema=projectSchema(service?.category||'');
- const load=()=>{setLoading(true);setError('');servicesRequest().then(j=>{const list=mergeServices(j.services).filter(s=>!['Скрыта','Временно недоступна'].includes(s.status));setItems(list);const params=new URLSearchParams(location.search);const desired=params.get('service');setOfferCode(params.get('offer') || '');setSlug(list.find(s=>s.slug===desired)?.slug||list[0]?.slug||'');setOptions(initial);}).catch(e=>setError(e.message)).finally(()=>setLoading(false));};
- useEffect(()=>{load();},[]);
- const changeService=(next:string)=>{setSlug(next);setOfferCode('');setOptions(initial);setNotice('');};
- const update=(next:Partial<ProjectOptions>)=>{setOptions(normalizeProject(service?.category||'',{...options,...next}));setNotice('');};
- const variants = offersFor(slug, prices);
- const offer = variants.find(item => item.code === offerCode) || variants[0];
- const estimate = offer ? `${offerPrice(offer)} · ${offer.name}. ${offer.scope}` : undefined;
- const summary=service?projectSummary(service,options,estimate):'';
- const download=()=>{const blob=new Blob([summary],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='OVERTAKE-project.txt';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);setNotice('Состав проекта подготовлен для скачивания');};
- return <main id="main" className="project-calculator"><a className="catalog-back" href="/pricing"><ArrowLeft size={17}/> Стоимость и форматы работы</a><div className="config-heading"><div><span className="catalog-kicker">OVERTAKE / КАЛЬКУЛЯТОР ПРОЕКТА</span><h1>Соберём задачу<br/><span>по деталям</span></h1></div><p>Выберите направление и функции. Команда получит понятный состав проекта для подготовки индивидуальной сметы.</p></div><div className="config-price-note"><SlidersHorizontal size={21}/><p><b>Базовый ориентир из прайса</b><span>Выберите вариант. Дополнительные функции, объём и срочность команда оценит по заявке.</span></p></div>{loading?<p role="status" className="config-empty">Загружаем услуги…</p>:error?<div className="config-empty" role="alert"><p>{error}</p><button className="btn purple" onClick={load}>Повторить загрузку</button></div>:!service?<div className="config-empty"><h2>Подходящие услуги пока недоступны</h2><a className="btn purple" href="/services">Открыть каталог</a></div>:<div className="config-layout"><div className="config-controls"><section className="config-panel"><div className="config-step"><span>01</span><h2>Направление и услуга</h2></div><label>Направление<select value={service.category} onChange={e=>changeService(items.find(s=>s.category===e.target.value)!.slug)}>{serviceCategories.filter(c=>items.some(s=>s.category===c)).map(c=><option key={c}>{c}</option>)}</select></label><label>Услуга<select value={slug} onChange={e=>changeService(e.target.value)}>{items.filter(s=>s.category===service.category).map(s=><option key={s.slug} value={s.slug}>{s.name}</option>)}</select></label>{offer && <label>Базовый вариант<select value={offer.code} onChange={event => {setOfferCode(event.target.value);setNotice('');}}>{variants.map(item => <option key={item.code} value={item.code}>{item.name}</option>)}</select></label>}<p className="config-hint">{service.description}</p><a className="config-service-link" href={'/services/'+service.slug}>Подробнее об услуге →</a></section><section className="config-panel"><div className="config-step"><span>02</span><h2>Объём и условия</h2></div><label>{schema.unit}<input type="number" inputMode="numeric" min={1} max={100} step={1} value={options.volume} onChange={e=>update({volume:e.target.valueAsNumber})}/></label><p className="config-hint">{schema.hint} Для объёма более 100 единиц укажите подробности в заявке.</p><div className="form-grid"><label>Сложность<select value={options.complexity} onChange={e=>update({complexity:e.target.value})}>{complexities.map(x=><option key={x}>{x}</option>)}</select></label><label>Сроки<select value={options.urgency} onChange={e=>update({urgency:e.target.value})}>{urgencies.map(x=><option key={x}>{x}</option>)}</select></label></div><p className="config-hint">Ускоренный запуск требует подтверждения команды. Сроки здесь не бронируются.</p></section><section className="config-panel"><div className="config-step"><span>03</span><h2>Нужные функции</h2></div><p className="config-hint">Выберите то, что уже известно. Остальное уточним вместе.</p><div className="config-features">{schema.features.map(f=><label key={f}><input type="checkbox" checked={options.features.includes(f)} onChange={e=>update({features:e.target.checked?[...options.features,f]:options.features.filter(x=>x!==f)})}/><span>{f}</span><Check size={16}/></label>)}</div></section></div><aside className="config-summary"><span className="catalog-kicker">ВАШ ПРОЕКТ</span><h2>{service.name}</h2><dl aria-live="polite" aria-atomic="true"><div><dt>{schema.unit}</dt><dd>{options.volume}</dd></div><div><dt>Сложность</dt><dd>{options.complexity}</dd></div><div><dt>Сроки</dt><dd>{options.urgency}</dd></div><div><dt>Функции</dt><dd>{options.features.length?options.features.join(', '):'Уточним при обсуждении'}</dd></div></dl><div className="config-result"><small>Стоимость</small><strong>{offer ? offerPrice(offer) : "Индивидуальная оценка"}</strong><p>{offer?.scope || "Подготовим смету после уточнения требований."}</p>{offer && <p>Базовая цена. Дополнительные параметры оцениваются отдельно.</p>}</div><button className="btn purple full" onClick={()=>order(service.name,summary)}>Передать в заявку <ArrowUpRight size={18}/></button><div className="config-export"><button onClick={download}><Download size={16}/> Скачать состав TXT</button><button onClick={()=>window.print()}><Printer size={16}/> Печать / PDF</button><button onClick={()=>{setOptions(initial);setOfferCode('');setNotice('Параметры сброшены');}}><RotateCcw size={16}/> Сбросить параметры</button></div><p className="config-disclaimer">Перед отправкой можно описать задачу и указать контакты. Выбор параметров не создаёт заказ.</p>{notice&&<p role="status" className="config-hint">{notice}</p>}<div className="config-print-operator">ИП Игнатенко Илья Анатольевич · ИНН 511007182150 · ОГРНИП 325600000016430 · +7 (951) 750-67-00</div></aside></div>}</main>;
+
+export function ProjectCalculator({prices,contacts}:{prices:PriceOverrides;contacts:Record<string,string>}) {
+  const params = new URLSearchParams(location.search);
+  const initialSlug = params.get('service') || 'landing';
+  const initialCode = params.get('offer') || '';
+  const initialPreset = projectPresets.find(item => item.slug === initialSlug && (item.id !== 'redesign' || initialCode === 'OV-015'));
+  const [items,setItems] = useState<AgencyService[]>([]);
+  const [preset,setPreset] = useState<string>(initialPreset?.id || 'other');
+  const [slug,setSlug] = useState(initialSlug);
+  const [code,setCode] = useState(initialCode);
+  const [design,setDesign] = useState<DesignLevel>('current');
+  const [extra,setExtra] = useState<string[]>([]);
+  const [urgent,setUrgent] = useState(false);
+  const [prefill,setPrefill] = useState<LeadPrefill>();
+  const [loading,setLoading] = useState(true);
+  const [error,setError] = useState('');
+  const formAnchor = useRef<HTMLDivElement>(null);
+
+  function load() {
+    setLoading(true);
+    setError('');
+    servicesRequest().then(result => {
+      const available = mergeServices(result.services).filter(item => !['Скрыта','Временно недоступна'].includes(item.status));
+      setItems(available);
+      if (!available.some(item => item.slug === initialSlug)) {
+        setSlug(available[0]?.slug || '');
+        setPreset('other');
+        setCode('');
+      }
+    }).catch(error => setError(error.message)).finally(() => setLoading(false));
+  }
+  useEffect(load,[]);
+
+  const service = items.find(item => item.slug === slug);
+  const quote = buildProjectQuote({slug,preset,code,design,extras:extra,urgent},prices);
+  const adjustableDesign = ['landing','corporate','ecommerce'].includes(slug) || preset === 'redesign';
+
+  function resetFor(next:string) {
+    setSlug(next);
+    setCode('');
+    setDesign('current');
+    setExtra([]);
+  }
+
+  function requestQuote() {
+    const label = projectPresets.find(item => item.id === preset && item.id !== 'other')?.name || service?.name || 'Индивидуальная задача';
+    const description = [
+      `Проект: ${label}`,
+      ...(quote.lines.length ? ['Состав расчёта:',...quote.lines.map(item => `• ${item.name} — ${offerPrice(item)}`)] : []),
+      ...(adjustableDesign ? [`Дизайн: ${designLevels.find(item => item.id === design)?.name}`] : []),
+      `Стоимость: ${quote.totals.join(' + ') || 'по индивидуальной оценке'}`,
+      `Срок: ${quote.timeline}`,
+      'Итоговую смету и дату запуска прошу согласовать.',
+    ].join('\n');
+    setPrefill({service:label,description});
+    formAnchor.current?.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'});
+    formAnchor.current?.querySelector('input')?.focus({preventScroll:true});
+  }
+
+  return <main id="main" className="project-calculator">
+    <a className="catalog-back" href="/pricing"><ArrowLeft size={17}/> Цены</a>
+    <header className="page-banner config-heading" data-enter><div><h1>Сколько стоит<br/>ваш проект?</h1><p>Выберите задачу и функции. Расчёт обновится сразу и перейдёт в заявку вместе с составом работ.</p></div><span className="page-illustration" aria-hidden="true"><Calculator size={52}/></span></header>
+    {loading ? <p role="status" className="config-empty">Загружаем прайс…</p> : error ? <div role="alert" className="config-empty"><p>{error}</p><button className="btn purple" onClick={load}>Повторить</button></div> : <div className="config-layout">
+      <div className="config-controls">
+        <section className="config-panel"><div className="config-step"><span>01</span><h2>Что сделать</h2></div>
+          <div className="quote-pills" aria-label="Тип проекта">{projectPresets.map(item => <button key={item.id} type="button" aria-pressed={preset===item.id}
+            disabled={!!item.slug&&!items.some(service => service.slug === item.slug)} onClick={() => {setPreset(item.id);resetFor(item.slug);}}>{item.name}</button>)}</div>
+          {preset==='other' && <label>Услуга<select value={slug} onChange={event => resetFor(event.target.value)}><option value="">Подбор решения</option>
+            {serviceCategories.map(category => <optgroup key={category} label={category}>{items.filter(item => item.category===category).map(item => <option key={item.slug} value={item.slug}>{item.name}</option>)}</optgroup>)}
+          </select></label>}
+        </section>
+        <section className="config-panel"><div className="config-step"><span>02</span><h2>Объём работ</h2></div>
+          {quote.variants.length ? <div className="quote-pills quote-volume" aria-label="Объём работ">{quote.variants.map(item => <button type="button" key={item.code}
+            aria-pressed={item.code===quote.base?.code} onClick={() => {setCode(item.code);if (item.code==='OV-002') setDesign('current');}}>{item.name}</button>)}</div> : <p>Уточним объём по описанию задачи.</p>}
+          {quote.base && <p className="config-hint">{quote.base.scope}</p>}
+        </section>
+        {adjustableDesign && <section className="config-panel"><div className="config-step"><span>03</span><h2>Дизайн</h2></div>
+          <div className="quote-pills" aria-label="Уровень дизайна">{designLevels.map(item => <button type="button" key={item.id} aria-pressed={design===item.id}
+            onClick={() => setDesign(item.id)}><strong>{item.name}</strong><small>{item.hint}</small></button>)}</div>
+        </section>}
+        {quote.options.length > 0 && <section className="config-panel"><div className="config-step"><span>{adjustableDesign?'04':'03'}</span><h2>Дополнения</h2></div>
+          <div className="quote-extras">{quote.options.map(item => <label key={item.id}>
+            <input type="checkbox" checked={item.included||extra.includes(item.id)} disabled={item.included} onChange={event => setExtra(event.target.checked ? [...extra,item.id] : extra.filter(id => id !== item.id))}/>
+            <span>{item.name}<small>{item.included ? 'Уже в тарифе' : item.offer ? offerPrice(item.offer) : 'По согласованию'}</small></span>
+          </label>)}</div>
+        </section>}
+        <label className="quote-urgent"><input type="checkbox" checked={urgent} onChange={event => setUrgent(event.target.checked)}/><Bolt size={18}/> Нужен срочный запуск</label>
+      </div>
+      <aside className="config-summary">
+        <span className="catalog-kicker">ПРЕДВАРИТЕЛЬНЫЙ РАСЧЁТ</span>
+        <h2>{projectPresets.find(item => item.id === preset && item.id !== 'other')?.name || service?.name || 'Индивидуальный проект'}</h2>
+        <div className="quote-totals" aria-live="polite"><strong>{quote.totals.join(' + ') || 'По согласованию'}</strong><p>{quote.timeline}</p></div>
+        {quote.lines.length>0 && <ul className="quote-lines">{quote.lines.map(item => <li key={item.code}><Check size={15}/><span>{item.name}<small>{offerPrice(item)}</small></span></li>)}</ul>}
+        <p className="config-hint">Это ориентир по прайсу и планированию. Итоговые сроки, объём и стоимость срочного запуска подтвердим после обсуждения.</p>
+        <button className="btn purple full" onClick={requestQuote}><ArrowUpRight size={17}/> Получить расчёт</button>
+      </aside>
+    </div>}
+    <div ref={formAnchor} className="request-anchor"><LeadSection contacts={contacts} prefill={prefill} heading="Отправить расчёт команде"/></div>
+  </main>;
 }

@@ -3,17 +3,11 @@ import {ArrowLeft,ArrowUpRight,Calculator,Check,Printer} from 'lucide-react';
 import {mergeServices,serviceCategories,servicesRequest,type AgencyService} from '../lib/services';
 import {offerPrice,offersFor,type PriceOverrides} from '../lib/public-prices';
 import './pricing-page.css';
+import {packages} from '../lib/project-packages';
+import {LeadSection} from './lead-section';
 
-const packages = [
-  {slug:'landing', code:'OV-003', name:'Лендинг под ключ', audience:'Для запуска продукта или отдельной услуги', included:['До восьми уникальных блоков','Адаптивный дизайн и формы','Базовое SEO']},
-  {slug:'corporate', code:'OV-005', name:'Корпоративный сайт', audience:'Для компании с несколькими направлениями', included:['До десяти типовых страниц','Управление контентом','Адаптивная вёрстка и формы']},
-  {slug:'ecommerce', code:'OV-008', name:'Интернет-магазин', audience:'Для запуска первых продаж онлайн', included:['До 100 товаров импортом','Корзина и оформление заказа','Один способ оплаты и доставки']},
-  {slug:'telegram', code:'OV-191', name:'Telegram для заявок', audience:'Для команды, принимающей обращения в Telegram', included:['Один сценарий до восьми вопросов','Уведомление менеджеру']},
-  {slug:'crm-setup', code:'OV-107', name:'Старт в CRM', audience:'Для небольшого отдела продаж', included:['До пяти пользователей и одна воронка','До десяти полей','Два робота и одна форма']},
-  {slug:'support', code:'OV-287', name:'Поддержка сайта', audience:'Для проекта, который уже работает', included:['Контроль, обновления и резервное копирование','До пяти часов правок в месяц']},
-];
 
-export function PricingPage({order,prices}:{order:(name:string,description?:string)=>void;prices:PriceOverrides}) {
+export function PricingPage({order,prices,contacts}:{order:(name:string,description?:string)=>void;prices:PriceOverrides;contacts:Record<string,string>}) {
   const [items,setItems] = useState<AgencyService[]>([]);
   const [error,setError] = useState('');
   const [loading,setLoading] = useState(true);
@@ -29,14 +23,14 @@ export function PricingPage({order,prices}:{order:(name:string,description?:stri
   };
   useEffect(load,[]);
   useEffect(() => {
-    if (!loading && location.hash === '#formats') document.getElementById('formats')?.scrollIntoView();
+    const anchor=location.hash.slice(1);
+    if (!loading && ['formats','extra-prices','request'].includes(anchor)) document.getElementById(anchor)?.scrollIntoView();
   },[loading]);
 
   return <main id="main" className="pricing-page">
     <a className="catalog-back" href="/services"><ArrowLeft size={17}/> Каталог услуг</a>
-    <div className="pricing-heading">
-      <div><h1>Цены и пакеты услуг</h1><p>Стоимость за базовый объём. Уточним задачу и согласуем смету до начала работ.</p></div>
-      <a className="secondary-panel" href="/calculator"><Calculator size={18}/> Рассчитать стоимость</a>
+    <div className="pricing-heading page-banner" data-enter>
+      <div><h1>Цены и пакеты услуг</h1><p>Стоимость за базовый объём. Согласуем смету до начала работ.</p><a className="secondary-panel" href="/calculator"><Calculator size={18}/> Рассчитать стоимость</a></div><span className="page-illustration" aria-hidden="true"><Calculator size={49}/></span>
     </div>
     {loading && <p role="status">Загружаем прайс…</p>}
     {error && <div className="catalog-empty" role="alert"><p>{error}</p><button className="btn purple" onClick={load}>Повторить загрузку</button></div>}
@@ -66,9 +60,13 @@ export function PricingPage({order,prices}:{order:(name:string,description?:stri
           <button className="pricing-print" type="button" onClick={() => window.print()}><Printer size={16}/> Печать / PDF</button>
         </div>
         <div className="catalog-filters" aria-label="Категории стоимости">
-          {['Все',...serviceCategories].map(item => <button type="button" key={item} aria-pressed={category === item} onClick={() => setCategory(item)}>{item}</button>)}
+          {['Все',...serviceCategories,'Допработы'].map(item => <button type="button" key={item} aria-pressed={category === item} onClick={() => setCategory(item)}>{item}</button>)}
         </div>
         <div className="pricebook">
+          {(category === 'Все' || category === 'Допработы') && <section className="catalog-panel pricebook-group" id="extra-prices">
+            <h3>Дополнительные работы</h3>
+            <ul className="public-offers">{offersFor('extra-work',prices).map(offer => <li key={offer.code}><div><strong>{offer.name}</strong><p>{offer.scope}</p></div><b>{offerPrice(offer)}</b></li>)}</ul>
+          </section>}
           {serviceCategories.filter(item => category === 'Все' || category === item).map(group => {
             const services = items.filter(service => service.category === group);
             if (!services.length) return null;
@@ -99,6 +97,7 @@ export function PricingPage({order,prices}:{order:(name:string,description?:stri
         ['Оплата и правки','Состав результата, порядок согласования правок, приёмку и оплату фиксируем в договоре.'],
       ].map(([question,answer]) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}
     </section>
+    <LeadSection contacts={contacts}/>
     <div className="pricing-print-footer">OVERTAKE · ИП Игнатенко Илья Анатольевич · ИНН 511007182150 · ОГРНИП 325600000016430 · +7 (951) 750-67-00. Цены за базовый объём работ.</div>
   </main>;
 }

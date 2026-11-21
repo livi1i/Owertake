@@ -1,12 +1,40 @@
-import React,{useState} from 'react';
-import {ArrowLeft,ArrowUpRight,Phone,Mail,Send,MapPin,Clock,MessageCircle,FileText,Video,Users} from 'lucide-react';
+import {useState} from 'react';
+import {ArrowLeft,ArrowUpRight,FileText,Mail,MapPin,Phone,Send,Users,Video} from 'lucide-react';
 import {OperatorDetails} from './legal-pages';
 import {contactEmail,contactTelegram} from '../lib/contact-links';
+import {LeadSection} from './lead-section';
+import {OfficeMap} from './office-map';
 import './contacts-page.css';
-export function ContactsPage({contacts,order}:{contacts:Record<string,string>;order:(name:string,context?:string)=>void}){
- const [format,setFormat]=useState('Онлайн');
- const [preferredDate,setPreferredDate]=useState(''),[preferredTime,setPreferredTime]=useState('');
- const email=typeof contacts.email==='string'?contacts.email:'',telegram=typeof contacts.telegram==='string'?contacts.telegram:'',address=typeof contacts.address==='string'?contacts.address:'',hours=typeof contacts.hours==='string'?contacts.hours:'';
- const emailHref=contactEmail(email);const telegramLinks=[telegram,typeof contacts.telegram2==='string'?contacts.telegram2:''].map(value=>({value,href:contactTelegram(value)})).filter(x=>x.href);const officeName=contacts.officeName||'Личная встреча в Пскове';
- return <main className="contacts-page" id="main"><a className="catalog-back" href="/#home"><ArrowLeft size={17}/> На главную</a><div className="contacts-heading"><div><span className="catalog-kicker">OVERTAKE / НА СВЯЗИ</span><h1>Контакты</h1></div><div className="contacts-symbol"><MessageCircle size={48}/></div></div><p className="contacts-intro">Обсудим вашу задачу, подход и следующий шаг. Можно начать с короткого звонка или заполнить бриф.</p><div className="contacts-grid"><section className="contacts-primary"><span className="contacts-icon"><Phone size={23}/></span><span className="catalog-kicker">ПРЯМАЯ СВЯЗЬ</span><h2>Позвоните нам</h2><a className="contacts-phone" href="tel:+79517506700">+7 (951) 750-67-00</a><p>Если удобнее письменно, оставьте контакты и описание задачи в брифе.</p><button className="btn purple" onClick={()=>order('Обсуждение проекта','Запрос со страницы контактов. Нужна обратная связь по задаче.')}>Оставить обращение <ArrowUpRight size={18}/></button></section><section className="contacts-channels" aria-label="Дополнительные каналы связи"><div><span className="contacts-icon"><Mail size={20}/></span><label>Email{emailHref?<a href={emailHref}>{email}</a>:<input aria-label="Email агентства" readOnly value="" placeholder="Пока не указан"/>}</label></div><div><span className="contacts-icon"><Send size={20}/></span><label>Telegram{telegramLinks.length?<span className="contacts-telegram-links">{telegramLinks.map(x=><a key={x.value} href={x.href!} target="_blank" rel="noopener noreferrer">{x.value} <ArrowUpRight size={14}/></a>)}</span>:<input aria-label="Telegram агентства" readOnly value="" placeholder="Пока не указан"/>}</label></div><p>Выберите удобный канал связи или отправьте обращение через бриф.</p></section></div><div className="contacts-lower"><section className="contacts-panel"><div className="contacts-panel-title"><MapPin size={23}/><h2>{officeName}</h2></div><p>Место и время встречи нужно предварительно согласовать. Не приезжайте без подтверждения команды.</p><label>Адрес офиса{address?<span className="contacts-office-address">{address}</span>:<input readOnly value="" placeholder="Пока не указан"/>}</label><label><span className="contacts-field-title"><Clock size={15}/> Часы приёма</span><input readOnly value={hours} placeholder="Пока не указаны"/></label>{address?<a className="contacts-route" href={'https://yandex.ru/maps/?text='+encodeURIComponent(address)} target="_blank" rel="noopener noreferrer">Открыть адрес в Яндекс Картах <ArrowUpRight size={16}/></a>:<div className="contacts-map-note"><MapPin size={20}/><p>Адрес и карта появятся после подтверждения места встреч.</p></div>}</section><section className="contacts-panel contacts-meeting"><div className="contacts-panel-title"><Video size={23}/><h2>Обсудить проект вместе</h2></div><p>Выберите удобный формат и укажите желаемое время по Москве. Команда свяжется с вами и подтвердит встречу.</p><fieldset><legend>Формат встречи</legend>{['Онлайн','В офисе','У заказчика'].map((x,i)=><label key={x}><input type="radio" name="meeting-format" checked={format===x} onChange={()=>setFormat(x)}/>{i===0?<Video size={18}/>:<Users size={18}/>}<span>{x}</span></label>)}</fieldset><div className="form-grid"><label>Желаемая дата<input type="date" value={preferredDate} onChange={event=>setPreferredDate(event.target.value)}/></label><label>Желаемое время<input type="time" value={preferredTime} onChange={event=>setPreferredTime(event.target.value)}/></label></div><button className="btn purple full" onClick={()=>order('Консультация по проекту',`Запрос консультации. Формат: ${format}.${preferredDate ? ' Желаемая дата: '+preferredDate+'.' : ''}${preferredTime ? ' Желаемое время по Москве: '+preferredTime+'.' : ''} Место и время требуют подтверждения командой.`)}>Запросить консультацию <ArrowUpRight size={18}/></button><small>Это запрос на обсуждение, а не подтверждённая запись.</small></section></div><section className="contacts-legal"><div><span className="catalog-kicker">ОФИЦИАЛЬНО И ПРОЗРАЧНО</span><h2>Реквизиты исполнителя</h2><p>Состав работ, стоимость, сроки и порядок оплаты согласуются в индивидуальном договоре.</p><a href="/legal"><FileText size={17}/> Реквизиты и документы <ArrowUpRight size={15}/></a></div><OperatorDetails/></section><a className="catalog-home-link" href="/faq">Вопросы о сотрудничестве <ArrowUpRight size={17}/></a></main>;
+
+export function ContactsPage({contacts,order}:{contacts:Record<string,string>;order:(name:string,context?:string)=>void}) {
+  const [format,setFormat] = useState('Онлайн');
+  const [date,setDate] = useState('');
+  const [time,setTime] = useState('');
+  const email = contactEmail(contacts.email || '');
+  const telegram = [contacts.telegram,contacts.telegram2].flatMap(value => {
+    const url = contactTelegram(value || '');
+    return url ? [{value,url}] : [];
+  });
+  return <main className="contacts-page" id="main">
+    <a className="catalog-back" href="/"><ArrowLeft size={17}/> На главную</a>
+    <header className="page-banner" data-enter><div><h1>Контакты</h1><p>Позвоните, напишите или договоритесь о встрече в Пскове.</p></div><span className="page-illustration" aria-hidden="true"><MapPin size={50}/></span></header>
+    <div className="studio-contact-grid">
+      <div className="studio-contact-list">
+        <a href="tel:+79517506700"><span className="studio-glyph"><Phone size={19}/></span><span><small>Телефон</small><strong>+7 (951) 750-67-00</strong></span><ArrowUpRight size={18}/></a>
+        {email && <a href={email}><span className="studio-glyph"><Mail size={19}/></span><span><small>Почта</small><strong>{contacts.email}</strong></span><ArrowUpRight size={18}/></a>}
+        {telegram.map(item => <a key={item.url} href={item.url} target="_blank" rel="noopener noreferrer"><span className="studio-glyph"><Send size={19}/></span><span><small>Telegram</small><strong>{item.value}</strong></span><ArrowUpRight size={18}/></a>)}
+        {contacts.hours && <p>Часы приёма · {contacts.hours}</p>}
+      </div>
+      <OfficeMap address={contacts.address || ''}/>
+    </div>
+    <div className="studio-contact-details">
+      <section className="catalog-panel"><span className="studio-glyph"><FileText size={23}/></span><h2>Реквизиты исполнителя</h2><OperatorDetails showPhone={false}/><a className="secondary-panel" href="/legal"><ArrowUpRight size={16}/> Документы</a></section>
+      <section className="catalog-panel contacts-meeting"><h2>Договориться о встрече</h2><p>Укажите удобное время по Москве. Команда уточнит детали и подтвердит встречу.</p>
+        <fieldset><legend>Формат встречи</legend>{['Онлайн','В офисе','У заказчика'].map((item,index) => <label key={item}><input type="radio" name="meeting-format" checked={format === item} onChange={() => setFormat(item)}/>{index===0?<Video size={17}/>:<Users size={17}/>}<span>{item}</span></label>)}</fieldset>
+        <div className="form-grid"><label>Желаемая дата<input type="date" value={date} onChange={event => setDate(event.target.value)}/></label><label>Желаемое время<input type="time" value={time} onChange={event => setTime(event.target.value)}/></label></div>
+        <button className="btn purple" onClick={() => order('Консультация по проекту',`Формат встречи: ${format}.${date ? ' Желаемая дата: '+date+'.' : ''}${time ? ' Желаемое время по Москве: '+time+'.' : ''}`)}><ArrowUpRight size={17}/> Запросить встречу</button>
+      </section>
+    </div>
+    <LeadSection contacts={contacts}/>
+  </main>;
 }

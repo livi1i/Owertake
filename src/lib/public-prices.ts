@@ -3,6 +3,21 @@ export type PricePeriod = 'once' | 'month' | 'year';
 export type PublicOffer = { code: string; name: string; scope: string; amount: number; period: PricePeriod };
 
 const offers: Readonly<Record<string, readonly PublicOffer[]>> = {
+  "extra-work": [
+    {"code": "OV-065", "name": "Уведомления о заявках в Telegram", "scope": "Одно уведомление в чат через бота, без CRM", "amount": 3500, "period": "once"},
+    {"code": "OV-202", "name": "Дополнительный сценарий бота", "scope": "Одна линейная ветка в действующем боте", "amount": 3500, "period": "once"},
+    {"code": "OV-412", "name": "Тексты для сайта — от 5 страниц", "scope": "Минимум 5 страниц по доп. прайсу.", "amount": 5250, "period": "once"},
+    {"code": "OV-060", "name": "Второй язык до 10 страниц", "scope": "Размещение предоставленного перевода, настройка SEO hreflang", "amount": 8000, "period": "once"},
+    {"code": "OV-103", "name": "Обмен остатками с 1С", "scope": "Один формат обмена, одно направление, стандартная номенклатура", "amount": 32000, "period": "once"},
+    {"code": "OV-175", "name": "Подключение формы к CRM", "scope": "Одна форма, один метод API, до 10 полей", "amount": 7200, "period": "once"},
+    {"code": "OV-179", "name": "Подключение Telegram к CRM", "scope": "Один чат/бот, создание лида и назначение", "amount": 10400, "period": "once"},
+    {"code": "OV-529", "name": "Подключение онлайн-оплаты", "scope": "Типовой объём по названию услуги; точный состав согласуется до заказа.", "amount": 42000, "period": "once"},
+    {"code": "OV-209", "name": "Оплата в Telegram-боте", "scope": "Один провайдер, один тариф/товар; комиссии отдельно", "amount": 12800, "period": "once"},
+    {"code": "OV-043", "name": "Квиз до 5 шагов", "scope": "Ветвление без сложного скоринга, передача результата на e-mail", "amount": 4200, "period": "once"},
+    {"code": "OV-044", "name": "Калькулятор до 5 параметров", "scope": "Формула расчёта, ползунки/поля, вывод суммы; без оплаты", "amount": 9660, "period": "once"},
+    {"code": "OV-046", "name": "Блок новостей", "scope": "Вывод последних 3 публикаций из существующей CMS", "amount": 1680, "period": "once"},
+    {"code": "OV-077", "name": "Личный кабинет пользователя", "scope": "Вход, профиль, восстановление доступа, список своих заявок", "amount": 19200, "period": "once"},
+  ],
   "landing": [
     {"code": "OV-002", "name": "Лендинг на готовом шаблоне", "scope": "До 6 блоков, адаптивность, 1 форма; материалы от клиента", "amount": 11893, "period": "once"},
     {"code": "OV-003", "name": "Лендинг с индивидуальным дизайном", "scope": "До 8 уникальных блоков, адаптив, формы, базовое SEO; без сложных анимаций", "amount": 19200, "period": "once"},
@@ -12,6 +27,7 @@ const offers: Readonly<Record<string, readonly PublicOffer[]>> = {
     {"code": "OV-005", "name": "Корпоративный сайт — старт", "scope": "До 10 типовых страниц, CMS, формы, адаптив; без каталога и сложных интеграций", "amount": 13293, "period": "once"},
     {"code": "OV-006", "name": "Корпоративный сайт — расширенный", "scope": "До 20 страниц и 3 шаблонов, новости/статьи, CMS, базовая аналитика", "amount": 56000, "period": "once"},
     {"code": "OV-007", "name": "Сайт-каталог без оплаты", "scope": "До 100 карточек через импорт, категории, поиск, заявки вместо оплаты", "amount": 38400, "period": "once"},
+    {"code": "OV-010", "name": "Сайт услуг с онлайн-записью", "scope": "До 7 страниц, календарь записи через готовый сервис, уведомления", "amount": 25600, "period": "once"},
   ],
   "ecommerce": [
     {"code": "OV-008", "name": "Интернет-магазин — старт", "scope": "До 100 товаров импортом, корзина, оформление, 1 оплата, 1 доставка; без 1С", "amount": 15393, "period": "once"},
@@ -23,6 +39,7 @@ const offers: Readonly<Record<string, readonly PublicOffer[]>> = {
     {"code": "OV-192", "name": "Telegram-бот: запись", "scope": "Один календарь через существующий сервис, подтверждение записи", "amount": 10400, "period": "once"},
     {"code": "OV-194", "name": "Telegram-бот: магазин", "scope": "Каталог, корзина, заказ, уведомления; эквайринг отдельно", "amount": 30400, "period": "once"},
     {"code": "OV-196", "name": "Telegram Mini App — MVP", "scope": "До 5 экранов, Telegram Login, одна бизнес-функция", "amount": 57600, "period": "once"},
+    {"code": "OV-198", "name": "Telegram-бот: уведомления", "scope": "До 3 событий, 1 чат/список получателей", "amount": 6100, "period": "once"},
   ],
   "automation": [
     {"code": "OV-216", "name": "Автоматизация заявок без CRM", "scope": "Форма, таблица, уведомление, контроль дублей базовый", "amount": 10400, "period": "once"},
@@ -107,8 +124,12 @@ export function offersFor(slug: string, prices: PriceOverrides = {}): readonly P
 const rubles = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 });
 const periodLabels = { once: '', month: ' / мес.', year: ' / год' };
 
+export function priceLabel(amount:number,period:PricePeriod='once') {
+  return `от ${rubles.format(amount)} ₽${periodLabels[period]}`;
+}
+
 export function offerPrice(offer: PublicOffer) {
-  return `от ${rubles.format(offer.amount)} ₽${periodLabels[offer.period]}`;
+  return priceLabel(offer.amount,offer.period);
 }
 
 export function startingOffer(slug: string, prices?: PriceOverrides) {

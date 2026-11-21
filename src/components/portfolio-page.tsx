@@ -1,10 +1,62 @@
-import React,{useEffect,useState} from 'react';
-import {ArrowLeft,ArrowUpRight,Layers,Check} from 'lucide-react';
-import {ProjectVisual} from './project-visual';
+import {useEffect,useState} from 'react';
+import {ArrowLeft,ArrowUpRight,Check,GalleryHorizontalEnd,Layers} from 'lucide-react';
 import {portfolioItems,filterPortfolio,projectSlug,type PortfolioProject} from '../lib/portfolio';
-import './portfolio-page.css';
 import {ConceptVisual} from './concept-visual';
 import {LiveProject} from './live-projects';
-function Preview({project:p}:{project:PortfolioProject}){return <div className={'case-preview case-preview-'+(p.visual??0)}>{p.image?<img src={p.image} alt={'Интерфейс '+p.title} loading="lazy"/>:p.concept?<ConceptVisual project={p}/>:<div className="case-no-image"><Layers size={40}/><span>Изображение проекта пока не добавлено</span></div>}</div>}
-export function PortfolioPage({order}:{order:(name:string,context?:string)=>void}){const [items,setItems]=useState<PortfolioProject[]>([]),[error,setError]=useState(''),[loading,setLoading]=useState(true),[category,setCategory]=useState('Все');const slug=location.pathname.split('/')[2];const project=items.find(p=>projectSlug(p)===slug);const load=()=>{setLoading(true);setError('');fetch('/api/content').then(async r=>{if(!r.ok)throw Error('Не удалось загрузить проекты');return r.json();}).then(j=>setItems(portfolioItems(j.projects))).catch(e=>setError(e.message)).finally(()=>setLoading(false));};useEffect(load,[]);useEffect(()=>{},[slug,project?.title]);const filtered=filterPortfolio(items,'',category,'Клиентские проекты');return <main className="portfolio-page" id="main"><a className="catalog-back" href={slug?'/portfolio':'/#home'}><ArrowLeft size={17}/>{slug?'Все проекты':'На главную'}</a>{loading?<p role="status">Загружаем портфолио…</p>:error?<div role="alert" className="case-empty"><p>{error}</p><button className="btn purple" onClick={load}>Повторить</button></div>:slug?project?<><span className="catalog-kicker">OVERTAKE / {project.category}</span><div className="case-heading"><h1>{project.title}</h1><span className="case-label">{project.concept?'Дизайн-концепция':'Клиентский проект'}</span></div><p className="case-intro">{project.description}</p>{project.concept&&<div className="case-disclosure">Авторская концепция для демонстрации подхода. Это не выполненный заказ клиента; коммерческие результаты и отзывы к ней не приписываются.</div>}{!project.concept&&project.url?<LiveProject project={project} compact/>:<Preview project={project}/>}<div className="case-body"><div><section><span className="catalog-kicker">ЗАДАЧА</span><h2>С чего начинается решение</h2><p>{project.task||project.description}</p></section>{project.result&&<section><span className="catalog-kicker">РЕЗУЛЬТАТ</span><h2>Что подготовлено</h2><p>{project.result}</p></section>}{project.technologies&&<section><h2>Технологии и инструменты</h2><div className="case-technologies">{project.technologies.split(',').map(x=><span key={x}><Check size={14}/>{x.trim()}</span>)}</div></section>}{project.url&&!project.concept&&<a className="btn dark" href={project.url} target="_blank" rel="noopener noreferrer">Открыть проект <ArrowUpRight size={17}/></a>}</div><aside><h2>Есть похожая задача?</h2><p>Обсудим ваши требования и подход к реализации. Состав и сроки согласуем отдельно.</p><button className="btn purple full" onClick={()=>order('Индивидуальная задача',`Интересует подход проекта «${project.title}». ${project.concept?'Референс — дизайн-концепция.':''}`)}>Обсудить проект <ArrowUpRight size={17}/></button></aside></div><h2 className="case-related-heading">Другие работы</h2><div className="case-grid">{items.filter(p=>projectSlug(p)!==slug&&p.concept===project.concept).slice(0,3).map(p=><CaseCard key={projectSlug(p)} project={p}/>)}</div></>:<div className="case-empty"><h1>Проект не найден</h1><p>Он может быть снят с публикации или перемещён.</p><a className="btn purple" href="/portfolio">Открыть портфолио</a></div>:<><div className="portfolio-page-heading"><span className="catalog-kicker">OVERTAKE / КЛИЕНТСКИЕ ПРОЕКТЫ</span><h1>Портфолио</h1><p>Действующие проекты и задачи, которые мы решили для клиентов.</p></div><div className="case-toolbar"><span aria-live="polite">Найдено: {filtered.length}</span></div><div className="catalog-filters" aria-label="Направления проектов">{['Все',...new Set(items.filter(p=>!p.concept).map(p=>p.category))].map(x=><button key={x} aria-pressed={category===x} onClick={()=>setCategory(x)}>{x}</button>)}</div>{filtered.length?<div className="case-grid">{filtered.map(p=><CaseCard key={projectSlug(p)} project={p}/>)}</div>:<div className="case-empty"><h2>{!items.some(p=>!p.concept)?'Клиентские кейсы готовятся к публикации':'Подходящих работ пока нет'}</h2><p>Публикуем только подтверждённые и согласованные материалы.</p><button className="btn purple" onClick={()=>setCategory('Все')}>Показать все работы</button></div>}<div className="catalog-bottom"><div><h2>Хотите обсудить похожий проект?</h2><p>Расскажите о своей задаче в брифе.</p></div><a className="btn purple" href="/brief">Обсудить проект <ArrowUpRight size={17}/></a></div></>}</main>}
-function CaseCard({project:p}:{project:PortfolioProject}){if(!p.concept&&p.url)return <div className="case-real-project"><LiveProject project={p}/><a className="case-real-details" href={'/portfolio/'+projectSlug(p)}>Подробнее о проекте →</a></div>;return <a className="case-card" href={'/portfolio/'+projectSlug(p)}><Preview project={p}/><div className="case-card-copy"><span className="case-label">{p.concept?'Концепция':'Клиентский проект'}</span><h2>{p.title}<ArrowUpRight size={20}/></h2><small>{p.category}</small><p>{p.description}</p></div></a>}
+import {LeadSection} from './lead-section';
+import {Reveal} from './reveal';
+import './portfolio-page.css';
+
+function Preview({project}:{project:PortfolioProject}) {
+  if (project.image) return <img className="case-preview" src={project.image} alt={'Интерфейс '+project.title} loading="lazy"/>;
+  return <div className={'case-preview case-preview-'+(project.visual??0)}>{project.concept ? <ConceptVisual project={project}/> : <Layers size={42}/>}</div>;
+}
+
+export function PortfolioPage({order,contacts}:{order:(name:string,context?:string)=>void;contacts:Record<string,string>}) {
+  const [items,setItems] = useState<PortfolioProject[]>([]);
+  const [error,setError] = useState('');
+  const [loading,setLoading] = useState(true);
+  const [category,setCategory] = useState('Все');
+  const slug = location.pathname.split('/')[2];
+  const project = items.find(item => projectSlug(item) === slug);
+  const real = items.filter(item => !item.concept);
+  const filtered = filterPortfolio(real,'',category,'Клиентские проекты');
+  const categories = [...new Set(real.map(item => item.category))];
+
+  function load() {
+    setLoading(true);
+    setError('');
+    fetch('/api/content').then(async response => {
+      if (!response.ok) throw Error('Не удалось загрузить проекты');
+      return response.json();
+    }).then(data => setItems(portfolioItems(data.projects))).catch(error => setError(error.message)).finally(() => setLoading(false));
+  }
+  useEffect(load,[]);
+
+  return <main className="portfolio-page" id="main">
+    <a className="catalog-back" href={slug?'/portfolio':'/'}><ArrowLeft size={17}/>{slug?'Все проекты':'На главную'}</a>
+    {loading ? <p role="status">Загружаем портфолио…</p> : error ? <div role="alert" className="case-empty"><p>{error}</p><button className="btn purple" onClick={load}>Повторить</button></div> :
+      slug ? project ? <>
+        <header className="page-banner" data-enter><div>
+          <span className="case-label">{project.concept?'Дизайн-концепция':project.category}</span>
+          <h1>{project.title}</h1><p>{project.description}</p>
+        </div><span className="page-illustration" aria-hidden="true"><GalleryHorizontalEnd size={47}/></span></header>
+        {!project.concept && project.url ? <LiveProject project={project} compact/> : <Preview project={project}/>}
+        <div className="case-body"><div>
+          {project.task && <section><h2>Задача</h2><p>{project.task}</p></section>}
+          {project.result && <section><h2>Что получилось</h2><p>{project.result}</p></section>}
+          {project.technologies && <section><h2>Технологии</h2><div className="case-technologies">{project.technologies.split(',').map(item => <span key={item}><Check size={14}/>{item.trim()}</span>)}</div></section>}
+          {project.url&&!project.concept && <a className="secondary-panel" href={project.url} target="_blank" rel="noopener noreferrer"><ArrowUpRight size={17}/> Открыть сайт</a>}
+        </div><aside><h2>Есть похожая задача?</h2><p>Обсудим, что взять за основу и что адаптировать под ваш бизнес.</p><button className="btn purple" onClick={() => order('Индивидуальная задача',`Интересует подход проекта «${project.title}».`)}><ArrowUpRight size={17}/> Обсудить проект</button></aside></div>
+        {!project.concept && <LeadSection contacts={contacts}/>}
+      </> : <div className="case-empty"><h1>Проект не найден</h1><a className="secondary-panel" href="/portfolio">Открыть портфолио</a></div> :
+      <>
+        <header className="page-banner" data-enter><div><h1>Портфолио</h1><p>Работающие сайты и задачи, которые мы решили вместе с клиентами.</p></div><span className="page-illustration" aria-hidden="true"><GalleryHorizontalEnd size={49}/></span></header>
+        <div className="catalog-filters" aria-label="Категории портфолио">{['Все',...categories].map(item => <button key={item} type="button" aria-pressed={category===item} onClick={() => setCategory(item)}>{item}</button>)}</div>
+        {filtered.length ? <div className="studio-case-list">{filtered.map((item,index) => <Reveal key={projectSlug(item)} delay={index*55}>
+          {item.url ? <LiveProject project={item}/> : <a className="case-card" href={'/portfolio/'+projectSlug(item)}><Preview project={item}/><div className="case-card-copy"><h2>{item.title}</h2><p>{item.description}</p></div></a>}
+        </Reveal>)}</div> : <div className="case-empty"><p>В этой категории пока нет опубликованных проектов.</p></div>}
+        <LeadSection contacts={contacts} heading="Обсудим похожий проект"/>
+      </>}
+  </main>;
+}

@@ -35,13 +35,15 @@ import {
 import "./style.css";
 import "./premium.css";
 import "./polish.css";
-import "./soft-digital.css";
 import "./components/catalog-common.css";
 import { PageScrollbar } from "./components/page-scrollbar";
 import { LegalPage, legalTitles, ConsentLabel, LEGAL_VERSION } from "./components/legal-pages";
 import { PriceMatch } from "./components/price-match";
 import { CookiePreferences } from "./components/cookie-preferences";
 import { ThemePicker } from "./components/theme-picker";
+import {contactTelegram} from "./lib/contact-links";
+import "./soft-digital.css";
+import "./studio.css";
 const ServiceCatalog = React.lazy(() => import("./components/service-catalog").then(m=>({default:m.ServiceCatalog})));
 const PricingPage = React.lazy(() => import("./components/pricing-page").then(m => ({default:m.PricingPage})));
 const ProjectCalculator = React.lazy(() => import("./components/project-calculator").then(m => ({default:m.ProjectCalculator})));
@@ -68,6 +70,14 @@ function Logo() {
 }
 function App() {
   const [effectsPaused, setEffectsPaused] = useState(false);
+  const serviceMenu = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const close = (event:PointerEvent) => {
+      if (serviceMenu.current && !serviceMenu.current.contains(event.target as Node)) serviceMenu.current.open = false;
+    };
+    document.addEventListener("pointerdown",close);
+    return () => document.removeEventListener("pointerdown",close);
+  },[]);
   useEffect(() => {
     document.documentElement.classList.toggle("effects-paused", effectsPaused);
     return () => document.documentElement.classList.remove("effects-paused");
@@ -97,7 +107,7 @@ function App() {
     api("me")
       .then((j) => setUser(j.user))
       .catch(() => {});
-    const needsPublicContent = (location.pathname === "/" && !location.hash.startsWith("#cabinet")) || ["/contacts","/services","/pricing","/calculator"].includes(location.pathname) || location.pathname.startsWith("/services/") || Object.hasOwn(legalTitles,location.pathname);
+    const needsPublicContent = (location.pathname === "/" && !location.hash.startsWith("#cabinet")) || ["/contacts","/services","/pricing","/calculator","/about","/portfolio"].includes(location.pathname) || /^\/(services|portfolio)\//.test(location.pathname) || Object.hasOwn(legalTitles,location.pathname);
     if(needsPublicContent) api("content").then(setContent).catch(() => {});
     const h = () => {
       setRoute(location.hash || "#home");
@@ -142,7 +152,7 @@ function App() {
           <Logo />
         </a>
         <nav className={menu ? "nav open" : "nav"} aria-label="Главное меню">
-          <details className="service-menu" onKeyDown={event => {
+          <details className="service-menu" ref={serviceMenu} onKeyDown={event => {
             if (event.key === "Escape" && event.currentTarget.open) {
               event.currentTarget.open = false;
               event.currentTarget.querySelector("summary")?.focus();
@@ -151,15 +161,15 @@ function App() {
             <summary>Услуги <ChevronDown size={14} aria-hidden="true"/></summary>
             <div className="service-menu-panel">
               {serviceCategories.map(category => <a key={category} href={serviceCategoryUrl(category)}>{category}</a>)}
-              <a href="/services">Все услуги</a>
-              <a href="/calculator">Калькулятор</a>
+              <a href="/services" className="menu-action">Все услуги</a>
+              <a href="/calculator" className="menu-action"><Calculator size={16}/> Калькулятор</a>
             </div>
           </details>
           <a href="/portfolio">
             <span>Портфолио</span>
           </a>
           <a href="/pricing">
-            <span>Стоимость</span>
+            <span>Цены</span>
           </a>
           <a href="/about">
             <span>О нас</span>
@@ -171,10 +181,10 @@ function App() {
         <div className="header-actions">
           <ThemePicker />
           <button className="login-link" aria-label={user ? `Личный кабинет: ${user.name}` : "Личный кабинет"} onClick={openLogin}>
-            <span className="login-label">{user ? user.name : "Личный кабинет"}</span> <ArrowUpRight size={14} />
+            <LockKeyhole size={15} aria-hidden="true"/><span className="login-label">{user ? user.name : "Личный кабинет"}</span>
           </button>
           <button className="btn small dark" onClick={() => order()}>
-            Обсудить проект <ArrowUpRight size={15} />
+            <ArrowUpRight size={15} /> Обсудить проект
           </button>
           <button
             className="menu-toggle"
@@ -186,7 +196,7 @@ function App() {
           </button>
         </div>
       </header>
-      {!knownRoute ? <React.Suspense fallback={<main id="main" className="catalog-page">Страница не найдена</main>}><NotFound /></React.Suspense> : (location.pathname === "/admin" && user && user.role!=="admin") ? <main className="catalog-page" id="main"><h1>Доступ только для команды</h1><a className="catalog-home-link" href="/account">Открыть свой кабинет →</a></main> : (location.pathname === "/portfolio" || location.pathname.startsWith("/portfolio/")) ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем портфолио…</main>}><PortfolioPage order={order} /></React.Suspense> : location.pathname === "/about" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем страницу…</main>}><AboutPage /></React.Suspense> : location.pathname === "/contacts" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем контакты…</main>}><ContactsPage contacts={content.contacts} order={order} /></React.Suspense> : location.pathname === "/faq" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем вопросы…</main>}><FaqPage /></React.Suspense> : location.pathname === "/brief" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем бриф…</main>}><BriefWizard user={user} /></React.Suspense> : location.pathname === "/calculator" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем параметры проекта…</main>}><ProjectCalculator order={order} prices={content.prices} /></React.Suspense> : location.pathname === "/pricing" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем страницу стоимости…</main>}><PricingPage order={order} prices={content.prices} /></React.Suspense> : catalogPath ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем услуги…</main>}><ServiceCatalog path={location.pathname} order={order} prices={content.prices} /></React.Suspense> : legalPath ? <LegalPage path={legalPath} contacts={content.contacts} /> : dashboard ? (
+      {!knownRoute ? <React.Suspense fallback={<main id="main" className="catalog-page">Страница не найдена</main>}><NotFound /></React.Suspense> : (location.pathname === "/admin" && user && user.role!=="admin") ? <main className="catalog-page" id="main"><h1>Доступ только для команды</h1><a className="catalog-home-link" href="/account">Открыть свой кабинет →</a></main> : (location.pathname === "/portfolio" || location.pathname.startsWith("/portfolio/")) ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем портфолио…</main>}><PortfolioPage order={order} contacts={content.contacts} /></React.Suspense> : location.pathname === "/about" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем страницу…</main>}><AboutPage contacts={content.contacts} /></React.Suspense> : location.pathname === "/contacts" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем контакты…</main>}><ContactsPage contacts={content.contacts} order={order} /></React.Suspense> : location.pathname === "/faq" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем вопросы…</main>}><FaqPage /></React.Suspense> : location.pathname === "/brief" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем бриф…</main>}><BriefWizard user={user} /></React.Suspense> : location.pathname === "/calculator" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем параметры проекта…</main>}><ProjectCalculator prices={content.prices} contacts={content.contacts} /></React.Suspense> : location.pathname === "/pricing" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем страницу стоимости…</main>}><PricingPage order={order} prices={content.prices} contacts={content.contacts} /></React.Suspense> : catalogPath ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем услуги…</main>}><ServiceCatalog path={location.pathname} order={order} prices={content.prices} contacts={content.contacts} /></React.Suspense> : legalPath ? <LegalPage path={legalPath} contacts={content.contacts} /> : dashboard ? (
         <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем кабинет…</main>}><Dashboard
           user={user}
           content={content}
@@ -197,37 +207,29 @@ function App() {
           notify={setToast}
         /></React.Suspense>
       ) : (
-        <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем главную…</main>}><HomePage content={content} effectsPaused={effectsPaused} order={order} openLogin={openLogin} /></React.Suspense>
+        <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем главную…</main>}><HomePage content={content} openLogin={openLogin} /></React.Suspense>
       )}
-      <footer className="footer">
-        <div className="footer-top">
-          <a href="/#home">
-            <Logo />
-          </a>
-          <p>Помогаем бизнесу быть впереди.</p>
-          <a href="/contacts">
-            Начнём с разговора <ArrowUpRight size={16} />
-          </a>
+      <footer className="studio-footer">
+        <div className="studio-footer-main">
+          <div><a href="/" aria-label="OVERTAKE — главная"><Logo/></a><p>Цифровое агентство из Пскова.</p></div>
+          <nav aria-label="Разделы сайта"><strong>Агентство</strong><a href="/services">Услуги</a><a href="/portfolio">Портфолио</a><a href="/pricing">Цены</a><a href="/about">О нас</a></nav>
+          <nav aria-label="Связь с агентством"><strong>Контакты</strong><a href="tel:+79517506700">+7 (951) 750-67-00</a>
+            {contactTelegram(content.contacts.telegram || content.contacts.telegram2 || "") && <a href={contactTelegram(content.contacts.telegram || content.contacts.telegram2 || "")!} target="_blank" rel="noopener noreferrer">Telegram</a>}
+            <a href="/contacts">Как добраться</a><a href="/faq">Вопрос — ответ</a></nav>
+          <div><strong>Реквизиты</strong><p>ИП Игнатенко Илья Анатольевич<br/>ИНН 511007182150<br/>ОГРНИП 325600000016430</p></div>
         </div>
-        <div className="footer-operator"><span>ИП Игнатенко Илья Анатольевич</span><span>ИНН 511007182150</span><span>ОГРНИП 325600000016430</span><a href="tel:+79517506700">+7 (951) 750-67-00</a></div>
-        <div className="footer-bottom">
-          <span>© {new Date().getFullYear()} OVERTAKE · Digital agency</span>
-          <a href="/privacy">Политика обработки данных</a>
-          <a href="/legal">Реквизиты и документы</a>
-          <a href="/faq">Вопросы и ответы</a>
-          <button onClick={() => window.dispatchEvent(new Event("overtake:cookie-settings"))}>Настройки cookie</button>
-          <button
-            className="motion-control"
-            aria-pressed={effectsPaused}
-            onClick={() => setEffectsPaused(!effectsPaused)}
-          >
-            {effectsPaused ? "Включить анимации" : "Приостановить анимации"}
-          </button>
-          <a href="/#home">Наверх ↑</a>
+        <div className="studio-footer-legal">
+          <span>© {new Date().getFullYear()} OVERTAKE</span>
+          <a href="/privacy">Политика обработки персональных данных</a>
+          <a href="/personal-data-consent">Согласие на обработку данных</a>
+          <a href="/cookies">Файлы cookie</a>
+          <button className="motion-control" aria-pressed={effectsPaused} onClick={() => setEffectsPaused(!effectsPaused)}>{effectsPaused ? "Включить анимации" : "Приостановить анимации"}</button>
         </div>
       </footer>
-      <CookiePreferences />
-      {!dashboard && !modal && ["/", "/services", "/pricing", "/calculator"].includes(location.pathname) && <PriceMatch onDiscuss={discussPrice} />}
+      <div className="notice-dock">
+        <CookiePreferences/>
+        {!dashboard && !modal && ["/", "/services", "/pricing", "/calculator"].includes(location.pathname) && <PriceMatch onDiscuss={discussPrice}/>}
+      </div>
       {modal && (
         <Modal
           close={() => setModal("")}
