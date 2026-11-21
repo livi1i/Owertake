@@ -1,6 +1,7 @@
 import React from 'react';
 import {ArrowUpRight,Globe,ExternalLink} from 'lucide-react';
 import type {PortfolioProject} from '../lib/portfolio';
+import {projectSlug} from '../lib/portfolio';
 import {projectUrl} from '../lib/project-url';
 import './live-projects.css';
 const homepages:Record<string,string>={'amoreterno.ru':'/assets/amoreterno-homepage.svg','holodilka60.ru':'/assets/holodilka-homepage.svg'};
@@ -17,4 +18,4 @@ export function LiveProject({project,compact=false}:{project:PortfolioProject;co
   {homepages[url.hostname]&&<p className="live-project-note">Главная страница · снимок от 17.11.2026 · сайт откроется в новой вкладке</p>}
  </article>;
 }
-export function LiveProjects({projects}:{projects:PortfolioProject[]}){const real=projects.filter(p=>p.confirmed===true&&projectUrl(p.url));if(!real.length)return null;return <section className="section live-projects-section" id="real-work"><div className="live-projects-heading"><div><span className="catalog-kicker">УЖЕ В ИНТЕРНЕТЕ</span><h2>Можно посмотреть<br/><span className="muted">и проверить</span></h2></div><p>Реальные сайты нашей команды. Откройте проект и оцените его самостоятельно.</p></div><div className="live-projects-grid">{real.map(p=><LiveProject key={p.slug||p.url} project={p}/>)}</div><a className="catalog-home-link" href="/portfolio">Все работы и примеры <ArrowUpRight size={17}/></a></section>}
+export function LiveProjects({projects}:{projects:PortfolioProject[]}){const real=projects.filter(p=>p.confirmed===true&&projectUrl(p.url));if(!real.length)return null;return <section className="section live-projects-section" id="work"><div className="live-projects-heading"><div><h2>Портфолио</h2></div><p>Действующие сайты, которые разработала наша команда.</p></div><div className="live-projects-grid">{real.map(p=><div className="case-real-project" key={projectSlug(p)}><LiveProject project={p}/><a className="case-real-details" href={'/portfolio/'+projectSlug(p)}>Разбор проекта <ArrowUpRight size={16}/></a></div>)}</div><a className="secondary-panel" href="/portfolio">Все работы и примеры <ArrowUpRight size={17}/></a></section>}

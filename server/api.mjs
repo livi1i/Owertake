@@ -129,7 +129,7 @@ export async function api(req, env) {
     }
     if(path === '/api/admin/services' && req.method === 'PUT') {
       requireAdmin();
-      if(!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(body.slug||'') || body.slug.length>60 || !['Доступна','По согласованию','Временно недоступна','Скрыта'].includes(body.status) || !['Сайты','Боты и автоматизация','ИИ','Дизайн','Продвижение','Видео и 3D','Приложения','Сопровождение'].includes(body.category))fail('Проверьте адрес, направление и статус');
+      if(!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(body.slug||'') || body.slug.length>60 || !['Доступна','По согласованию','Временно недоступна','Скрыта'].includes(body.status) || !['Сайты','Боты и автоматизация','ИИ','Дизайн','Продвижение','Видео и 3D','Приложения','Сопровождение','CRM','Хостинг и домены'].includes(body.category))fail('Проверьте адрес, направление и статус');
       const item={slug:body.slug,category:body.category,status:body.status};
       for(const key of ['name','description','includes','audience','options']){if(typeof body[key]!=='string'||body[key].length>(key==='name'?100:1500)|| (key!=='options'&&!body[key].trim()))fail('Заполните описание услуги');item[key]=body[key].trim();}
       await run("INSERT INTO content(id,data) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data",'service:'+item.slug,JSON.stringify(item));return json({ok:true});
@@ -249,6 +249,9 @@ export async function api(req, env) {
     if (path === "/api/content" && req.method === "PUT") {
       requireAdmin();
       if (!body.contacts || typeof body.contacts !== "object" || Array.isArray(body.contacts) || Object.values(body.contacts).some(v=>typeof v!=="string" || v.length>1000)) fail("Контакты должны быть текстом не длиннее 1000 символов");
+      if (body.prices !== undefined && (!body.prices || typeof body.prices !== "object" || Array.isArray(body.prices) ||
+        Object.entries(body.prices).some(([key,value]) => /^OV-[0-9]{3}$/.test(key) &&
+          (typeof value !== "string" || (value !== "" && (!/^[0-9]{1,8}(?:\.[0-9]{1,2})?$/.test(value) || Number(value) <= 0)))))) fail("Укажите корректную сумму в рублях");
       if (!Array.isArray(body.projects) || body.projects.length > 30)
         fail("Некорректные проекты");
       const projectKeys=new Set();

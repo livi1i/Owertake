@@ -10,7 +10,7 @@ function readTheme(): Theme {try{return valid(localStorage.getItem(key));}catch{
 function applyTheme(theme: Theme) {
   const dark = theme === 'dark' || (theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content',dark ? '#14121e' : '#f6f6fb');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content',dark ? '#101b31' : '#f4f7fc');
 }
 
 export function ThemePicker() {

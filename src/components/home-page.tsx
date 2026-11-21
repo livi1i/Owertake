@@ -1,44 +1,40 @@
+/// <reference types="vite/client" />
 import React,{useEffect,useState} from "react";
 import {useReducedMotion} from "motion/react";
 import {
-  ArrowUpRight,
-  ArrowRight,
-  Plus,
-  Minus,
-  Menu,
-  X,
-  Code2,
-  Layers,
-  Send,
-  Workflow,
-  MessageSquare,
-  Check,
-  ChevronDown,
-  Command,
-  Globe,
-  LockKeyhole,
-  LogOut,
-  LayoutDashboard,
-  FolderOpen,
-  FileText,
-  Settings,
-  Calculator,
-  Clock,
-  CheckCircle2,
-  Download,
-  LoaderCircle,
-  Users,
-  Mail,
+  ArrowUpRight, ArrowRight, AppWindow, Bot, Calculator, ChartNoAxesCombined, Check,
+  CheckCircle2, Clapperboard, Code2, FileText, Globe, Headphones, Kanban,
+  Layers, MessageSquare, Paintbrush, Play, Server, Sparkles, Wallet,
 } from "lucide-react";
 import {BlurFade} from "./magicui/blur-fade";
-import {WebsiteBook} from "./website-book";
-import {AllServicesLink,ProjectInvitation} from "./project-invitation";
-import {ProjectVisual} from "./project-visual";
-import {ServiceMotion,SectionSign} from "./service-motion";
-import {projectSlug} from "../lib/portfolio";
-import {WorkGallery} from "./work-gallery";
+import {ProjectInvitation} from "./project-invitation";
+import {SectionSign} from "./service-motion";
 import {LiveProjects} from "./live-projects";
-import {services,type Content,type Project} from "../lib/app-shared";
+import {mergeServices, servicesRequest, serviceCategoryUrl, type AgencyService} from "../lib/services";
+import {offerPrice, startingOffer} from "../lib/public-prices";
+import type {Content} from "../lib/app-shared";
+import heroImage from "../assets/soft-digital-hero.webp?inline";
+
+const directions = [
+  {category:"Сайты", name:"Разработка сайтов", text:"Лендинги, сайты компаний и интернет-магазины.", Icon:Globe, slug:"landing"},
+  {category:"Боты и автоматизация", name:"Боты и автоматизация", text:"Telegram-боты для заявок, записи и продаж.", Icon:Bot, slug:"telegram"},
+  {category:"CRM", name:"CRM-системы", text:"Внедрение готовой CRM и разработка под ваши процессы.", Icon:Kanban, slug:"crm-setup"},
+  {category:"ИИ", name:"ИИ-решения", text:"Ассистенты, поиск по документам и обработка заявок.", Icon:Sparkles, slug:"ai-assistants"},
+  {category:"Дизайн", name:"Дизайн", text:"Прототипы, интерфейсы и фирменный стиль.", Icon:Paintbrush, slug:"ui-ux"},
+  {category:"Продвижение", name:"Продвижение", text:"SEO, контекстная реклама и соцсети.", Icon:ChartNoAxesCombined, slug:"seo"},
+  {category:"Приложения", name:"Веб-приложения", text:"Личные кабинеты, платформы и мобильные веб-сервисы.", Icon:AppWindow, slug:"web-apps"},
+  {category:"Сопровождение", name:"Техническая поддержка", text:"Обновления, диагностика и регулярные доработки.", Icon:Headphones, slug:"support"},
+  {category:"Хостинг и домены", name:"Хостинг и домены", text:"Размещение сайта, регистрация и продление домена.", Icon:Server, slug:"hosting"},
+  {category:"Видео и 3D", name:"Видео и медиа", text:"Монтаж, объёмная графика и анимация.", Icon:Clapperboard, slug:"video"},
+];
+
+const benefits = [
+  {Icon:Layers, title:"От идеи до запуска", text:"Дизайн, разработка и внедрение"},
+  {Icon:FileText, title:"Работаем по договору", text:"Фиксируем объём и сроки"},
+  {Icon:Wallet, title:"Согласуем смету", text:"До начала работ"},
+  {Icon:Headphones, title:"Поддерживаем проект", text:"После запуска"},
+];
+
 const FaqHighlights = React.lazy(() => import("./faq-page").then(m => ({default:m.FaqHighlights})));
 function Reveal({
   children,
@@ -66,151 +62,64 @@ function Reveal({
   );
 }
 
-export function HomePage({content,effectsPaused,order,openLogin,showService}:{content:Content;effectsPaused:boolean;order:(service?:string,context?:string)=>void;openLogin:()=>void;showService:(name:string)=>void}){
-useEffect(()=>{const id=location.hash.slice(1);if(id&&id!=="cabinet")requestAnimationFrame(()=>document.getElementById(id)?.scrollIntoView());},[]);
-return (        <main id="main">
-          <section className="hero" id="home">
-            <div className="hero-top">
-              <span className="eyebrow">
-                <span className="live-dot" /> DIGITAL AGENCY · ОТ ИДЕИ ДО
-                ЗАПУСКА
-              </span>
-              <span className="hero-coordinate">
-                DEVELOPMENT / DESIGN / GROWTH
-              </span>
-            </div>
-            <div className="hero-grid">
-              <div className="hero-copy">
-                <Reveal>
-                  <h1>
-                    Ваш бизнес
-                    <br />
-                    На шаг
-                    <br />
-                    <span className="gradient-text">впереди</span>
-                    <span className="heading-dot">↗</span>
-                  </h1>
-                </Reveal>
-                <Reveal delay={0.12}>
-                  <p className="hero-description">
-                    Создаём сайты, ботов и цифровые продукты,
-                    <br className="desktop" /> которые помогают вашему бизнесу
-                    расти.
-                  </p>
-                  <div className="hero-buttons">
-                    <button className="btn purple" onClick={() => order()}>
-                      Обсудить проект <ArrowUpRight size={18} />
-                    </button>
-                    <a className="text-link" href="/#work">
-                      Смотреть проекты <ArrowRight size={18} />
-                    </a>
-                  </div>
-                </Reveal>
-                <Reveal delay={0.2}>
-                  <div className="hero-proof">
-                    <span className="mini-icon">
-                      <Check size={13} />
-                    </span>{" "}
-                    Работаем по договору <span className="proof-divider" /> От
-                    первой идеи до поддержки
-                  </div>
-                </Reveal>
-              </div>
-              <HeroArt paused={effectsPaused} />
-            </div>
-            <div className="hero-bottom">
-              <span>Технологии, которые работают на вас.</span>
-              <a href="/#services">
-                Листайте, чтобы познакомиться <span>↓</span>
-              </a>
-            </div>
-          </section>
-          <div className="expertise-strip">
-            <span>ДЕЛАЕМ СЛОЖНОЕ ПОНЯТНЫМ</span>
-            <div>
-              Сайты <i>✳</i> Telegram-боты <i>✳</i> CRM-системы <i>✳</i>{" "}
-              Веб-приложения <i>✳</i> Социальные сети
+export function HomePage({content,effectsPaused,order,openLogin}:{content:Content;effectsPaused:boolean;order:(service?:string,context?:string)=>void;openLogin:()=>void}) {
+  const [catalog, setCatalog] = useState<AgencyService[]>([]);
+  useEffect(() => {
+    let active = true;
+    servicesRequest().then(result => {
+      if (active) setCatalog(mergeServices(result.services));
+    }).catch(() => {});
+    const id = location.hash.slice(1);
+    if (id && id !== "cabinet") requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView());
+    return () => { active = false; };
+  }, []);
+
+  return (
+    <main id="main" className="soft-home">
+      <section className="hero soft-hero" id="home">
+        <div className="soft-hero-grid">
+          <div className="soft-hero-copy">
+            <p className="soft-hero-label">Цифровое агентство OVERTAKE</p>
+            <h1>Создаём цифровые решения, которые двигают бизнес <span>вперёд</span></h1>
+            <p className="soft-hero-description">Разрабатываем сайты, приложения и Telegram-ботов. Настраиваем CRM и автоматизируем работу команды.</p>
+            <div className="soft-hero-actions">
+              <a className="btn purple" href="/calculator"><Calculator size={18}/> Рассчитать стоимость</a>
+              <a className="btn white" href="/portfolio"><Play size={16}/> Смотреть портфолио</a>
             </div>
           </div>
-          <section className="section services-section" id="services">
-            <Reveal>
-              <div className="section-title">
-                <div>
-                  <SectionSign number="01" label="ЧТО МЫ ДЕЛАЕМ" />
-                  <h2>
-                    Идея ваша
-                    <br />
-                    <span className="muted">Решение — наше</span>
-                  </h2>
-                </div>
-                <p>
-                  Подключаемся там, где вашему бизнесу
-                  <br />
-                  нужны технологии. От одной задачи
-                  <br />
-                  до целой цифровой экосистемы.
-                </p>
-              </div>
-            </Reveal>
-            <div className="services-grid">
-              {services.map((s, i) => (
-                <Reveal key={s.name} delay={(i % 3) * 0.06}>
-                  <button
-                    className={"service-card service-card-" + i}
-                    onClick={() => showService(s.name)}
-                  >
-                    <ServiceMotion index={i} />
-                    <div className="card-top">
-                      <span className="service-icon">
-                        <s.icon size={23} strokeWidth={1.5} />
-                      </span>
-                      <span className="card-number">0{i + 1}</span>
-                    </div>
-                    <h3>{s.name}</h3>
-                    <p>{s.text}</p>
-                    <div className="tags">
-                      {s.tags.map((t) => (
-                        <span key={t}>{t}</span>
-                      ))}
-                    </div>
-                    <div className="card-bottom">
-                      <span>
-                        {content.prices[s.name] || "Стоимость после обсуждения"}
-                      </span>
-                      <ArrowUpRight size={19} />
-                    </div>
-                  </button>
-                </Reveal>
-              ))}
-            </div>
-            <div className="all-services-placement"><Reveal><AllServicesLink paused={effectsPaused}/></Reveal></div>
-          </section>
-          <section className="work-section section" id="work">
-            <Reveal>
-              <div className="section-title">
-                <div>
-                  <SectionSign number="02" label="НАШИ ВОЗМОЖНОСТИ" />
-                  <h2>
-                    Меньше слов
-                    <br />
-                    <span className="muted">Больше продукта</span>
-                  </h2>
-                </div>
-                <p>
-                  Каждый проект начинается с задачи.
-                  <br />
-                  Показываем, как может выглядеть
-                  <br />
-                  её цифровое решение.
-                </p>
-              </div>
-            </Reveal>
-            <WorkGallery/>
-            <p className="section-note">
-              Эти примеры иллюстрируют направления работы. Реальные сайты команды — в следующем блоке.
-            </p>
-          </section>
-          <LiveProjects projects={content.projects}/>
+          <div className="soft-hero-art" aria-hidden="true">
+            <img src={heroImage} alt="" width={1100} height={825} fetchPriority="high"/>
+          </div>
+        </div>
+        <ul className="soft-benefits">
+          {benefits.map(({Icon,title,text}) => <li key={title}><span><Icon size={20}/></span><div><strong>{title}</strong><small>{text}</small></div></li>)}
+        </ul>
+      </section>
+      <section className="section soft-services" id="services">
+        <div className="soft-section-heading">
+          <div><h2>Что мы делаем</h2><p className="soft-service-intro">Делаем сложное понятным</p></div>
+          <a className="secondary-panel" href="/services">Все услуги агентства <ArrowUpRight size={17}/></a>
+        </div>
+        <div className="soft-service-grid">
+          {directions.map(({category,name,text,Icon,slug}) => {
+            const service = catalog.find(item => item.slug === slug);
+            const available = service && !['Скрыта','Временно недоступна'].includes(service.status);
+            const offer = available ? startingOffer(slug, content.prices) : undefined;
+            return <a key={category} className="soft-service-card" href={serviceCategoryUrl(category)}>
+              <span className="soft-service-icon"><Icon size={26} strokeWidth={1.8}/></span>
+              <h3>{name}</h3>
+              <p>{text}</p>
+              <div className="soft-card-footer"><strong>{offer ? offerPrice(offer) : "По согласованию"}</strong><span><ArrowRight size={17}/></span></div>
+            </a>;
+          })}
+        </div>
+        <div className="soft-packages">
+          <span className="soft-service-icon"><Layers size={24}/></span>
+          <div><h3>Готовые форматы работы</h3><p>Запуск проекта, развитие и регулярная поддержка</p></div>
+          <a className="btn purple" href="/pricing#formats">Смотреть форматы <ArrowUpRight size={16}/></a>
+        </div>
+      </section>
+      <LiveProjects projects={content.projects}/>
           <section className="cabinet-promo section">
             <Reveal className="cabinet-promo-copy">
               <span className="eyebrow">ВСЁ ПОД КОНТРОЛЕМ</span>
@@ -234,7 +143,7 @@ return (        <main id="main">
                   <Check size={17} /> История заявок в одном месте
                 </li>
               </ul>
-              <button className="btn white" onClick={openLogin}>
+              <button className="secondary-panel" onClick={openLogin}>
                 Перейти в личный кабинет <ArrowUpRight size={18} />
               </button>
             </Reveal>
@@ -305,19 +214,19 @@ return (        <main id="main">
               {[
                 {
                   title: "Знакомимся",
-                  text: "Слушаем, задаём вопросы и разбираемся в вашей задаче.",
+                  text: "Уточняем цели и пожелания на онлайн-встрече или лично по предварительной договорённости.",
                 },
                 {
                   title: "Договариваемся",
-                  text: "Фиксируем объём, стоимость и сроки в договоре.",
+                  text: "Заполняем бриф, согласуем смету и сроки, заключаем договор и выставляем счёт.",
                 },
                 {
                   title: "Создаём",
-                  text: "Проектируем, разрабатываем и показываем промежуточный результат.",
+                  text: "Проектируем и разрабатываем. Показываем результат по этапам, согласуем правки и подключаем интеграции.",
                 },
                 {
                   title: "Запускаем",
-                  text: "Тестируем, передаём проект и обсуждаем дальнейшую поддержку.",
+                  text: "Тестируем, публикуем, передаём доступы и инструкции. Договариваемся о поддержке после запуска.",
                 },
               ].map((s, i) => (
                 <Reveal key={s.title} delay={i * 0.08}>
@@ -405,6 +314,3 @@ return (        <main id="main">
             </Reveal>
           </section>
         </main>);}
-function HeroArt({ paused }: { paused: boolean }) {
-  return <WebsiteBook globalPaused={paused} />;
-}

@@ -1,20 +1,104 @@
 import React,{useEffect,useState} from 'react';
-import {ArrowLeft,ArrowUpRight,Check,Plus,Printer,Layers,RefreshCw,SlidersHorizontal} from 'lucide-react';
+import {ArrowLeft,ArrowUpRight,Calculator,Check,Printer} from 'lucide-react';
 import {mergeServices,serviceCategories,servicesRequest,type AgencyService} from '../lib/services';
+import {offerPrice,offersFor,type PriceOverrides} from '../lib/public-prices';
 import './pricing-page.css';
-const packages=[
- {name:'Запуск',icon:Layers,description:'Сфокусироваться на главном и выпустить первое решение.',features:['Одна ключевая задача','Согласованный основной сценарий','Дизайн и реализация в рамках ТЗ','Тестирование и передача'],fit:'Для первого сайта, бота или MVP'},
- {name:'Развитие',icon:SlidersHorizontal,description:'Объединить несколько сценариев в рабочую систему.',features:['Несколько связанных сценариев','Проектирование структуры','Интеграции по согласованному списку','Поэтапная реализация и проверка'],fit:'Для сервиса, магазина или CRM'},
- {name:'Сопровождение',icon:RefreshCw,description:'Поддерживать существующий продукт и планировать улучшения.',features:['Согласованный список задач','Диагностика и исправления','План обновлений','Отчёт о выполненных работах'],fit:'Для работающих цифровых продуктов'},
+
+const packages = [
+  {slug:'landing', code:'OV-003', name:'Лендинг под ключ', audience:'Для запуска продукта или отдельной услуги', included:['До восьми уникальных блоков','Адаптивный дизайн и формы','Базовое SEO']},
+  {slug:'corporate', code:'OV-005', name:'Корпоративный сайт', audience:'Для компании с несколькими направлениями', included:['До десяти типовых страниц','Управление контентом','Адаптивная вёрстка и формы']},
+  {slug:'ecommerce', code:'OV-008', name:'Интернет-магазин', audience:'Для запуска первых продаж онлайн', included:['До 100 товаров импортом','Корзина и оформление заказа','Один способ оплаты и доставки']},
+  {slug:'telegram', code:'OV-191', name:'Telegram для заявок', audience:'Для команды, принимающей обращения в Telegram', included:['Один сценарий до восьми вопросов','Уведомление менеджеру']},
+  {slug:'crm-setup', code:'OV-107', name:'Старт в CRM', audience:'Для небольшого отдела продаж', included:['До пяти пользователей и одна воронка','До десяти полей','Два робота и одна форма']},
+  {slug:'support', code:'OV-287', name:'Поддержка сайта', audience:'Для проекта, который уже работает', included:['Контроль, обновления и резервное копирование','До пяти часов правок в месяц']},
 ];
-const extras=['Дополнительные страницы и экраны','Интеграции с внешними системами','Перенос данных и контента','Многоязычность','Анимация и 3D-графика','Поддержка после запуска'];
-export function pricingBrief(direction:string,packageName:string,options:string[]){return `Направление: ${direction}. Формат: ${packageName}.\nДополнительные возможности: ${options.length?options.join('; '):'пока не выбраны'}.\nНужна индивидуальная смета.`;}
-export function PricingPage({order}:{order:(name:string,description?:string)=>void}){
- const [items,setItems]=useState<AgencyService[]>([]),[error,setError]=useState(''),[loading,setLoading]=useState(true),[category,setCategory]=useState('Все'),[direction,setDirection]=useState('Лендинги'),[options,setOptions]=useState<string[]>([]);
- const load=()=>{setLoading(true);setError('');servicesRequest().then(j=>{const list=mergeServices(j.services).filter(s=>s.status!=='Скрыта');setItems(list);setDirection(prev=>list.some(s=>s.name===prev)?prev:list.find(s=>s.status!=='Временно недоступна')?.name||'Индивидуальная задача');}).catch(e=>setError(e.message)).finally(()=>setLoading(false));};
- useEffect(()=>{load();},[]);
- const available=items.filter(s=>s.status!=='Временно недоступна');
- return <main id="main" className="pricing-page"><a className="catalog-back" href="/services"><ArrowLeft size={17}/> Каталог услуг</a><div className="pricing-heading"><div><span className="catalog-kicker">OVERTAKE / СТОИМОСТЬ</span><h1>Понятный объём<br/><span>Прозрачная смета</span></h1></div><p>Сначала определяем задачу и состав работ. Затем согласуем стоимость и сроки — до начала проекта.</p></div><div className="pricing-notice"><span>Прайс-лист готовится</span><p>Суммы пока не опубликованы. Любое решение на этой странице обсуждается индивидуально. Выбор пакета не является заказом или договором.</p></div><a className="catalog-home-link" href="/calculator">Подобрать параметры проекта <ArrowUpRight size={17}/></a><section className="pricing-section"><div className="pricing-section-title"><h2>Как формируется стоимость</h2><button className="pricing-print" onClick={()=>window.print()}><Printer size={16}/> Печать / сохранить PDF</button></div><div className="pricing-models">{[['За согласованный объём','Фиксируем перечень работ и цену в индивидуальном предложении. Подходит для задачи с понятными требованиями.'],['По предварительной оценке','Сначала уточняем функции, интеграции и материалы. Ориентир «от» появится после утверждения прайса.'],['По этапам','Разбиваем большой проект на части, согласуем состав и смету каждого этапа.']].map(([title,text])=><div key={title}><h3>{title}</h3><p>{text}</p></div>)}</div></section><section className="pricing-section" aria-labelledby="pricing-packages-title"><span className="catalog-kicker">ОТПРАВНАЯ ТОЧКА ДЛЯ ОБСУЖДЕНИЯ</span><h2 id="pricing-packages-title">Три формата работы</h2><div className="pricing-config"><label>Направление<select value={direction} onChange={e=>setDirection(e.target.value)} disabled={loading||!!error}>{available.map(s=><option key={s.slug}>{s.name}</option>)}</select></label><p>Выберите направление и дополнительные возможности ниже. Они попадут в заявку вместе с выбранным форматом.</p></div>{error&&<p role="alert" className="error">{error} <button type="button" onClick={load}>Повторить загрузку</button></p>}{loading&&<p role="status">Загружаем направления…</p>}<div className="pricing-packages">{packages.map((p,i)=><article key={p.name} className={i===1?'pricing-package featured':'pricing-package'}><div className="pricing-package-top"><p.icon size={23}/><span>0{i+1}</span></div><h3>{p.name}</h3><p>{p.description}</p><strong>По индивидуальной смете</strong><small>{p.fit}</small><ul>{p.features.map(f=><li key={f}><Check size={16}/>{f}</li>)}</ul><button className="btn purple full" disabled={loading||!!error||!available.length} onClick={()=>order(direction,pricingBrief(direction,p.name,options))}>Обсудить формат <ArrowUpRight size={17}/></button></article>)}</div><div className="pricing-extras"><h3>Добавить к обсуждению</h3><p>Опции оцениваются отдельно и включаются в договор только после согласования.</p><div>{extras.map(x=><label key={x}><input type="checkbox" checked={options.includes(x)} onChange={e=>setOptions(prev=>e.target.checked?[...prev,x]:prev.filter(v=>v!==x))}/><span>{x}</span><Plus size={15}/></label>)}</div><span className="pricing-selected" aria-live="polite">Выбрано опций: {options.length}</span></div></section><section className="pricing-section"><h2>Сравнение форматов</h2><div className="pricing-table-scroll" tabIndex={0} role="region" aria-label="Сравнение форматов работы"><table><caption className="skip">Область применения и порядок согласования трёх форматов</caption><thead><tr><th scope="col">Что сравниваем</th>{packages.map(p=><th scope="col" key={p.name}>{p.name}</th>)}</tr></thead><tbody>{[
- ['Основная цель','Первый запуск','Развитие системы','Работающий продукт'],['Объём','Ключевой сценарий','Несколько сценариев','Согласованный список задач'],['Интеграции','По необходимости','По списку в ТЗ','Поддержка или доработка'],['Стоимость и сроки','В индивидуальной смете','По этапам и смете','По согласованному объёму'],['Приёмка и права','По договору','По договору','По договору'],
- ].map(row=><tr key={row[0]}><th scope="row">{row[0]}</th>{row.slice(1).map((x,i)=><td key={i}>{x}</td>)}</tr>)}</tbody></table></div></section><section className="pricing-section"><h2>Направления и стоимость</h2><div className="catalog-filters" aria-label="Категории стоимости">{['Все',...serviceCategories].map(x=><button key={x} aria-pressed={category===x} onClick={()=>setCategory(x)}>{x}</button>)}</div>{!loading&&!error&&<div className="pricing-service-list">{items.filter(s=>category==='Все'||s.category===category).map(s=><a key={s.slug} href={'/services/'+s.slug}><span><b>{s.name}</b><small>{s.status}</small></span><span>{s.status==='Временно недоступна'?'Приём заказов приостановлен':'Индивидуальная смета'} <ArrowUpRight size={16}/></span></a>)}</div>}</section><section className="pricing-section pricing-faq"><h2>До начала работы</h2>{[['Что может повлиять на смету?','Число сценариев и экранов, интеграции, перенос данных, готовность материалов, сложность и сроки. Изменения объёма обсуждаем отдельно.'],['Есть ли дополнительные расходы?','Домены, хостинг, лицензии и сторонние сервисы могут оплачиваться отдельно. Перечень и плательщика согласуем до подключения.'],['Как согласуются оплата и правки?','Порядок оплаты, состав результата, этапы, правки и критерии приёмки определяются индивидуальным договором.']].map(([q,a])=><details key={q}><summary>{q}</summary><p>{a}</p></details>)}</section><div className="pricing-print-footer">OVERTAKE · ИП Игнатенко Илья Анатольевич · ИНН 511007182150 · ОГРНИП 325600000016430 · +7 (951) 750-67-00. Суммы не опубликованы. Документ носит информационный характер.</div></main>;
+
+export function PricingPage({order,prices}:{order:(name:string,description?:string)=>void;prices:PriceOverrides}) {
+  const [items,setItems] = useState<AgencyService[]>([]);
+  const [error,setError] = useState('');
+  const [loading,setLoading] = useState(true);
+  const [category,setCategory] = useState('Все');
+
+  const load = () => {
+    setLoading(true);
+    setError('');
+    servicesRequest()
+      .then(result => setItems(mergeServices(result.services).filter(service => service.status !== 'Скрыта')))
+      .catch(error => setError(error.message))
+      .finally(() => setLoading(false));
+  };
+  useEffect(load,[]);
+  useEffect(() => {
+    if (!loading && location.hash === '#formats') document.getElementById('formats')?.scrollIntoView();
+  },[loading]);
+
+  return <main id="main" className="pricing-page">
+    <a className="catalog-back" href="/services"><ArrowLeft size={17}/> Каталог услуг</a>
+    <div className="pricing-heading">
+      <div><h1>Цены и пакеты услуг</h1><p>Стоимость за базовый объём. Уточним задачу и согласуем смету до начала работ.</p></div>
+      <a className="secondary-panel" href="/calculator"><Calculator size={18}/> Рассчитать стоимость</a>
+    </div>
+    {loading && <p role="status">Загружаем прайс…</p>}
+    {error && <div className="catalog-empty" role="alert"><p>{error}</p><button className="btn purple" onClick={load}>Повторить загрузку</button></div>}
+    {!loading && !error && <>
+      <section className="pricing-section" id="formats">
+        <h2>Готовые решения</h2>
+        <div className="pricing-packages">
+          {packages.map(bundle => {
+            const service = items.find(item => item.slug === bundle.slug && item.status !== 'Временно недоступна');
+            const offer = offersFor(bundle.slug, prices).find(item => item.code === bundle.code);
+            if (!service || !offer) return null;
+            return <article key={bundle.code} className="pricing-package">
+              <h3>{bundle.name}</h3>
+              <p>{bundle.audience}</p>
+              <strong>{offerPrice(offer)}</strong>
+              <ul>{bundle.included.map(item => <li key={item}><Check size={16}/>{item}</li>)}</ul>
+              <small>Сроки согласуем по задаче. Дополнительные работы и сторонние расходы считаем отдельно.</small>
+              <button className="btn purple full" type="button" onClick={() => order(service.name, `Пакет «${bundle.name}» · ${offerPrice(offer)}. ${offer.scope}`)}>Обсудить пакет <ArrowUpRight size={17}/></button>
+              <a className="secondary-panel" href={'/calculator?' + new URLSearchParams({service:bundle.slug,offer:bundle.code})}>Уточнить параметры</a>
+            </article>;
+          })}
+        </div>
+      </section>
+      <section className="pricing-section">
+        <div className="pricing-section-title">
+          <h2>Прайс основных услуг</h2>
+          <button className="pricing-print" type="button" onClick={() => window.print()}><Printer size={16}/> Печать / PDF</button>
+        </div>
+        <div className="catalog-filters" aria-label="Категории стоимости">
+          {['Все',...serviceCategories].map(item => <button type="button" key={item} aria-pressed={category === item} onClick={() => setCategory(item)}>{item}</button>)}
+        </div>
+        <div className="pricebook">
+          {serviceCategories.filter(item => category === 'Все' || category === item).map(group => {
+            const services = items.filter(service => service.category === group);
+            if (!services.length) return null;
+            return <section className="catalog-panel pricebook-group" key={group}>
+              <h3>{group}</h3>
+              <ul className="public-offers">
+                {services.flatMap(service => {
+                  const offers = offersFor(service.slug, prices);
+                  if (service.status === 'Временно недоступна' || !offers.length) {
+                    return <li key={service.slug}><div><a href={'/services/' + service.slug}>{service.name}</a></div><b>{service.status === 'Временно недоступна' ? 'Временно недоступна' : 'По согласованию'}</b></li>;
+                  }
+                  return offers.map(offer => <li key={offer.code}>
+                    <div><a href={'/services/' + service.slug}>{offer.name}</a><p>{offer.scope}</p></div>
+                    <b>{offerPrice(offer)}</b>
+                  </li>);
+                })}
+              </ul>
+            </section>;
+          })}
+        </div>
+      </section>
+    </>}
+    <section className="pricing-section pricing-faq">
+      <h2>Что влияет на стоимость</h2>
+      {[
+        ['Объём и сложность','На цену влияют количество экранов и сценариев, интеграции, перенос материалов, готовность контента и сроки. Минимум отдельного разового заказа — 500 ₽.'],
+        ['Лицензии и инфраструктура','Согласуем, какие домены, хостинг, лицензии и сторонние сервисы нужны для проекта и кто их оплачивает.'],
+        ['Оплата и правки','Состав результата, порядок согласования правок, приёмку и оплату фиксируем в договоре.'],
+      ].map(([question,answer]) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}
+    </section>
+    <div className="pricing-print-footer">OVERTAKE · ИП Игнатенко Илья Анатольевич · ИНН 511007182150 · ОГРНИП 325600000016430 · +7 (951) 750-67-00. Цены за базовый объём работ.</div>
+  </main>;
 }

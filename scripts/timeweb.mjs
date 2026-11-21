@@ -1,10 +1,18 @@
 import {readFile,writeFile,mkdir,cp,readdir} from 'node:fs/promises';
 import {randomBytes,createHash,createHmac} from 'node:crypto';
-import {execFileSync} from 'node:child_process';
 const mode=process.argv[2]||'package';
-await mkdir('.local',{recursive:true});let config;try{config=JSON.parse(await readFile('.local/timeweb-config.json','utf8'))}catch{config={origin:'https://helmerzy.tw1.ru',admin_key:(await readFile('.local/ADMIN-SETUP.txt','utf8')).trim(),deploy_key:randomBytes(32).toString('hex')};await writeFile('.local/timeweb-config.json',JSON.stringify(config))}
+await mkdir('.local',{recursive:true});
 const seoPhp=(await readFile('server/timeweb-seo.php','utf8')).replace(/^<\?php\s*/, '');const apiPhp=(await readFile('server/timeweb-api.php','utf8')).replace('declare(strict_types=1);','declare(strict_types=1);\n'+seoPhp);
 const files={'client/index.html':(await readFile('dist/client/index.html')).toString('base64'),'api.php':Buffer.from(apiPhp).toString('base64')};for(const f of await readdir('dist/client/assets'))files['client/assets/'+f]=(await readFile('dist/client/assets/'+f)).toString('base64');
+if(mode==='release'){
+ const manifest=JSON.stringify(files);
+ const id=createHash('sha256').update(manifest).digest('hex').slice(0,16);
+ const path='.local/overtake-release-'+id+'.json';
+ await writeFile(path,manifest);
+ console.log('Prepared '+path+' (application files only)');
+ process.exit(0);
+}
+let config;try{config=JSON.parse(await readFile('.local/timeweb-config.json','utf8'))}catch{if(mode==='deploy')throw Error('Existing Timeweb deployment config is required in .local/timeweb-config.json.');config={origin:'https://helmerzy.tw1.ru',admin_key:(await readFile('.local/ADMIN-SETUP.txt','utf8')).trim(),deploy_key:randomBytes(32).toString('hex')};await writeFile('.local/timeweb-config.json',JSON.stringify(config))}
 if(mode==='deploy'){
  const routingProbe=await fetch(config.origin+'/api/health',{headers:{'Cache-Control':'no-cache'}});if(!routingProbe.ok||routingProbe.headers.get('x-overtake-router')!=='seo-v1')throw Error('Before deploying this version, update public_html/index.php from the prepared package: the current router does not support SEO responses. No files were uploaded.');
  const raw=JSON.stringify({timestamp:Math.floor(Date.now()/1000),nonce:randomBytes(16).toString('hex'),files});const signature=createHmac('sha256',config.deploy_key).update(raw).digest('hex');const r=await fetch(config.origin+'/_overtake-deploy.php',{method:'POST',headers:{'Content-Type':'application/json','X-Overtake-Signature':signature},body:raw});const body=await r.text();if(!r.ok)throw Error('Deploy failed: '+r.status+' '+body);console.log(body);process.exit(0);

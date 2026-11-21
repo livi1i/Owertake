@@ -21,8 +21,10 @@ const illustrations = {
  support:{Icon:Wrench,label:'Внимание к каждой детали'},
  hosting:{Icon:Server,label:'Готовы к запуску'},
 };
-export function ServiceIcon({slug}:{slug:string}){const {Icon}=illustrations[slug as keyof typeof illustrations]||{Icon:Sparkles};return <span className="catalog-icon"><Icon size={26}/></span>}
+const previewAliases: Record<string, string> = {'crm-setup': 'crm', domains: 'hosting'};
+export function ServiceIcon({slug}:{slug:string}){const {Icon}=illustrations[(previewAliases[slug] || slug) as keyof typeof illustrations]||{Icon:Sparkles};return <span className="catalog-icon"><Icon size={26}/></span>}
 export function ServicePreview({slug}:{slug:string}){
+ slug = previewAliases[slug] || slug;
  const ref=useRef<HTMLDivElement>(null),[visible,setVisible]=useState(false);
  useEffect(()=>{const observer=new IntersectionObserver(([entry])=>setVisible(entry.isIntersecting),{rootMargin:'30px'});if(ref.current)observer.observe(ref.current);return()=>observer.disconnect();},[]);
  const info=illustrations[slug as keyof typeof illustrations];

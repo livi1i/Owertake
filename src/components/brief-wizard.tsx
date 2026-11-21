@@ -4,7 +4,7 @@ import {mergeServices,servicesRequest,type AgencyService} from '../lib/services'
 import {BRIEF_KEY,HANDOFF_KEY,emptyBrief,cleanBrief,readBriefDraft,briefError,briefDescription,type BriefData} from '../lib/brief-draft';
 import {ConsentLabel,LEGAL_VERSION} from './legal-pages';
 import './brief-wizard.css';
-const generalServices=['Индивидуальная задача','Обсуждение проекта','Консультация по проекту'];
+const generalServices=['Индивидуальная задача','Обсуждение проекта','Консультация по проекту','Сравнение стоимости'];
 const steps=['Услуга','Задача','Референсы','Бюджет и сроки','Контакты','Проверка'];
 export function BriefWizard({user}:{user:{name:string;email:string}|null}){
  const [data,setData]=useState<BriefData>({...emptyBrief}),[step,setStep]=useState(0),[items,setItems]=useState<AgencyService[]>([]),[loading,setLoading]=useState(true),[loadError,setLoadError]=useState(''),[error,setError]=useState(''),[storageError,setStorageError]=useState(''),[saveDraft,setSaveDraft]=useState(false),[savedAt,setSavedAt]=useState(''),[consent,setConsent]=useState(false),[busy,setBusy]=useState(false),[result,setResult]=useState(''),[restorable,setRestorable]=useState<BriefData|null>(null);

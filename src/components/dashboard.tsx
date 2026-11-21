@@ -30,6 +30,8 @@ import {
   Mail,
 } from "lucide-react";
 import {api,services,statuses,money,type User,type Lead,type Content} from "../lib/app-shared";
+import {defaultAgencyServices} from "../lib/services";
+import {offersFor, offerPrice} from "../lib/public-prices";
 const ProjectDocuments = React.lazy(() => import("./project-documents").then(m => ({default:m.ProjectDocuments})));
 const ProjectMaterials = React.lazy(() => import("./project-materials").then(m => ({default:m.ProjectMaterials})));
 const MaterialsHub = React.lazy(() => import("./project-materials").then(m => ({default:m.MaterialsHub})));
@@ -657,26 +659,27 @@ function ContentEditor({
         ))}
       </div>
       <h3>Публичные цены</h3>
-      <p className="muted">
-        Оставьте поле пустым, чтобы показать «Стоимость после обсуждения».
-      </p>
-      <div className="form-grid">
-        {services.map((s) => (
-          <label key={s.name}>
-            {s.name}
-            <input
-              value={draft.prices[s.name] || ""}
-              placeholder="Например, от 80 000 ₽"
-              onChange={(e) =>
-                setDraft({
-                  ...draft,
-                  prices: { ...draft.prices, [s.name]: e.target.value },
-                })
-              }
-            />
-          </label>
-        ))}
-      </div>
+      <p className="muted">Укажите сумму в рублях. Пустое поле возвращает цену из исходной таблицы. Период оплаты и состав работ указаны в прайсе.</p>
+      {defaultAgencyServices.map(service => {
+        const offers = offersFor(service.slug);
+        if (!offers.length) return null;
+        return <details key={service.slug} className="operator-price-group">
+          <summary>{service.name}</summary>
+          <div className="form-grid">
+            {offers.map(offer => <label key={offer.code}>
+              {offer.name} · {offer.code}
+              <input type="number" min="0.01" max="99999999.99" step="0.01"
+                value={draft.prices[offer.code] || ""}
+                placeholder={offerPrice(offer)}
+                onChange={event => setDraft(previous => ({
+                  ...previous,
+                  prices: { ...previous.prices, [offer.code]: event.target.value },
+                }))}
+              />
+            </label>)}
+          </div>
+        </details>;
+      })}
       <h3>Реальные сайты и проекты</h3>
       <p className="muted">Для живого просмотра достаточно названия, описания и HTTPS-ссылки. Скриншот не обязателен; внешний сайт загружается только по нажатию посетителя. Некоторые сайты запрещают встраивание — прямая ссылка остаётся доступной.</p>
       <p className="muted">

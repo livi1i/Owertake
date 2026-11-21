@@ -35,9 +35,11 @@ import {
 import "./style.css";
 import "./premium.css";
 import "./polish.css";
+import "./soft-digital.css";
 import "./components/catalog-common.css";
 import { PageScrollbar } from "./components/page-scrollbar";
 import { LegalPage, legalTitles, ConsentLabel, LEGAL_VERSION } from "./components/legal-pages";
+import { PriceMatch } from "./components/price-match";
 import { CookiePreferences } from "./components/cookie-preferences";
 import { ThemePicker } from "./components/theme-picker";
 const ServiceCatalog = React.lazy(() => import("./components/service-catalog").then(m=>({default:m.ServiceCatalog})));
@@ -48,7 +50,9 @@ const FaqPage = React.lazy(() => import("./components/faq-page").then(m => ({def
 const ContactsPage = React.lazy(() => import("./components/contacts-page").then(m => ({default:m.ContactsPage})));
 const PortfolioPage = React.lazy(() => import("./components/portfolio-page").then(m => ({default:m.PortfolioPage})));
 const NotFound = React.lazy(() => import("./components/not-found").then(m => ({default:m.NotFound})));
+import {serviceCategories, serviceCategoryUrl} from "./lib/services";
 import {api,services,type User,type Project,type Content} from "./lib/app-shared";
+const AboutPage = React.lazy(() => import("./components/about-page").then(m => ({default:m.AboutPage})));
 const HomePage = React.lazy(() => import("./components/home-page").then(m=>({default:m.HomePage})));
 const Dashboard = React.lazy(() => import("./components/dashboard").then(m=>({default:m.Dashboard})));
 function Logo() {
@@ -93,7 +97,7 @@ function App() {
     api("me")
       .then((j) => setUser(j.user))
       .catch(() => {});
-    const needsPublicContent = (location.pathname === "/" && !location.hash.startsWith("#cabinet")) || location.pathname === "/contacts" || Object.hasOwn(legalTitles,location.pathname);
+    const needsPublicContent = (location.pathname === "/" && !location.hash.startsWith("#cabinet")) || ["/contacts","/services","/pricing","/calculator"].includes(location.pathname) || location.pathname.startsWith("/services/") || Object.hasOwn(legalTitles,location.pathname);
     if(needsPublicContent) api("content").then(setContent).catch(() => {});
     const h = () => {
       setRoute(location.hash || "#home");
@@ -108,13 +112,14 @@ function App() {
       return () => clearTimeout(t);
     }
   }, [toast]);
-  const order = (service = services[0].name, context = "") => {
-    service = typeof service === "string" ? service : services[0].name;
+  const order = (service = "Обсуждение проекта", context = "") => {
+    service = typeof service === "string" ? service : "Обсуждение проекта";
     try { sessionStorage.setItem("overtake:brief-handoff", JSON.stringify({service,context})); location.href = "/brief"; return; } catch { setToast("Не удалось перенести параметры. Можно отправить короткую заявку в этом окне."); }
     setBriefContext(context);
     setSelected(service);
     setModal("brief");
   };
+  const discussPrice = () => order("Сравнение стоимости", "Есть предложение от другого исполнителя. Хочу сравнить состав работ и обсудить стоимость.");
   const openLogin = () =>
     user ? (location.href = "/#cabinet") : setModal("auth");
   const logout = async () => {
@@ -124,7 +129,7 @@ function App() {
   };
   const catalogPath = location.pathname === "/services" || location.pathname.startsWith("/services/");
   const dashboard = route.startsWith("#cabinet") || ["/account","/admin"].includes(location.pathname);
-  const knownRoute = ["/","/account","/admin","/contacts","/faq","/brief","/calculator","/pricing","/services","/portfolio",...Object.keys(legalTitles)].includes(location.pathname) || /^\/(services|portfolio)\/[a-z0-9-]+$/.test(location.pathname);
+  const knownRoute = ["/","/about","/account","/admin","/contacts","/faq","/brief","/calculator","/pricing","/services","/portfolio",...Object.keys(legalTitles)].includes(location.pathname) || /^\/(services|portfolio)\/[a-z0-9-]+$/.test(location.pathname);
   const legalPath = legalTitles[location.pathname] ? location.pathname : "";
   return (
     <MotionConfig reducedMotion="user">
@@ -137,16 +142,26 @@ function App() {
           <Logo />
         </a>
         <nav className={menu ? "nav open" : "nav"} aria-label="Главное меню">
-          <a href="/services">
-            <span>Услуги</span>
-          </a>
+          <details className="service-menu" onKeyDown={event => {
+            if (event.key === "Escape" && event.currentTarget.open) {
+              event.currentTarget.open = false;
+              event.currentTarget.querySelector("summary")?.focus();
+            }
+          }}>
+            <summary>Услуги <ChevronDown size={14} aria-hidden="true"/></summary>
+            <div className="service-menu-panel">
+              {serviceCategories.map(category => <a key={category} href={serviceCategoryUrl(category)}>{category}</a>)}
+              <a href="/services">Все услуги</a>
+              <a href="/calculator">Калькулятор</a>
+            </div>
+          </details>
           <a href="/portfolio">
-            <span>Проекты</span>
+            <span>Портфолио</span>
           </a>
           <a href="/pricing">
             <span>Стоимость</span>
           </a>
-          <a href="/#about">
+          <a href="/about">
             <span>О нас</span>
           </a>
           <a href="/contacts">
@@ -171,7 +186,7 @@ function App() {
           </button>
         </div>
       </header>
-      {!knownRoute ? <React.Suspense fallback={<main id="main" className="catalog-page">Страница не найдена</main>}><NotFound /></React.Suspense> : (location.pathname === "/admin" && user && user.role!=="admin") ? <main className="catalog-page" id="main"><h1>Доступ только для команды</h1><a className="catalog-home-link" href="/account">Открыть свой кабинет →</a></main> : (location.pathname === "/portfolio" || location.pathname.startsWith("/portfolio/")) ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем портфолио…</main>}><PortfolioPage order={order} /></React.Suspense> : location.pathname === "/contacts" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем контакты…</main>}><ContactsPage contacts={content.contacts} order={order} /></React.Suspense> : location.pathname === "/faq" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем вопросы…</main>}><FaqPage /></React.Suspense> : location.pathname === "/brief" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем бриф…</main>}><BriefWizard user={user} /></React.Suspense> : location.pathname === "/calculator" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем параметры проекта…</main>}><ProjectCalculator order={order} /></React.Suspense> : location.pathname === "/pricing" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем страницу стоимости…</main>}><PricingPage order={order} /></React.Suspense> : catalogPath ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем услуги…</main>}><ServiceCatalog path={location.pathname} order={order} /></React.Suspense> : legalPath ? <LegalPage path={legalPath} contacts={content.contacts} /> : dashboard ? (
+      {!knownRoute ? <React.Suspense fallback={<main id="main" className="catalog-page">Страница не найдена</main>}><NotFound /></React.Suspense> : (location.pathname === "/admin" && user && user.role!=="admin") ? <main className="catalog-page" id="main"><h1>Доступ только для команды</h1><a className="catalog-home-link" href="/account">Открыть свой кабинет →</a></main> : (location.pathname === "/portfolio" || location.pathname.startsWith("/portfolio/")) ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем портфолио…</main>}><PortfolioPage order={order} /></React.Suspense> : location.pathname === "/about" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем страницу…</main>}><AboutPage /></React.Suspense> : location.pathname === "/contacts" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем контакты…</main>}><ContactsPage contacts={content.contacts} order={order} /></React.Suspense> : location.pathname === "/faq" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем вопросы…</main>}><FaqPage /></React.Suspense> : location.pathname === "/brief" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем бриф…</main>}><BriefWizard user={user} /></React.Suspense> : location.pathname === "/calculator" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем параметры проекта…</main>}><ProjectCalculator order={order} prices={content.prices} /></React.Suspense> : location.pathname === "/pricing" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем страницу стоимости…</main>}><PricingPage order={order} prices={content.prices} /></React.Suspense> : catalogPath ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем услуги…</main>}><ServiceCatalog path={location.pathname} order={order} prices={content.prices} /></React.Suspense> : legalPath ? <LegalPage path={legalPath} contacts={content.contacts} /> : dashboard ? (
         <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем кабинет…</main>}><Dashboard
           user={user}
           content={content}
@@ -182,7 +197,7 @@ function App() {
           notify={setToast}
         /></React.Suspense>
       ) : (
-        <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем главную…</main>}><HomePage content={content} effectsPaused={effectsPaused} order={order} openLogin={openLogin} showService={name=>{setSelected(name);setModal("service");}} /></React.Suspense>
+        <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем главную…</main>}><HomePage content={content} effectsPaused={effectsPaused} order={order} openLogin={openLogin} /></React.Suspense>
       )}
       <footer className="footer">
         <div className="footer-top">
@@ -212,6 +227,7 @@ function App() {
         </div>
       </footer>
       <CookiePreferences />
+      {!dashboard && !modal && ["/", "/services", "/pricing", "/calculator"].includes(location.pathname) && <PriceMatch onDiscuss={discussPrice} />}
       {modal && (
         <Modal
           close={() => setModal("")}

@@ -4,7 +4,8 @@ import {database} from '../scripts/local-db.mjs';
 import {api} from '../server/api.mjs';
 import {defaultAgencyServices,mergeServices,filterServices} from '../src/lib/services.ts';
 test('catalog search, categories and hidden overrides',()=>{
- assert.equal(defaultAgencyServices.length,18);
+ assert.ok(defaultAgencyServices.some(s=>s.category==='CRM'&&s.slug==='crm'));
+ assert.ok(defaultAgencyServices.some(s=>s.category==='Хостинг и домены'&&s.slug==='domains'));
  assert.ok(filterServices(defaultAgencyServices,'1С','Все').some(s=>s.slug==='integrations'));
  assert.ok(filterServices(defaultAgencyServices,'','ИИ').every(s=>s.category==='ИИ'));
  assert.equal(filterServices(mergeServices([{slug:'landing',status:'Скрыта'}]),'','Все').some(s=>s.slug==='landing'),false);

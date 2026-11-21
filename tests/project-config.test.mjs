@@ -9,6 +9,6 @@ test('project parameters constrain volume and remove features from other directi
 });
 test('summary carries service, volume, features and conditions without invented prices',()=>{
  const text=projectSummary({name:'Telegram-боты',category:'Боты и автоматизация'},{volume:5,features:['Запись и бронирование','Онлайн-оплата'],complexity:complexities[1],urgency:urgencies[1]});
- assert.match(text,/Telegram-боты/);assert.match(text,/Рабочие сценарии: 5/);assert.match(text,/Запись и бронирование/);assert.doesNotMatch(text,/Онлайн-оплата|₽/);assert.match(text,/Повышенная/);assert.match(text,/Ускоренный запуск/);assert.match(text,/Тарифы пока не опубликованы/);
+ assert.match(text,/Telegram-боты/);assert.match(text,/Рабочие сценарии: 5/);assert.match(text,/Запись и бронирование/);assert.doesNotMatch(text,/Онлайн-оплата|₽/);assert.match(text,/Повышенная/);assert.match(text,/Ускоренный запуск/);assert.match(text,/Стоимость: индивидуальная оценка/);
  assert.ok(projectSchema('custom-category').features.length);
 });
