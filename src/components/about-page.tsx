@@ -3,7 +3,7 @@ import {ArrowLeft,ArrowUpRight,Code2,FileText,Headphones,Layers,Server} from 'lu
 import {Reveal} from './reveal';
 import {ProcessSteps} from './process-steps';
 import {LeadSection} from './lead-section';
-import togetherImage from '../assets/studio-together.webp?inline';
+import togetherImage from '../assets/studio-partnership.webp?inline';
 
 const principles = [
   {Icon:Layers,title:'От сайта до CRM',text:'Дизайн, разработка и продвижение работают на одну задачу. Связываем продукт с тем, чем команда уже пользуется.'},
@@ -17,7 +17,7 @@ export function AboutPage({contacts}:{contacts:Record<string,string>}) {
     <a className="catalog-back" href="/"><ArrowLeft size={17}/> На главную</a>
     <header className="page-banner" data-enter>
       <div><h1>Два основателя.<br/>Одна команда.</h1><p>OVERTAKE — цифровое агентство из Пскова. Создаём сайты, ботов и приложения и остаёмся на связи после запуска.</p><a className="secondary-panel" href="#request"><ArrowUpRight size={17}/> Обсудить проект</a></div>
-      <img className="page-brand-image" src={togetherImage} alt="" width={720} height={540}/>
+      <img className="page-brand-image" src={togetherImage} alt="" width={900} height={600}/>
     </header>
     <section className="studio-inner-section">
       <Reveal><div className="studio-section-head"><h2>Почему OVERTAKE</h2><p>Вы обсуждаете задачу с людьми, которые ведут проект.</p></div></Reveal>

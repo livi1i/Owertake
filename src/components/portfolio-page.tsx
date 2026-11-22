@@ -52,12 +52,12 @@ export function PortfolioPage({order,contacts}:{order:(name:string,context?:stri
         {!project.concept && <LeadSection contacts={contacts}/>}
       </> : <div className="case-empty"><h1>Проект не найден</h1><a className="secondary-panel" href="/portfolio">Открыть портфолио</a></div> :
       <>
-        <header className="page-banner" data-enter><div><h1>Портфолио</h1><p>Работающие сайты и задачи, которые мы решили вместе с клиентами.</p></div><div className="portfolio-collage" aria-hidden="true">
+        <header className="page-banner portfolio-heading" data-enter><div><h1>Портфолио</h1><p>Откройте кейс, чтобы увидеть задачу клиента, ход работы и готовый сайт.</p><a href="#portfolio-cases" className="secondary-panel"><ArrowUpRight size={17}/> Смотреть кейсы</a></div><div className="portfolio-collage" aria-hidden="true">
           {real.map(item => {const url=projectUrl(item.url);return url ? casePreviews[url.hostname] || item.image : item.image;}).filter(Boolean).slice(0,2).map((src,index) =>
             <img src={src} alt="" key={index} width={466} height={262} />)}
         </div></header>
-        <div className="catalog-filters" aria-label="Категории портфолио">{['Все',...categories].map(item => <button key={item} type="button" aria-pressed={category===item} onClick={() => setCategory(item)}>{item}</button>)}</div>
-        {filtered.length ? <div className="studio-case-list">{filtered.map((item,index) => <Reveal key={projectSlug(item)} delay={index*55}>
+        <div className="catalog-filters" id="portfolio-cases" aria-label="Категории портфолио">{['Все',...categories].map(item => <button key={item} type="button" aria-pressed={category===item} onClick={() => setCategory(item)}>{item}</button>)}</div>
+        {filtered.length ? <div className="studio-case-list">{filtered.map((item,index) => <Reveal className="portfolio-case-reveal" key={projectSlug(item)} delay={Math.min(index,3)*110}>
           {item.url ? <LiveProject project={item}/> : <a className="case-card" href={'/portfolio/'+projectSlug(item)}><Preview project={item}/><div className="case-card-copy"><h2>{item.title}</h2><p>{item.description}</p></div></a>}
         </Reveal>)}</div> : <div className="case-empty"><p>В этой категории пока нет опубликованных проектов.</p></div>}
         <LeadSection contacts={contacts} heading="Обсудим похожий проект"/>

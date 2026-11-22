@@ -1,12 +1,14 @@
 import React,{useEffect,useState} from 'react';
-import {ArrowLeft,ArrowUpRight,Calculator,Check,Printer} from 'lucide-react';
+import {ArrowLeft,ArrowUpRight,Bot,Calculator,Check,Globe,LifeBuoy,Network,Printer,ShoppingBag,PanelsTopLeft} from 'lucide-react';
 import {mergeServices,serviceCategories,servicesRequest,type AgencyService} from '../lib/services';
 import {offerPrice,offersFor,type PriceOverrides} from '../lib/public-prices';
 import './pricing-page.css';
 import {packages} from '../lib/project-packages';
 import {LeadSection} from './lead-section';
-import {InterfaceArt} from './interface-art';
+import packageArt from '../assets/studio-packages.webp?inline';
 import {Reveal} from './reveal';
+
+const packageIcons = [PanelsTopLeft,Globe,ShoppingBag,Bot,Network,LifeBuoy];
 
 
 export function PricingPage({order,prices,contacts}:{order:(name:string,description?:string)=>void;prices:PriceOverrides;contacts:Record<string,string>}) {
@@ -32,7 +34,7 @@ export function PricingPage({order,prices,contacts}:{order:(name:string,descript
   return <main id="main" className="pricing-page">
     <a className="catalog-back" href="/services"><ArrowLeft size={17}/> Каталог услуг</a>
     <div className="pricing-heading page-banner" data-enter>
-      <div><h1>Цены и пакеты услуг</h1><p>Стоимость за базовый объём. Согласуем смету до начала работ.</p><a className="secondary-panel" href="/calculator"><Calculator size={18}/> Рассчитать стоимость</a></div><InterfaceArt/>
+      <div><h1>Цены и пакеты услуг</h1><p>Выберите готовое решение или соберите смету из нужных работ. Согласуем цену до старта.</p><a className="secondary-panel" href="/calculator"><Calculator size={18}/> Рассчитать стоимость</a></div><img className="package-hero-art" src={packageArt} alt="" width={950} height={633}/>
     </div>
     {loading && <p role="status">Загружаем прайс…</p>}
     {error && <div className="catalog-empty" role="alert"><p>{error}</p><button className="btn purple" onClick={load}>Повторить загрузку</button></div>}
@@ -40,21 +42,23 @@ export function PricingPage({order,prices,contacts}:{order:(name:string,descript
       <section className="pricing-section" id="formats">
         <h2>Готовые решения</h2>
         <div className="pricing-packages">
-          {packages.map(bundle => {
+          {packages.map((bundle,index) => {
             const service = items.find(item => item.slug === bundle.slug && item.status !== 'Временно недоступна');
             const offer = offersFor(bundle.slug, prices).find(item => item.code === bundle.code);
             if (!service || !offer) return null;
-            return <Reveal key={bundle.code} delay={(packages.indexOf(bundle)%3)*45}><article className="pricing-package">
+            const Icon=packageIcons[index];
+            return <Reveal key={bundle.code} delay={(index%3)*120}><article className="pricing-package">
+              <div className="package-emblem" aria-hidden="true"><Icon size={36} strokeWidth={1.5}/></div>
               <h3>{bundle.name}</h3>
               <p>{bundle.audience}</p>
               <strong>{offerPrice(offer)}</strong>
               <ul>{bundle.included.map(item => <li key={item}><Check size={16}/>{item}</li>)}</ul>
-              <small>Сроки согласуем по задаче. Дополнительные работы и сторонние расходы считаем отдельно.</small>
               <button className="btn purple full" type="button" onClick={() => order(service.name, `Пакет «${bundle.name}» · ${offerPrice(offer)}. ${offer.scope}`)}>Обсудить пакет <ArrowUpRight size={17}/></button>
               <a className="secondary-panel" href={'/calculator?' + new URLSearchParams({service:bundle.slug,offer:bundle.code})}>Уточнить параметры</a>
             </article></Reveal>;
           })}
         </div>
+        <p className="pricing-package-note">Сроки, дополнительные работы и сторонние расходы согласуем отдельно.</p>
       </section>
       <section className="pricing-section">
         <div className="pricing-section-title">

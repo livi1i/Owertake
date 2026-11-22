@@ -1,10 +1,11 @@
 import {useEffect,useRef,useState} from 'react';
-import {ArrowLeft,ArrowUpRight,Bolt,Calculator,Check} from 'lucide-react';
+import {ArrowLeft,ArrowUpRight,Bolt,Check} from 'lucide-react';
 import {mergeServices,serviceCategories,servicesRequest,type AgencyService} from '../lib/services';
-import {offerPrice,type PriceOverrides} from '../lib/public-prices';
-import {buildProjectQuote,designLevels,projectPresets,type DesignLevel} from '../lib/project-quote';
+import {offerPrice,priceLabel,type PriceOverrides} from '../lib/public-prices';
+import {buildProjectQuote,designLevels,urgentRate,projectPresets,type DesignLevel} from '../lib/project-quote';
 import {LeadSection,type LeadPrefill} from './lead-section';
-import {InterfaceArt} from './interface-art';
+import {CalculatorArt} from './calculator-art';
+import {StudioSelect} from './studio-select';
 import './project-calculator.css';
 
 export function ProjectCalculator({prices,contacts}:{prices:PriceOverrides;contacts:Record<string,string>}) {
@@ -57,6 +58,7 @@ export function ProjectCalculator({prices,contacts}:{prices:PriceOverrides;conta
       ...(quote.lines.length ? ['Состав расчёта:',...quote.lines.map(item => `• ${item.name} — ${offerPrice(item)}`)] : []),
       ...(adjustableDesign ? [`Дизайн: ${designLevels.find(item => item.id === design)?.name}`] : []),
       `Стоимость: ${quote.totals.join(' + ') || 'по индивидуальной оценке'}`,
+      ...(urgent ? [quote.urgentFee ? 'Ускоренный запуск: ориентир доплаты '+priceLabel(quote.urgentFee)+'.' : 'Ускоренный запуск: нужна индивидуальная оценка.'] : []),
       `Срок: ${quote.timeline}`,
       'Итоговую смету и дату запуска прошу согласовать.',
     ].join('\n');
@@ -67,15 +69,13 @@ export function ProjectCalculator({prices,contacts}:{prices:PriceOverrides;conta
 
   return <main id="main" className="project-calculator">
     <a className="catalog-back" href="/pricing"><ArrowLeft size={17}/> Цены</a>
-    <header className="page-banner config-heading" data-enter><div><h1>Сколько стоит<br/>ваш проект?</h1><p>Выберите задачу и функции. Расчёт обновится сразу и перейдёт в заявку вместе с составом работ.</p></div><InterfaceArt/></header>
+    <header className="page-banner config-heading" data-enter><div><h1>Сколько стоит<br/>ваш проект?</h1><p>Выберите задачу и функции. Расчёт обновится сразу и перейдёт в заявку вместе с составом работ.</p></div><CalculatorArt/></header>
     {loading ? <p role="status" className="config-empty">Загружаем прайс…</p> : error ? <div role="alert" className="config-empty"><p>{error}</p><button className="btn purple" onClick={load}>Повторить</button></div> : <div className="config-layout">
       <div className="config-controls">
         <section className="config-panel"><div className="config-step"><span>01</span><h2>Что сделать</h2></div>
           <div className="quote-pills" aria-label="Тип проекта">{projectPresets.map(item => <button key={item.id} type="button" aria-pressed={preset===item.id}
             disabled={!!item.slug&&!items.some(service => service.slug === item.slug)} onClick={() => {setPreset(item.id);resetFor(item.slug);}}>{item.name}</button>)}</div>
-          {preset==='other' && <label>Услуга<select value={slug} onChange={event => resetFor(event.target.value)}><option value="">Подбор решения</option>
-            {serviceCategories.map(category => <optgroup key={category} label={category}>{items.filter(item => item.category===category).map(item => <option key={item.slug} value={item.slug}>{item.name}</option>)}</optgroup>)}
-          </select></label>}
+          {preset==='other' && <StudioSelect label="Услуга" value={slug} onChange={resetFor} groups={[{choices:[{value:'',label:'Подбор решения'}]},...serviceCategories.map(category=>({label:category,choices:items.filter(item=>item.category===category).map(item=>({value:item.slug,label:item.name,hint:item.description}))}))]}/>}
         </section>
         <section className="config-panel"><div className="config-step"><span>02</span><h2>Объём работ</h2></div>
           {quote.variants.length ? <div className="quote-pills quote-volume" aria-label="Объём работ">{quote.variants.map(item => <button type="button" key={item.code}
@@ -92,14 +92,15 @@ export function ProjectCalculator({prices,contacts}:{prices:PriceOverrides;conta
             <span>{item.name}<small>{item.included ? 'Уже в тарифе' : item.offer ? offerPrice(item.offer) : 'По согласованию'}</small></span>
           </label>)}</div>
         </section>}
-        <label className="quote-urgent"><input type="checkbox" checked={urgent} onChange={event => setUrgent(event.target.checked)}/><Bolt size={18}/> Нужен срочный запуск</label>
+        <label className="quote-urgent"><Bolt size={22}/><span><strong>Нужен срочный запуск</strong><small>{quote.hasUrgentEstimate ? 'Ориентир доплаты +'+urgentRate+'% к разовым работам' : 'Срок и доплата по индивидуальной оценке'}</small></span><input type="checkbox" role="switch" checked={urgent} onChange={event => setUrgent(event.target.checked)}/><i aria-hidden="true"/></label>
       </div>
       <aside className="config-summary">
         <span className="catalog-kicker">ПРЕДВАРИТЕЛЬНЫЙ РАСЧЁТ</span>
         <h2>{projectPresets.find(item => item.id === preset && item.id !== 'other')?.name || service?.name || 'Индивидуальный проект'}</h2>
-        <div className="quote-totals" aria-live="polite"><strong>{quote.totals.join(' + ') || 'По согласованию'}</strong><p>{quote.timeline}</p></div>
+        <div key={quote.totals.join()+quote.timeline} className="quote-totals" aria-live="polite"><strong>{quote.totals.join(' + ') || 'По согласованию'}</strong><p>{quote.timeline}</p></div>
+        {quote.urgentFee>0 && <p className="quote-fee">Срочный запуск · +{priceLabel(quote.urgentFee)}</p>}
         {quote.lines.length>0 && <ul className="quote-lines">{quote.lines.map(item => <li key={item.code}><Check size={15}/><span>{item.name}<small>{offerPrice(item)}</small></span></li>)}</ul>}
-        <p className="config-hint">Это ориентир по прайсу и планированию. Итоговые сроки, объём и стоимость срочного запуска подтвердим после обсуждения.</p>
+        <p className="config-hint">Это ориентир по прайсу и планированию. Итоговую стоимость и доступную дату запуска подтвердим после обсуждения.</p>
         <button className="btn purple full" onClick={requestQuote}><ArrowUpRight size={17}/> Получить расчёт</button>
       </aside>
     </div>}

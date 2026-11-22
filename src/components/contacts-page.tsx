@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {ArrowLeft,ArrowUpRight,FileText,Mail,MapPin,Phone,Send,Users,Video} from 'lucide-react';
+import {ArrowLeft,ArrowUpRight,Building2,FileText,Mail,MapPin,Phone,Send,Users,Video} from 'lucide-react';
 import {OperatorDetails} from './legal-pages';
 import {contactEmail,contactTelegram} from '../lib/contact-links';
 import {LeadSection} from './lead-section';
@@ -30,7 +30,7 @@ export function ContactsPage({contacts,order}:{contacts:Record<string,string>;or
     <div className="studio-contact-details">
       <section className="catalog-panel"><span className="studio-glyph"><FileText size={23}/></span><h2>Реквизиты исполнителя</h2><OperatorDetails showPhone={false}/><a className="secondary-panel" href="/legal"><ArrowUpRight size={16}/> Документы</a></section>
       <section className="catalog-panel contacts-meeting"><h2>Договориться о встрече</h2><p>Укажите удобное время по Москве. Команда уточнит детали и подтвердит встречу.</p>
-        <fieldset><legend>Формат встречи</legend>{['Онлайн','В офисе','У заказчика'].map((item,index) => <label key={item}><input type="radio" name="meeting-format" checked={format === item} onChange={() => setFormat(item)}/>{index===0?<Video size={17}/>:<Users size={17}/>}<span>{item}</span></label>)}</fieldset>
+        <fieldset><legend>Формат встречи</legend><div className="meeting-formats">{[{label:'Онлайн',detail:'Видеозвонок',Icon:Video},{label:'В офисе',detail:'Псков',Icon:Building2},{label:'У заказчика',detail:'Приедем к вам',Icon:Users}].map(({label,detail,Icon}) => <label key={label}><input type="radio" name="meeting-format" checked={format === label} onChange={() => setFormat(label)}/><Icon size={20} aria-hidden="true"/><span><strong>{label}</strong><small>{detail}</small></span></label>)}</div></fieldset>
         <div className="form-grid"><label>Желаемая дата<input type="date" value={date} onChange={event => setDate(event.target.value)}/></label><label>Желаемое время<input type="time" value={time} onChange={event => setTime(event.target.value)}/></label></div>
         <button className="btn purple" onClick={() => order('Консультация по проекту',`Формат встречи: ${format}.${date ? ' Желаемая дата: '+date+'.' : ''}${time ? ' Желаемое время по Москве: '+time+'.' : ''}`)}><ArrowUpRight size={17}/> Запросить встречу</button>
       </section>

@@ -154,23 +154,6 @@ html[data-theme] .faq-toggle svg { color: var(--purple); }
 @keyframes faq-answer-in { from { opacity: .45; } }
 html[data-theme] .faq-search-row > span { white-space: normal; }
 
-/* An embedded image keeps the footer map visible before any external navigation. */
-.office-map { position: relative; }
-.office-map-link { display: grid; min-width: 0; }
-.office-map-preview { display: block; min-height: 0; aspect-ratio: 2.4; }
-.office-map-preview::before { display: none; }
-.office-map-preview img { display: block; width: 100%; height: 100%; object-fit: cover; transition: scale .5s var(--motion-curve); }
-.office-map-link:hover img { scale: 1.028; }
-.office-map-marker {
-  position: absolute; top: 53%; left: 56%; translate: -50% -50%;
-  display: grid; place-items: center;
-  width: 39px; height: 39px; border-radius: 14px;
-  color: white; border: 2px solid white; background: var(--studio-primary);
-  box-shadow: 0 5px 13px #174aa766;
-}
-.office-map-address > svg { flex: none; color: var(--purple); }
-.office-map-address small { display: block; color: var(--purple); font-size: .76rem; }
-.office-map-credit { position: absolute; top: 5px; right: 6px; padding: 2px 4px; background: #f7faffee; color: #273e61; border-radius: 5px; font-size: .62rem; }
 .studio-footer { padding-block: 16px 12px; }
 .studio-footer-main { grid-template-columns: auto minmax(110px,1fr) auto minmax(180px,252px); align-items: center; gap: 8px 19px; padding-bottom: 13px; }
 .studio-footer-main .footer-brand { gap: 2px; }
@@ -182,17 +165,6 @@ html[data-theme] .faq-search-row > span { white-space: normal; }
 .studio-footer-legal { padding-top: 0; gap: 3px 13px; }
 .studio-footer-legal::before { margin: 0; }
 .studio-footer-legal button { min-height: 28px; }
-.office-map-compact { background: #142947; color: #f0f6ff; border-color: #365577; border-radius: 12px; }
-.office-map-compact .office-map-link { grid-template-columns: 76px minmax(0,1fr); align-items: center; }
-.office-map-compact .office-map-link:not(:has(img)) { grid-template-columns: minmax(0,1fr); }
-.office-map-compact .office-map-preview { height: 69px; aspect-ratio: auto; overflow: clip; }
-.office-map-compact .office-map-preview img { object-position: 56% center; }
-.office-map-compact .office-map-marker { width: 25px; height: 25px; border-radius: 8px; }
-.office-map-compact .office-map-address { padding: 6px; gap: 4px; }
-.office-map-compact .office-map-address strong { font-size: .70rem; line-height: 1.28; overflow-wrap: anywhere; }
-.office-map-compact .office-map-address small,.office-map-compact .office-map-address > svg { color: #b5d8ff; }
-.office-map-compact .office-map-address small { font-size: .64rem; }
-.office-map-compact .office-map-credit { top: auto; bottom: 2px; right: auto; left: 2px; font-size: .51rem; padding: 0 2px; }
 @media(max-width: 950px) {
   .studio-footer-main { grid-template-columns: auto minmax(140px,1fr) minmax(180px,248px); }
   .studio-footer-main nav { grid-column: 2; }
@@ -209,10 +181,6 @@ html[data-theme] .faq-search-row > span { white-space: normal; }
   .studio-footer-main nav { grid-column: 2; }
   .studio-footer-main .footer-connect { grid-column: 1; }
   .studio-footer-main .office-map { grid-column: 2; grid-row: 2; }
-  .office-map-compact .office-map-link { grid-template-columns: 46px minmax(0,1fr); }
-  .office-map-compact .office-map-address > svg { display: none; }
-  .office-map-compact .office-map-preview { height: 64px; }
-  .office-map-compact .office-map-credit { font-size: .43rem; }
   .interface-art { width: clamp(86px,24vw,147px); }
 }
 @media(max-width: 380px) {

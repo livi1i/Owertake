@@ -1,36 +1,27 @@
 /// <reference types="vite/client" />
 import React,{useEffect,useState} from 'react';
 import {
-  ArrowUpRight, AppWindow, Bot, Calculator, ChartNoAxesCombined, CircleHelp, Clapperboard,
-  Code2, FileCheck2, Globe, Headphones, Kanban, LayoutDashboard, MessageSquare, Paintbrush,
-  Plus, Server, Sparkles, Workflow,
+  ArrowUpRight, Calculator, CircleHelp,
+  Code2, FileCheck2, LayoutDashboard, MessageSquare,
+  Plus, Workflow,
 } from 'lucide-react';
 import {LiveProjects} from './live-projects';
 import {Reveal} from './reveal';
 import {LeadSection} from './lead-section';
 import {ProcessSteps} from './process-steps';
+import {directions} from './studio-directions';
+import {CabinetPreview} from './cabinet-preview';
+import {OfficeMap} from './office-map';
 import {mergeServices,servicesRequest,serviceCategoryUrl,defaultAgencyServices,type AgencyService} from '../lib/services';
 import {offerPrice,startingOffer} from '../lib/public-prices';
 import type {Content} from '../lib/app-shared';
 import heroImage from '../assets/studio-motion-ribbon.webp?inline';
-import togetherImage from '../assets/studio-together.webp?inline';
+import togetherImage from '../assets/studio-partnership.webp?inline';
 
-const directions = [
-  {category:'Сайты',name:'Разработка сайтов',text:'Лендинги, сайты компаний и магазины.',Icon:Globe,slug:'landing'},
-  {category:'Боты и автоматизация',name:'Боты и автоматизация',text:'Заявки, запись и продажи в Telegram.',Icon:Bot,slug:'telegram'},
-  {category:'CRM',name:'CRM-системы',text:'Внедрение CRM и учёт под ваши процессы.',Icon:Kanban,slug:'crm-setup'},
-  {category:'ИИ',name:'ИИ-решения',text:'Ассистенты, документы и обработка заявок.',Icon:Sparkles,slug:'ai-assistants'},
-  {category:'Дизайн',name:'Дизайн',text:'Интерфейсы, логотипы и фирменный стиль.',Icon:Paintbrush,slug:'ui-ux'},
-  {category:'Продвижение',name:'Продвижение',text:'SEO, реклама и ведение соцсетей.',Icon:ChartNoAxesCombined,slug:'seo'},
-  {category:'Приложения',name:'Приложения',text:'Личные кабинеты, платформы и PWA.',Icon:AppWindow,slug:'web-apps'},
-  {category:'Сопровождение',name:'Поддержка',text:'Диагностика, обновления и доработки.',Icon:Headphones,slug:'support'},
-  {category:'Хостинг и домены',name:'Хостинг и домены',text:'Размещение, регистрация и продление.',Icon:Server,slug:'hosting'},
-  {category:'Видео и 3D',name:'Видео и 3D',text:'Монтаж, объёмная графика и анимация.',Icon:Clapperboard,slug:'video'},
-];
 const benefits = ['Работаем по договору','Согласуем смету заранее','Ведём от идеи до запуска','Поддерживаем после запуска'];
 const FaqHighlights = React.lazy(() => import('./faq-page').then(module => ({default:module.FaqHighlights})));
 
-export function HomePage({content,openLogin}:{content:Content;openLogin:()=>void}) {
+export function HomePage({content,openLogin,effectsPaused}:{content:Content;openLogin:()=>void;effectsPaused:boolean}) {
   const [catalog,setCatalog] = useState<AgencyService[]>(defaultAgencyServices);
   useEffect(() => {
     let active = true;
@@ -100,23 +91,13 @@ export function HomePage({content,openLogin}:{content:Content;openLogin:()=>void
         <button className="secondary-panel" onClick={openLogin}><ArrowUpRight size={17}/> Перейти в личный кабинет</button>
       </Reveal>
       <Reveal className="studio-cabinet-stage" delay={85}>
-        <div className="studio-product-frame" aria-label="Пример интерфейса личного кабинета">
-          <div className="studio-product-toolbar"><span><i/><i/><i/></span><b>Личный кабинет</b><small>Пример</small></div>
-          <div className="studio-product-body">
-            <div className="studio-product-sidebar" aria-hidden="true"><LayoutDashboard size={17}/><MessageSquare size={17}/><FileCheck2 size={17}/></div>
-            <div className="studio-product-content">
-              <div><strong>Сайт компании</strong><span className="studio-status"><i/> В разработке</span></div>
-              <ol><li>Структура</li><li>Дизайн</li><li>Разработка</li></ol>
-              <div className="studio-product-message"><MessageSquare size={17}/><span>Макеты согласованы. Собираем страницы.</span></div>
-            </div>
-          </div>
-        </div>
+        <CabinetPreview paused={effectsPaused}/>
       </Reveal>
     </section>
     <ProcessSteps/>
     <section className="section studio-about" id="about">
       <Reveal className="studio-about-photo">
-        <img src={togetherImage} alt="" width={720} height={540} loading="lazy" decoding="async"/>
+        <img src={togetherImage} alt="" width={900} height={600} loading="lazy" decoding="async"/>
       </Reveal>
       <Reveal className="studio-about-copy" delay={80}>
         <h2>Кто за этим стоит</h2>
@@ -131,6 +112,7 @@ export function HomePage({content,openLogin}:{content:Content;openLogin:()=>void
     </section>
     <div className="section studio-last" id="contacts">
       <LeadSection contacts={content.contacts} heading="Следующий ход за вами"/>
+      <Reveal className="home-office"><OfficeMap address={content.contacts.address || ''}/></Reveal>
     </div>
   </main>;
 }

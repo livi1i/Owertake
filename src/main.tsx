@@ -53,9 +53,11 @@ const FaqPage = React.lazy(() => import("./components/faq-page").then(m => ({def
 const ContactsPage = React.lazy(() => import("./components/contacts-page").then(m => ({default:m.ContactsPage})));
 const PortfolioPage = React.lazy(() => import("./components/portfolio-page").then(m => ({default:m.PortfolioPage})));
 const NotFound = React.lazy(() => import("./components/not-found").then(m => ({default:m.NotFound})));
-import {serviceCategories, serviceCategoryUrl} from "./lib/services";
+import {serviceCategoryUrl} from "./lib/services";
+import {directions} from "./components/studio-directions";
+import {CalculatorArt} from "./components/calculator-art";
+import "./studio-finish.css";
 import {api,services,type User,type Project,type Content} from "./lib/app-shared";
-const FooterMap = React.lazy(() => import("./components/office-map").then(m => ({default:m.OfficeMap})));
 const AboutPage = React.lazy(() => import("./components/about-page").then(m => ({default:m.AboutPage})));
 const HomePage = React.lazy(() => import("./components/home-page").then(m=>({default:m.HomePage})));
 const Dashboard = React.lazy(() => import("./components/dashboard").then(m=>({default:m.Dashboard})));
@@ -163,9 +165,18 @@ function App() {
           }}>
             <summary>Услуги <ChevronDown size={14} aria-hidden="true"/></summary>
             <div className="service-menu-panel">
-              {serviceCategories.map(category => <a key={category} href={serviceCategoryUrl(category)}>{category}</a>)}
-              <a href="/services" className="menu-action">Все услуги</a>
-              <a href="/calculator" className="menu-action"><Calculator size={16}/> Калькулятор</a>
+              <div className="service-menu-catalog">
+                <div className="service-menu-heading"><strong>Направления</strong><a href="/services">Весь каталог <ArrowUpRight size={15}/></a></div>
+                <div className="service-menu-grid">{directions.map(({category,name,text,Icon}) => <a key={category} href={serviceCategoryUrl(category)}>
+                  <span className="studio-glyph"><Icon size={19} aria-hidden="true"/></span><span><strong>{name}</strong><small>{text}</small></span><ArrowUpRight size={15} aria-hidden="true"/>
+                </a>)}</div>
+              </div>
+              <a href="/calculator" className="menu-calculator">
+                <CalculatorArt/>
+                <span><Calculator size={17}/> Калькулятор проекта</span>
+                <small>Подберите объём и функции. Смета обновится на экране.</small>
+                <b>Рассчитать стоимость <ArrowUpRight size={15}/></b>
+              </a>
             </div>
           </details>
           <a href="/portfolio">
@@ -210,14 +221,13 @@ function App() {
           notify={setToast}
         /></React.Suspense>
       ) : (
-        <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем главную…</main>}><HomePage content={content} openLogin={openLogin} /></React.Suspense>
+        <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем главную…</main>}><HomePage content={content} openLogin={openLogin} effectsPaused={effectsPaused}/></React.Suspense>
       )}
       <footer className="studio-footer">
         <div className="studio-footer-main">
           <div className="footer-brand"><a href="/" aria-label="OVERTAKE — главная"><Logo/></a><p>Цифровое агентство · Псков</p></div>
           <nav aria-label="Основные страницы"><a href="/services">Услуги</a><a href="/portfolio">Портфолио</a><a href="/pricing">Цены</a><a href="/about">О нас</a></nav>
           <div className="footer-connect"><a href="tel:+79517506700">+7 (951) 750-67-00</a><a href="/contacts">Контакты</a><a href="/legal">Реквизиты</a></div>
-          {content.contacts.address && <React.Suspense fallback={null}><FooterMap address={content.contacts.address} compact/></React.Suspense>}
         </div>
         <div className="studio-footer-legal">
           <span>© {new Date().getFullYear()} OVERTAKE</span>
@@ -229,7 +239,7 @@ function App() {
       </footer>
       <div className="notice-dock">
         <CookiePreferences/>
-        {!dashboard && !modal && ["/", "/services", "/pricing", "/calculator"].includes(location.pathname) && <PriceMatch onDiscuss={discussPrice}/>}
+        {!dashboard && !modal && !legalPath && location.pathname !== "/brief" && knownRoute && <PriceMatch onDiscuss={discussPrice}/>}
       </div>
       {modal && (
         <Modal

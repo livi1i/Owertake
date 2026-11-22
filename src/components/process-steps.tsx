@@ -13,7 +13,7 @@ export function ProcessSteps() {
     <Reveal><div className="studio-section-head"><h2 id="approach-title">Как мы работаем</h2><p>На каждом этапе вы видите результат и знаете, что дальше.</p></div></Reveal>
     <ol className="studio-process-grid">
       {steps.map(({Icon,title,text},index) => <li key={title}>
-        <Reveal delay={index*65}>
+        <Reveal delay={index*150}>
           <article className="studio-step">
             <div className="studio-step-top"><span className="studio-glyph"><Icon size={23}/></span><span className="studio-step-number">0{index+1}</span></div>
             <h3>{title}</h3><p>{text}</p>

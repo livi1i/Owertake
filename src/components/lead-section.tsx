@@ -3,6 +3,7 @@ import {ArrowUpRight,CheckCircle2,ClipboardList,MessageSquare,Send,Phone} from '
 import {api} from '../lib/app-shared';
 import {contactEmail,contactTelegram} from '../lib/contact-links';
 import {ConsentLabel,LEGAL_VERSION} from './legal-pages';
+import {StudioSelect} from './studio-select';
 
 const projectTypes = ['Лендинг','Корпоративный сайт','Интернет-магазин','Telegram-бот','CRM и автоматизация','Редизайн и доработки','Хостинг и домены','Индивидуальная задача'];
 const budgets = ['Нужна оценка','До 30 000 ₽','30 000–70 000 ₽','70 000–150 000 ₽','150 000–300 000 ₽','От 300 000 ₽','Бюджет не ограничен'];
@@ -22,6 +23,7 @@ export function LeadSection({contacts={},prefill,heading='Обсудим ваш 
 }) {
   const [method,setMethod] = useState<Method>('Телефон');
   const [service,setService] = useState('');
+  const [budget,setBudget] = useState(budgets[0]);
   const [description,setDescription] = useState('');
   const [busy,setBusy] = useState(false);
   const [error,setError] = useState('');
@@ -53,6 +55,10 @@ export function LeadSection({contacts={},prefill,heading='Обсудим ваш 
     const contact = String(data.get('contact') || '').trim();
     if (!name || !validContact(method,contact)) {
       setError('Проверьте имя и контакт для выбранного способа связи.');
+      return;
+    }
+    if (!service) {
+      setError('Выберите услугу или индивидуальную задачу.');
       return;
     }
     if (description.trim().length < 10) {
@@ -92,7 +98,7 @@ export function LeadSection({contacts={},prefill,heading='Обсудим ваш 
       <form className="lead-fields" onSubmit={submit}>
         <div className="lead-fields-grid">
           <label>Имя<input name="name" autoComplete="name" maxLength={80} required placeholder="Как к вам обращаться"/></label>
-          <label>Способ связи<select value={method} onChange={event => setMethod(event.target.value as Method)}>{methods.map(value => <option key={value}>{value}</option>)}</select></label>
+          <StudioSelect label="Способ связи" value={method} onChange={value => setMethod(value as Method)} groups={[{choices:methods.map(value => ({value,label:value}))}]}/>
         </div>
         <label>{method === 'Почта' ? 'Электронная почта' : method === 'Телефон' ? 'Номер телефона' : 'Логин или ссылка на профиль'}
           <input key={method} name="contact" required maxLength={160} type={method === 'Почта' ? 'email' : method === 'Телефон' ? 'tel' : 'text'}
@@ -100,8 +106,8 @@ export function LeadSection({contacts={},prefill,heading='Обсудим ваш 
             placeholder={{Телефон:'+7 (___) ___-__-__',Почта:'name@example.ru',Telegram:'@имя',ВКонтакте:'vk.com/id'}[method]}/>
         </label>
         <div className="lead-fields-grid">
-          <label>Что нужно<select name="service" value={service} onChange={event => setService(event.target.value)} required><option value="">Выберите услугу</option>{selectOptions.map(value => <option key={value}>{value}</option>)}</select></label>
-          <label>Ориентир по бюджету<select name="budget">{budgets.map(value => <option key={value}>{value}</option>)}</select></label>
+          <StudioSelect label="Что нужно" value={service} onChange={setService} placeholder="Выберите услугу" groups={[{choices:selectOptions.map(value => ({value,label:value}))}]}/>
+          <StudioSelect label="Ориентир по бюджету" name="budget" value={budget} onChange={setBudget} groups={[{choices:budgets.map(value => ({value,label:value}))}]}/>
         </div>
         <label>Коротко о задаче<textarea name="description" rows={prefill ? 7 : 4} minLength={10} maxLength={4400} value={description}
           onChange={event => setDescription(event.target.value)} placeholder="Что должно получиться и когда это нужно?" required/></label>

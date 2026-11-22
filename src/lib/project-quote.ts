@@ -15,6 +15,7 @@ export const designLevels = [
   {id:'premium',name:'Премиальный',hint:'Дополнительная библиотека UI-компонентов'},
 ] as const;
 export type DesignLevel = typeof designLevels[number]['id'];
+export const urgentRate = 20;
 
 export const extras = [
   {id:'alerts',name:'Уведомления о заявках',site:'OV-065',bot:'OV-198'},
@@ -52,13 +53,15 @@ export function buildProjectQuote(input:{slug:string;preset:string;code:string;d
   const chosen = options.filter(option => input.extras.includes(option.id) && !option.included && option.offer);
   const uiKit = input.design === 'premium' && site ? offersFor('ui-ux',prices).find(offer => offer.code === 'OV-234') : undefined;
   const lines = [...(base ? [base] : []),...(uiKit ? [uiKit] : []),...chosen.map(option => option.offer!)];
+  const oneTimeTotal = lines.reduce((sum,offer) => sum + (offer.period==='once' ? offer.amount : 0),0);
+  const urgentFee = input.urgent ? Math.ceil(oneTimeTotal * urgentRate / 100) : 0;
   const totals = (['once','month','year'] as const).flatMap(period => {
-    const sum = lines.reduce((amount,offer) => amount + (offer.period === period ? offer.amount : 0),0);
+    const sum = period==='once' ? oneTimeTotal + urgentFee : lines.reduce((amount,offer) => amount + (offer.period === period ? offer.amount : 0),0);
     return sum ? [priceLabel(sum,period)] : [];
   });
   const preset = projectPresets.find(item => item.id === input.preset && item.id !== 'other');
   const days = preset?.days;
   const changes = chosen.length + Number(!!uiKit);
   const timeline = days?.length && !input.urgent ? `${days[0]+changes}–${days[1]+changes*3} рабочих дней` : input.urgent ? 'Ускоренный запуск — согласуем дату' : 'После оценки задачи';
-  return {base,variants,options,lines,totals,timeline};
+  return {base,variants,options,lines,totals,timeline,urgentFee,hasUrgentEstimate:oneTimeTotal>0};
 }
