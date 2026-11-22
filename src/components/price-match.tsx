@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
-import {ArrowUpRight,Tag,X} from 'lucide-react';
+import {Tag,X} from 'lucide-react';
 
 const storageKey = 'overtake:price-offer-next';
 const repeat = 85_000;
@@ -55,7 +55,7 @@ export function PriceMatch({onDiscuss}: {onDiscuss: () => void}) {
       <h2 id="price-match-title">Нашли дешевле?</h2>
       <p>Сверим объём работ и, если сможем, предложим цену ниже.</p>
       <button className="offer-action" type="button" onClick={() => { dismiss(600_000); onDiscuss(); }}>
-        Связаться <ArrowUpRight size={14} aria-hidden="true"/>
+        Связаться
       </button>
     </div>
     <button className="offer-close" type="button" onClick={() => dismiss()} aria-label="Закрыть предложение"><X size={17}/></button>

@@ -262,6 +262,120 @@ html[data-theme] .meeting-fields .meeting-formats label {
 .studio-about .studio-about-photo { display: block; min-height: 0; aspect-ratio: 3/2; align-self: center; overflow: hidden; padding: 0; }
 .studio-about .studio-about-photo img { display: block; width: 100%; height: 100%; max-height: none; object-fit: cover; object-position: center; filter: none; }
 .about-page .page-brand-image { filter: saturate(1.13) brightness(1.07); }
+
+.soft-home { isolation: isolate; overflow: clip; }
+.site-route-loading { min-height: calc(100svh - 96px); }
+.faq-page > p[role="status"] { min-height: 270px; }
+.soft-home > .studio-hero { position: relative; }
+.studio-hero-grid { grid-template-columns: minmax(0,.93fr) minmax(0,1.07fr); gap: clamp(12px,2.6vw,37px); }
+.studio-hero h1 { font-size: clamp(2.15rem,4.06vw,4.15rem); }
+.studio-hero .hero-line:last-child em { color: var(--purple); }
+.studio-benefits li { padding: 0; background: transparent; }
+.studio-cabinet-stage {
+  border-color: transparent; box-shadow: none;
+  background: radial-gradient(ellipse at 60% 46%,var(--showcase-blue),transparent 70%);
+}
+.soft-home .lead-section {
+  background: radial-gradient(ellipse at 11% 45%,var(--showcase-cyan),transparent 65%);
+  border-color: transparent; box-shadow: none;
+}
+.soft-home :is(.studio-service-card,.studio-bundle,.studio-step,.studio-case) {
+  background: color-mix(in srgb,var(--ui-surface) 58%,var(--paper));
+}
+.soft-home .studio-bundle { border-color: var(--line); }
+.header .service-menu-grid > a { grid-template-columns: auto minmax(0,1fr); }
+.header .menu-calculator > b { justify-content: center; }
+.studio-contact-list > a { grid-template-columns: auto minmax(0,1fr); }
+
+/* Controls share the same feedback while their surfaces keep their own motion. */
+:is(.btn,.secondary-panel,.login-link,.catalog-filters button,.quote-pills button,.studio-choice-trigger,.header .nav > a,.header .service-menu summary,.motion-control) {
+  transition: translate .24s var(--finish-ease),scale .24s var(--finish-ease),border-color .24s,
+    background-color .24s,box-shadow .24s,color .24s;
+}
+:is(.btn,.secondary-panel,.login-link,.catalog-filters button,.quote-pills button,.studio-choice-trigger,.header .nav > a,.header .service-menu summary,.motion-control):is(:hover,:focus-visible):not(:disabled) { translate: 0 -2px; }
+:is(.btn,.secondary-panel,.login-link,.catalog-filters button,.quote-pills button,.studio-choice-trigger,.header .nav > a,.header .service-menu summary,.motion-control):active:not(:disabled) { translate: 0 0; scale: .98; }
+.portfolio-page .secondary-panel:is(:hover,:focus-visible) { scale: 1.025; }
+.pricing-page :is(.secondary-panel,.catalog-filters button):is(:hover,:focus-visible) { box-shadow: inset 0 -2px var(--finish-blue); }
+.project-calculator .quote-pills button[aria-pressed="true"] { box-shadow: inset 0 0 0 1px var(--purple); }
+:is(.contacts-page,.lead-surface,.brief-page) :is(.btn,.studio-choice-trigger):is(:hover,:focus-visible) { border-color: var(--purple); }
+.about-page .secondary-panel:is(:hover,:focus-visible) { text-decoration: underline; text-underline-offset: 4px; }
+.studio-services :is(.studio-catalog-cta,.studio-package-cta) {
+  position: relative; isolation: isolate; overflow: hidden; min-height: 51px;
+  padding: 10px clamp(17px,2.1vw,28px); font-size: .95rem; font-weight: 680; border-radius: 15px;
+  text-align: center; white-space: normal;
+}
+.studio-services .studio-catalog-cta { min-height: 56px; min-width: min(100%,235px); }
+.studio-services :is(.studio-catalog-cta,.studio-package-cta)::after {
+  content: ""; position: absolute; inset: 0 auto 0 -30%; width: 27%;
+  pointer-events: none; background: linear-gradient(90deg,transparent,#b5efff93,transparent);
+  transform: skewX(-22deg);
+}
+.studio-services :is(.studio-catalog-cta,.studio-package-cta):is(:hover,:focus-visible)::after {
+  animation: cta-reflection .72s var(--finish-ease);
+}
+@keyframes cta-reflection { to { transform: translateX(560%) skewX(-22deg); } }
+
+html[data-theme] .faq-answers details { background: color-mix(in srgb,var(--ui-surface) 67%,var(--paper)); }
+html[data-theme] .faq-answers summary {
+  position: relative; isolation: isolate; border-radius: 14px; transition: color .25s; background: transparent;
+}
+html[data-theme] .faq-answers summary::before {
+  content: ""; position: absolute; inset: 3px; z-index: -1; pointer-events: none; border-radius: 11px;
+  background: linear-gradient(99deg,var(--ui-soft),var(--ui-tint));
+  opacity: 0; transform: scale(.985); transition: opacity .26s,transform .26s var(--finish-ease);
+}
+html[data-theme] .faq-answers summary:is(:hover,:focus-visible)::before,
+html[data-theme] .faq-answers details[open] > summary::before { opacity: 1; transform: scale(1); }
+.faq-toggle { transition: background .25s,color .25s,scale .28s var(--finish-ease); }
+.faq-toggle svg { transition: transform .35s var(--finish-ease); }
+.faq-answers summary:is(:hover,:focus-visible) .faq-toggle { scale: 1.09; }
+.faq-answers details[open] .faq-toggle { background: var(--purple); }
+html[data-theme] .faq-answers details[open] .faq-toggle svg { color: var(--ui-surface); transform: rotate(45deg); }
+
+.studio-process-grid { gap: 24px; }
+.studio-process-grid > :nth-child(1) { --step-order: 0; }
+.studio-process-grid > :nth-child(2) { --step-order: 1; }
+.studio-process-grid > :nth-child(3) { --step-order: 2; }
+.studio-process-grid > :nth-child(4) { --step-order: 3; }
+.studio-process-grid .studio-step-arrow {
+  inset: 21px -30px auto auto; width: 35px; height: 31px; border-radius: 11px;
+  border-color: var(--showcase-edge); background: var(--ui-surface); box-shadow: var(--soft-shadow);
+}
+.studio-step-arrow svg { width: 20px; height: 20px; }
+.studio-process-grid [data-visible="true"] :is(.studio-step-icon,.studio-step-arrow) {
+  animation: process-signal .57s calc(.14s + var(--step-order)*.85s) var(--finish-ease) both;
+}
+.studio-process-grid [data-visible="true"] .studio-step-arrow {
+  animation-delay: calc(.6s + var(--step-order)*.85s);
+}
+@keyframes process-signal { from { opacity: 0; transform: translateX(-6px) scale(.86); } }
+
+@media(max-width:900px) and (min-width:561px) {
+  .studio-process-grid > :nth-child(2) .studio-step-arrow { inset: auto 16px -29px auto; rotate: 90deg; }
+}
+@media(max-width:830px) {
+  .studio-hero-grid { grid-template-columns: minmax(0,1fr); gap: 22px; }
+  .studio-hero h1 { font-size: clamp(2rem,7vw,3.65rem); }
+  .soft-home .lead-section { padding-inline: clamp(0px,1.3vw,15px); }
+}
+@media(min-width:1150px) {
+  .soft-home > .studio-hero { padding-bottom: clamp(62px,5.7vw,83px); }
+}
+@media(max-width:560px) {
+  .studio-process-grid { grid-template-columns: minmax(0,1fr); gap: 21px; }
+  .studio-process-grid .studio-step-arrow { inset: auto 19px -28px auto; rotate: 90deg; }
+  .studio-process-grid [data-visible="true"] :is(.studio-step-icon,.studio-step-arrow) { animation-delay: calc(.10s + var(--step-order)*.25s); }
+  .studio-services .studio-catalog-cta { width: 100%; }
+}
+
+@media(prefers-reduced-motion:reduce) {
+  :is(.btn,.secondary-panel,.login-link,.catalog-filters button,.quote-pills button,.studio-choice-trigger,.header .nav > a,.header .service-menu summary,.motion-control,.faq-toggle,.faq-toggle svg) { transition: none!important; translate: none!important; scale: none!important; }
+  .studio-services :is(.studio-catalog-cta,.studio-package-cta)::after { animation: none!important; }
+  .faq-answers summary::before { transition: none!important; }
+}
+.effects-paused :is(.btn,.secondary-panel,.login-link,.catalog-filters button,.quote-pills button,.studio-choice-trigger,.header .nav > a,.header .service-menu summary,.motion-control,.faq-toggle,.faq-toggle svg) { transition: none!important; translate: none!important; scale: none!important; }
+.effects-paused .studio-services :is(.studio-catalog-cta,.studio-package-cta)::after { animation: none!important; }
+.effects-paused .faq-answers summary::before { transition: none!important; }
 @keyframes finish-progress { to { transform: scaleX(1); } }
 @keyframes finish-pulse { 50% { box-shadow: 0 0 0 7px #4997ff28; } }
 @keyframes finish-enter { from { opacity: 0; translate: 0 8px; } }

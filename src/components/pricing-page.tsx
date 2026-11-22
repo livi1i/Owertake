@@ -1,5 +1,5 @@
 import React,{useEffect,useState} from 'react';
-import {ArrowLeft,ArrowUpRight,Bot,Calculator,Check,FileCheck2,Globe,Layers3,LifeBuoy,Network,Printer,Server,ShoppingBag,PanelsTopLeft} from 'lucide-react';
+import {ArrowLeft,Bot,Calculator,Check,FileCheck2,Globe,Layers3,LifeBuoy,Network,Printer,Server,ShoppingBag,PanelsTopLeft} from 'lucide-react';
 import {mergeServices,serviceCategories,servicesRequest,type AgencyService} from '../lib/services';
 import {offerPrice,offersFor,type PriceOverrides} from '../lib/public-prices';
 import './pricing-page.css';
@@ -58,7 +58,7 @@ export function PricingPage({order,prices,contacts}:{order:(name:string,descript
               <p>{bundle.audience}</p>
               <strong>{offerPrice(offer)}</strong>
               <ul>{bundle.included.map(item => <li key={item}><Check size={16}/>{item}</li>)}</ul>
-              <button className="btn purple full" type="button" onClick={() => order(service.name, `Пакет «${bundle.name}» · ${offerPrice(offer)}. ${offer.scope}`)}>Обсудить пакет <ArrowUpRight size={17}/></button>
+              <button className="btn purple full" type="button" onClick={() => order(service.name, `Пакет «${bundle.name}» · ${offerPrice(offer)}. ${offer.scope}`)}>Обсудить пакет </button>
               <a className="secondary-panel" href={'/calculator?' + new URLSearchParams({service:bundle.slug,offer:bundle.code})}>Уточнить параметры</a>
             </article></Reveal>;
           })}

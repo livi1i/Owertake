@@ -1,4 +1,4 @@
-import {ArrowLeft,ArrowUpRight,FileText,Mail,MapPin,Phone,Send} from 'lucide-react';
+import {ArrowLeft,FileText,Mail,MapPin,Phone,Send} from 'lucide-react';
 import {OperatorDetails} from './legal-pages';
 import {contactEmail,contactTelegram} from '../lib/contact-links';
 import {LeadSection} from './lead-section';
@@ -18,9 +18,9 @@ export function ContactsPage({contacts}:{contacts:Record<string,string>}) {
     <div className="studio-contact-board">
       <div className="studio-contact-info">
         <div className="studio-contact-list">
-          <a href="tel:+79517506700"><span className="studio-glyph"><Phone size={19}/></span><span><small>Телефон</small><strong>+7 (951) 750-67-00</strong></span><ArrowUpRight size={18}/></a>
-          {email && <a href={email}><span className="studio-glyph"><Mail size={19}/></span><span><small>Почта</small><strong>{contacts.email}</strong></span><ArrowUpRight size={18}/></a>}
-          {telegram.map(item => <a key={item.url} href={item.url} target="_blank" rel="noopener noreferrer"><span className="studio-glyph"><Send size={19}/></span><span><small>Telegram</small><strong>{item.value}</strong></span><ArrowUpRight size={18}/></a>)}
+          <a href="tel:+79517506700"><span className="studio-glyph"><Phone size={19}/></span><span><small>Телефон</small><strong>+7 (951) 750-67-00</strong></span></a>
+          {email && <a href={email}><span className="studio-glyph"><Mail size={19}/></span><span><small>Почта</small><strong>{contacts.email}</strong></span></a>}
+          {telegram.map(item => <a key={item.url} href={item.url} target="_blank" rel="noopener noreferrer"><span className="studio-glyph"><Send size={19}/></span><span><small>Telegram</small><strong>{item.value}</strong></span></a>)}
           {contacts.hours && <p>Часы приёма · {contacts.hours}</p>}
         </div>
         <OfficeMap address={contacts.address || ''}/>
@@ -28,7 +28,7 @@ export function ContactsPage({contacts}:{contacts:Record<string,string>}) {
       <MeetingForm/>
     </div>
     <section className="catalog-panel contact-requisites" aria-labelledby="contact-requisites-title">
-      <div className="contact-requisites-heading"><span className="studio-glyph"><FileText size={23}/></span><h2 id="contact-requisites-title">Реквизиты исполнителя</h2><a className="secondary-panel" href="/legal"><ArrowUpRight size={16}/> Документы</a></div>
+      <div className="contact-requisites-heading"><span className="studio-glyph"><FileText size={23}/></span><h2 id="contact-requisites-title">Реквизиты исполнителя</h2><a className="secondary-panel" href="/legal">Документы</a></div>
       <OperatorDetails showPhone={false}/>
     </section>
     <LeadSection contacts={contacts}/>

@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react';
-import {ArrowLeft,ArrowUpRight,Check,GalleryHorizontalEnd,Layers} from 'lucide-react';
+import {ArrowLeft,Check,GalleryHorizontalEnd,Layers} from 'lucide-react';
 import {portfolioItems,filterPortfolio,projectSlug,type PortfolioProject} from '../lib/portfolio';
 import {ConceptVisual} from './concept-visual';
 import {LiveProject,casePreviews} from './live-projects';
@@ -47,12 +47,12 @@ export function PortfolioPage({order,contacts}:{order:(name:string,context?:stri
           {project.task && <section><h2>Задача</h2><p>{project.task}</p></section>}
           {project.result && <section><h2>Что получилось</h2><p>{project.result}</p></section>}
           {project.technologies && <section><h2>Технологии</h2><div className="case-technologies">{project.technologies.split(',').map(item => <span key={item}><Check size={14}/>{item.trim()}</span>)}</div></section>}
-          {project.url&&!project.concept && <a className="secondary-panel" href={project.url} target="_blank" rel="noopener noreferrer"><ArrowUpRight size={17}/> Открыть сайт</a>}
-        </div><aside><h2>Есть похожая задача?</h2><p>Обсудим, что взять за основу и что адаптировать под ваш бизнес.</p><button className="btn purple" onClick={() => order('Индивидуальная задача',`Интересует подход проекта «${project.title}».`)}><ArrowUpRight size={17}/> Обсудить проект</button></aside></div>
+          {project.url&&!project.concept && <a className="secondary-panel" href={project.url} target="_blank" rel="noopener noreferrer">Открыть сайт</a>}
+        </div><aside><h2>Есть похожая задача?</h2><p>Обсудим, что взять за основу и что адаптировать под ваш бизнес.</p><button className="btn purple" onClick={() => order('Индивидуальная задача',`Интересует подход проекта «${project.title}».`)}>Обсудить проект</button></aside></div>
         {!project.concept && <LeadSection contacts={contacts}/>}
       </> : <div className="case-empty"><h1>Проект не найден</h1><a className="secondary-panel" href="/portfolio">Открыть портфолио</a></div> :
       <>
-        <header className="page-banner portfolio-heading" data-enter><div><h1>Портфолио</h1><p>Откройте кейс, чтобы увидеть задачу клиента, ход работы и готовый сайт.</p><a href="#portfolio-cases" className="secondary-panel"><ArrowUpRight size={17}/> Смотреть кейсы</a></div><div className="portfolio-collage" aria-hidden="true">
+        <header className="page-banner portfolio-heading" data-enter><div><h1>Портфолио</h1><p>Откройте кейс, чтобы увидеть задачу клиента, ход работы и готовый сайт.</p><a href="#portfolio-cases" className="secondary-panel">Смотреть кейсы</a></div><div className="portfolio-collage" aria-hidden="true">
           {real.map(item => {const url=projectUrl(item.url);return url ? casePreviews[url.hostname] || item.image : item.image;}).filter(Boolean).slice(0,2).map((src,index) =>
             <img src={src} alt="" key={index} width={466} height={262} />)}
         </div></header>

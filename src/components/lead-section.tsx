@@ -1,5 +1,5 @@
 import {useEffect,useLayoutEffect,useRef,useState,type FormEvent,type ReactNode} from 'react';
-import {ArrowUpRight,CheckCircle2,ClipboardList,MessageSquare,Send,Phone} from 'lucide-react';
+import {CheckCircle2,ClipboardList,MessageSquare,Send,Phone} from 'lucide-react';
 import {api} from '../lib/app-shared';
 import {contactEmail,contactTelegram} from '../lib/contact-links';
 import {ConsentLabel,LEGAL_VERSION} from './legal-pages';
@@ -114,7 +114,7 @@ export function LeadSection({contacts={},prefill,heading='Обсудим ваш 
           onChange={event => setDescription(event.target.value)} placeholder="Что должно получиться и когда это нужно?" required/></label>
         <ConsentLabel purpose="для ответа на обращение"/>
         {error && <p role="alert" className="error">{error}</p>}
-        <button className="btn purple" type="submit" disabled={busy}><ArrowUpRight size={17}/>{busy ? 'Отправляем…' : 'Отправить заявку'}</button>
+        <button className="btn purple" type="submit" disabled={busy}>{busy ? 'Отправляем…' : 'Отправить заявку'}</button>
       </form>}
       <div className="lead-contact"><span>Удобнее позвонить или написать?</span><a href="tel:+79517506700"><Phone size={13}/> +7 (951) 750-67-00</a>
         {telegram && <a href={contactTelegram(telegram)!} target="_blank" rel="noopener noreferrer"><Send size={13}/> Telegram</a>}

@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import {ArrowLeft,ArrowUpRight,Code2,FileText,Headphones,Layers,Server} from 'lucide-react';
+import {ArrowLeft,Code2,FileText,Headphones,Layers,Server} from 'lucide-react';
 import {Reveal} from './reveal';
 import {ProcessSteps} from './process-steps';
 import {LeadSection} from './lead-section';
@@ -16,7 +16,7 @@ export function AboutPage({contacts}:{contacts:Record<string,string>}) {
   return <main id="main" className="catalog-page about-page">
     <a className="catalog-back" href="/"><ArrowLeft size={17}/> На главную</a>
     <header className="page-banner" data-enter>
-      <div><h1>Два основателя.<br/>Одна команда.</h1><p>OVERTAKE — цифровое агентство из Пскова. Создаём сайты, ботов и приложения и остаёмся на связи после запуска.</p><a className="secondary-panel" href="#request"><ArrowUpRight size={17}/> Обсудить проект</a></div>
+      <div><h1>Два основателя.<br/>Одна команда.</h1><p>OVERTAKE — цифровое агентство из Пскова. Создаём сайты, ботов и приложения и остаёмся на связи после запуска.</p><a className="secondary-panel" href="#request">Обсудить проект</a></div>
       <img className="page-brand-image" src={togetherImage} alt="" width={900} height={600}/>
     </header>
     <section className="studio-inner-section">

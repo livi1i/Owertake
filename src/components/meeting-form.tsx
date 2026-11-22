@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState,type FormEvent} from 'react';
-import {ArrowUpRight,Building2,CheckCircle2,Users,Video} from 'lucide-react';
+import {Building2,CheckCircle2,Users,Video} from 'lucide-react';
 import {api} from '../lib/app-shared';
 import {contactEmail,contactTelegram} from '../lib/contact-links';
 import {ConsentLabel,LEGAL_VERSION} from './legal-pages';
@@ -73,7 +73,7 @@ export function MeetingForm() {
         </div>
         <ConsentLabel purpose="для согласования встречи"/>
         {error && <p className="error" role="alert">{error}</p>}
-        <button className="btn purple" type="submit" disabled={busy}><ArrowUpRight size={17}/>{busy?'Отправляем…':'Запросить встречу'}</button>
+        <button className="btn purple" type="submit" disabled={busy}>{busy?'Отправляем…':'Запросить встречу'}</button>
       </form>}
   </section>;
 }

@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
-import {ArrowLeft,ArrowUpRight,Bolt,Check} from 'lucide-react';
+import {ArrowLeft,Bolt,Check} from 'lucide-react';
 import {mergeServices,serviceCategories,servicesRequest,type AgencyService} from '../lib/services';
 import {offerPrice,priceLabel,type PriceOverrides} from '../lib/public-prices';
 import {buildProjectQuote,designLevels,urgentRate,projectPresets,type DesignLevel} from '../lib/project-quote';
@@ -101,7 +101,7 @@ export function ProjectCalculator({prices,contacts}:{prices:PriceOverrides;conta
         {quote.urgentFee>0 && <p className="quote-fee">Срочный запуск · +{priceLabel(quote.urgentFee)}</p>}
         {quote.lines.length>0 && <ul className="quote-lines">{quote.lines.map(item => <li key={item.code}><Check size={15}/><span>{item.name}<small>{offerPrice(item)}</small></span></li>)}</ul>}
         <p className="config-hint">Это ориентир по прайсу и планированию. Итоговую стоимость и доступную дату запуска подтвердим после обсуждения.</p>
-        <button className="btn purple full" onClick={requestQuote}><ArrowUpRight size={17}/> Получить расчёт</button>
+        <button className="btn purple full" onClick={requestQuote}>Получить расчёт</button>
       </aside>
     </div>}
     <div ref={formAnchor} className="request-anchor"><LeadSection contacts={contacts} prefill={prefill} heading="Отправить расчёт команде"/></div>

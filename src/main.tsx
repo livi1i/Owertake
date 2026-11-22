@@ -3,7 +3,6 @@ import { createRoot } from "react-dom/client";
 import { LoadBoundary } from "./components/load-boundary";
 import { MotionConfig } from "motion/react";
 import {
-  ArrowUpRight,
   ArrowRight,
   Plus,
   Minus,
@@ -166,16 +165,16 @@ function App() {
             <summary>Услуги <ChevronDown size={14} aria-hidden="true"/></summary>
             <div className="service-menu-panel">
               <div className="service-menu-catalog">
-                <div className="service-menu-heading"><strong>Направления</strong><a href="/services">Весь каталог <ArrowUpRight size={15}/></a></div>
+                <div className="service-menu-heading"><strong>Направления</strong><a href="/services">Весь каталог</a></div>
                 <div className="service-menu-grid">{directions.map(({category,name,text,Icon}) => <a key={category} href={serviceCategoryUrl(category)}>
-                  <span className="service-menu-icon"><Icon size={19} strokeWidth={1.75} aria-hidden="true"/></span><span><strong>{name}</strong><small>{text}</small></span><ArrowUpRight size={15} aria-hidden="true"/>
+                  <span className="service-menu-icon"><Icon size={19} strokeWidth={1.75} aria-hidden="true"/></span><span><strong>{name}</strong><small>{text}</small></span>
                 </a>)}</div>
               </div>
               <a href="/calculator" className="menu-calculator">
                 <CalculatorArt/>
                 <span><Calculator size={17}/> Калькулятор проекта</span>
                 <small>Подберите объём и функции. Смета обновится на экране.</small>
-                <b>Рассчитать стоимость <ArrowUpRight size={15}/></b>
+                <b>Рассчитать стоимость</b>
               </a>
             </div>
           </details>
@@ -198,7 +197,7 @@ function App() {
             <LockKeyhole size={15} aria-hidden="true"/><span className="login-label">{user ? user.name : "Личный кабинет"}</span>
           </button>
           <button className="btn small dark" onClick={() => order()}>
-            <ArrowUpRight size={15} /> Обсудить проект
+            Обсудить проект
           </button>
           <button
             className="menu-toggle"
@@ -210,8 +209,8 @@ function App() {
           </button>
         </div>
       </header>
-      {!knownRoute ? <React.Suspense fallback={<main id="main" className="catalog-page">Страница не найдена</main>}><NotFound /></React.Suspense> : (location.pathname === "/admin" && user && user.role!=="admin") ? <main className="catalog-page" id="main"><h1>Доступ только для команды</h1><a className="catalog-home-link" href="/account">Открыть свой кабинет →</a></main> : (location.pathname === "/portfolio" || location.pathname.startsWith("/portfolio/")) ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем портфолио…</main>}><PortfolioPage order={order} contacts={content.contacts} /></React.Suspense> : location.pathname === "/about" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем страницу…</main>}><AboutPage contacts={content.contacts} /></React.Suspense> : location.pathname === "/contacts" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем контакты…</main>}><ContactsPage contacts={content.contacts} /></React.Suspense> : location.pathname === "/faq" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем вопросы…</main>}><FaqPage /></React.Suspense> : location.pathname === "/brief" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем бриф…</main>}><BriefWizard user={user} /></React.Suspense> : location.pathname === "/calculator" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем параметры проекта…</main>}><ProjectCalculator prices={content.prices} contacts={content.contacts} /></React.Suspense> : location.pathname === "/pricing" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем страницу стоимости…</main>}><PricingPage order={order} prices={content.prices} contacts={content.contacts} /></React.Suspense> : catalogPath ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем услуги…</main>}><ServiceCatalog path={location.pathname} order={order} prices={content.prices} contacts={content.contacts} /></React.Suspense> : legalPath ? <LegalPage path={legalPath} contacts={content.contacts} /> : dashboard ? (!authReady ? <main id="main" className="cabinet-entry" role="status">Загружаем личный кабинет…</main> :
-        <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем кабинет…</main>}><Dashboard
+      {!knownRoute ? <React.Suspense fallback={<main id="main" className="catalog-page">Страница не найдена</main>}><NotFound /></React.Suspense> : (location.pathname === "/admin" && user && user.role!=="admin") ? <main className="catalog-page" id="main"><h1>Доступ только для команды</h1><a className="catalog-home-link" href="/account">Открыть свой кабинет →</a></main> : (location.pathname === "/portfolio" || location.pathname.startsWith("/portfolio/")) ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем портфолио…</main>}><PortfolioPage order={order} contacts={content.contacts} /></React.Suspense> : location.pathname === "/about" ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем страницу…</main>}><AboutPage contacts={content.contacts} /></React.Suspense> : location.pathname === "/contacts" ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем контакты…</main>}><ContactsPage contacts={content.contacts} /></React.Suspense> : location.pathname === "/faq" ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем вопросы…</main>}><FaqPage /></React.Suspense> : location.pathname === "/brief" ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем бриф…</main>}><BriefWizard user={user} /></React.Suspense> : location.pathname === "/calculator" ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем параметры проекта…</main>}><ProjectCalculator prices={content.prices} contacts={content.contacts} /></React.Suspense> : location.pathname === "/pricing" ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем страницу стоимости…</main>}><PricingPage order={order} prices={content.prices} contacts={content.contacts} /></React.Suspense> : catalogPath ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем услуги…</main>}><ServiceCatalog path={location.pathname} order={order} prices={content.prices} contacts={content.contacts} /></React.Suspense> : legalPath ? <LegalPage path={legalPath} contacts={content.contacts} /> : dashboard ? (!authReady ? <main id="main" className="cabinet-entry site-route-loading" role="status">Загружаем личный кабинет…</main> :
+        <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем кабинет…</main>}><Dashboard
           user={user}
           content={content}
           setContent={setContent}
@@ -221,7 +220,7 @@ function App() {
           notify={setToast}
         /></React.Suspense>
       ) : (
-        <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем главную…</main>}><HomePage content={content} openLogin={openLogin} effectsPaused={effectsPaused}/></React.Suspense>
+        <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем главную…</main>}><HomePage content={content} openLogin={openLogin} effectsPaused={effectsPaused}/></React.Suspense>
       )}
       <footer className="studio-footer">
         <div className="studio-footer-main">
@@ -293,7 +292,7 @@ function App() {
                 работ.
               </p>
               <button className="btn purple" onClick={() => order(selected)}>
-                Обсудить задачу <ArrowUpRight size={18} />
+                Обсудить задачу
               </button>
             </div>
           ) : modal === "case" ? (
@@ -380,11 +379,11 @@ function CaseDetail({
           target="_blank"
           rel="noopener noreferrer"
         >
-          Открыть проект <ArrowUpRight size={17} />
+          Открыть проект
         </a>
       )}
       <button className="btn purple" onClick={order}>
-        Хочу обсудить похожий проект <ArrowUpRight size={18} />
+        Хочу обсудить похожий проект
       </button>
     </div>
   );
@@ -658,7 +657,7 @@ function Brief({
       )}
       <button className="btn purple full" disabled={busy}>
         {busy ? "Отправляем…" : "Отправить заявку"}
-        <ArrowUpRight size={18} />
+
       </button>
       <p className="form-note">Отправка заявки ни к чему вас не обязывает.</p>
     </form>

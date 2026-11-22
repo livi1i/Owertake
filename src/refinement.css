@@ -28,42 +28,6 @@ html[data-theme] .header .nav > a > span { display: block; line-height: inherit;
   html[data-theme] .header .nav.open > .service-menu > summary { width: 100%; justify-content: space-between; }
 }
 
-/* A diagonal trail links the moving 3D panels to the rest of the site. */
-.studio-hero { position: relative; overflow: clip; isolation: isolate; padding-top: clamp(25px,4vw,63px); }
-.studio-hero::before {
-  position: absolute; content: ""; z-index: -1; pointer-events: none;
-  inset: -20% -18% -25% 27%;
-  background: radial-gradient(ellipse at 64% 41%,var(--studio-light),transparent 58%);
-}
-.studio-hero-stage {
-  background: radial-gradient(ellipse at 48% 52%,var(--art-light),transparent 65%);
-  border-color: transparent;
-  box-shadow: none;
-  aspect-ratio: 1.24;
-}
-.studio-hero-stage::after { inset: 14% 4%; border-color: color-mix(in srgb,var(--purple) 33%,transparent); transform: rotate(-29deg) scaleY(.6); }
-.studio-hero-gridlines { background-size: 16px 16px; mask-image: radial-gradient(ellipse at center,#000 0,transparent 77%); }
-.studio-hero-track { transform: rotate(-19deg) scaleY(.66); inset: 7% 3%; }
-.studio-hero-sweep {
-  position: absolute;
-  z-index: -1;
-  inset: 34% 4%;
-  border-radius: 50%;
-  border-top: 1px solid color-mix(in srgb,var(--purple) 64%,transparent);
-  border-bottom: 1px solid color-mix(in srgb,var(--purple) 50%,transparent);
-  box-shadow: 0 0 24px var(--art-light);
-  transform: rotate(-28deg);
-  animation: studio-trail 1.4s .1s var(--motion-curve) both;
-}
-.studio-hero-art { width: 112%; margin-left: -1%; }
-.studio-hero-art img {
-  filter: drop-shadow(0 21px 16px #1041ae42);
-  animation: ribbon-arrive .98s .03s var(--motion-curve) both,ribbon-float 4.5s 1.06s ease-in-out 2;
-}
-.studio-hero h1 { font-size: clamp(2.6rem,4.25vw,4.65rem); }
-.studio-hero h1 em { color: var(--purple); }
-.studio-hero-copy .btn { background-size: 135% 135%; }
-.studio-hero-copy .btn:hover { background-position: 90% 80%; }
 .studio-benefits li { padding: 5px 7px; border-radius: 9px; background: color-mix(in srgb,var(--ui-surface) 46%,transparent); }
 .studio-service-card { border-radius: var(--refine-radius); padding: clamp(12px,1.6vw,21px); }
 .studio-service-card::after,.pricing-package::after {
@@ -113,9 +77,7 @@ html[data-theme] :is(.catalog-card,.config-panel,.config-summary,.catalog-panel,
 .studio-contact-list > a { min-width: 0; border-radius: 17px; transition: background .25s,border-color .25s,transform .25s var(--motion-curve); }
 .studio-contact-list > a:is(:hover,:focus-visible) { background: var(--soft-card); transform: translateY(-2px); }
 .page-brand-image { animation: ribbon-arrive .8s .12s var(--motion-curve) both; }
-@keyframes studio-trail { from { opacity: 0; scale: .73; } }
 @keyframes ribbon-arrive { from { opacity: 0; transform: translate(-24px,24px) scale(.88) rotate(-5deg); } }
-@keyframes ribbon-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
 @keyframes gloss-across { from { transform: translateX(-130%) skewX(-20deg); } to { transform: translateX(500%) skewX(-20deg); } }
 @keyframes case-arrive { from { opacity: 0; translate: 0 10px; } }
 @keyframes collage-arrive { from { opacity: 0; translate: 15px 15px; scale:.97; } }
@@ -173,7 +135,6 @@ html[data-theme] .faq-search-row > span { white-space: normal; }
 }
 @media(max-width: 700px) {
   .studio-hero h1 { font-size: clamp(2.05rem,7.3vw,3.55rem); }
-  .studio-hero-art { width: 105%; }
   .portfolio-collage { width: 37%; }
 }
 @media(max-width: 600px) {
@@ -191,10 +152,10 @@ html[data-theme] .faq-search-row > span { white-space: normal; }
   .faq-answer-body { margin-inline: 11px; }
 }
 @media(prefers-reduced-motion: reduce) {
-  :is(.studio-hero-sweep,.studio-hero-art img,.studio-case-preview img,.portfolio-collage img,.interface-art img,.page-brand-image,.faq-answer-body p) { animation: none!important; }
+  :is(.studio-case-preview img,.portfolio-collage img,.interface-art img,.page-brand-image,.faq-answer-body p) { animation: none!important; }
   :is(.studio-case-open,.studio-card-watermark,.office-map-preview img) { transition: none!important; }
 }
-.effects-paused :is(.studio-hero-sweep,.studio-hero-art img,.studio-case-preview img,.portfolio-collage img,.interface-art img,.page-brand-image,.faq-answer-body p) { animation: none!important; }
+.effects-paused :is(.studio-case-preview img,.portfolio-collage img,.interface-art img,.page-brand-image,.faq-answer-body p) { animation: none!important; }
 
 html[data-theme] .cabinet-entry { max-width: 1050px; padding: clamp(18px,5vw,62px); margin: auto; }
 .cabinet-entry-panel .btn { margin-top: 18px; }
