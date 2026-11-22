@@ -4,6 +4,7 @@ import {mergeServices,serviceCategories,servicesRequest,type AgencyService} from
 import {offerPrice,type PriceOverrides} from '../lib/public-prices';
 import {buildProjectQuote,designLevels,projectPresets,type DesignLevel} from '../lib/project-quote';
 import {LeadSection,type LeadPrefill} from './lead-section';
+import {InterfaceArt} from './interface-art';
 import './project-calculator.css';
 
 export function ProjectCalculator({prices,contacts}:{prices:PriceOverrides;contacts:Record<string,string>}) {
@@ -66,7 +67,7 @@ export function ProjectCalculator({prices,contacts}:{prices:PriceOverrides;conta
 
   return <main id="main" className="project-calculator">
     <a className="catalog-back" href="/pricing"><ArrowLeft size={17}/> Цены</a>
-    <header className="page-banner config-heading" data-enter><div><h1>Сколько стоит<br/>ваш проект?</h1><p>Выберите задачу и функции. Расчёт обновится сразу и перейдёт в заявку вместе с составом работ.</p></div><span className="page-illustration" aria-hidden="true"><Calculator size={52}/></span></header>
+    <header className="page-banner config-heading" data-enter><div><h1>Сколько стоит<br/>ваш проект?</h1><p>Выберите задачу и функции. Расчёт обновится сразу и перейдёт в заявку вместе с составом работ.</p></div><InterfaceArt/></header>
     {loading ? <p role="status" className="config-empty">Загружаем прайс…</p> : error ? <div role="alert" className="config-empty"><p>{error}</p><button className="btn purple" onClick={load}>Повторить</button></div> : <div className="config-layout">
       <div className="config-controls">
         <section className="config-panel"><div className="config-step"><span>01</span><h2>Что сделать</h2></div>

@@ -59,16 +59,19 @@ export function Dashboard({
   const [tab, setTab] = useState("overview"),
     [leads, setLeads] = useState<Lead[]>([]),
     [selected, setSelected] = useState<Lead | null>(null),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [loading, setLoading] = useState(true);
   const refresh = () =>
     api("leads")
       .then((j) => {
+        setError("");
         setLeads(j.leads);
         setSelected((old) =>
           old ? j.leads.find((l: Lead) => l.id === old.id) || null : null,
         );
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
   useEffect(() => {
     if (user) refresh();
     const update = () => {
@@ -76,17 +79,19 @@ export function Dashboard({
     };
     window.addEventListener("overtake:leads", update);
     return () => window.removeEventListener("overtake:leads", update);
-  }, [user, tab]);
+  }, [user]);
   const admin = user?.role === "admin";
   if (!user)
     return (
-      <main className="cabinet-login">
-        <LockKeyhole size={36} />
-        <h1>Ваше рабочее пространство</h1>
-        <p>Войдите, чтобы видеть свои проекты и общаться с командой.</p>
-        <button className="btn purple" onClick={login}>
-          Войти в кабинет <ArrowRight size={18} />
-        </button>
+      <main className="cabinet-entry" id="main">
+        <section className="page-banner cabinet-entry-panel" data-enter>
+          <div>
+            <h1>Личный кабинет</h1>
+            <p>Проверяйте статус проекта, обсуждайте правки и находите материалы в одном месте.</p>
+            <button className="btn purple" onClick={login}><ArrowUpRight size={18}/> Войти в кабинет</button>
+          </div>
+          <span className="page-illustration" aria-hidden="true"><LockKeyhole size={48}/></span>
+        </section>
       </main>
     );
   const tabs = [
@@ -114,21 +119,23 @@ export function Dashboard({
   return (
     <main className="dashboard" id="main">
       <aside className="dashboard-sidebar">
-        <span className="eyebrow muted">
-          {admin ? "ПРОСТРАНСТВО КОМАНДЫ" : "ЛИЧНЫЙ КАБИНЕТ"}
-        </span>
-        <nav>
+        <div className="dashboard-account">
+          <span className="studio-glyph" aria-hidden="true"><LayoutDashboard size={20}/></span>
+          <div><strong>{admin ? "Кабинет команды" : "Личный кабинет"}</strong><small>{user.name}</small></div>
+        </div>
+        <nav aria-label="Разделы личного кабинета">
           {tabs.map((t) => (
             <button
               className={tab === t.id ? "active" : ""}
               key={t.id}
+              aria-current={tab === t.id ? "page" : undefined}
               onClick={() => {
                 setTab(t.id);
                 setSelected(null);
               }}
             >
               <t.icon size={18} />
-              {t.label}
+              <span>{t.label}</span>
             </button>
           ))}
         </nav>
@@ -137,24 +144,16 @@ export function Dashboard({
         </button>
       </aside>
       <div className="dashboard-main">
-        <div className="dashboard-heading">
+        <header className="dashboard-heading" data-enter>
           <div>
-            <span className="eyebrow muted">
-              OVERTAKE / {admin ? "КОМАНДА" : "КАБИНЕТ"}
-            </span>
-            <h1>
-              {tab === "overview"
-                ? `Здравствуйте, ${user.name}`
-                : tabs.find((t) => t.id === tab)?.label}
-            </h1>
-            <p className="muted">Ваш следующий большой шаг начинается здесь.</p>
+            <h1>{tab === "overview" ? "Обзор проектов" : tabs.find(t => t.id === tab)?.label}</h1>
+            {tab === "overview" && <p>Статусы проектов, документы и переписка с командой.</p>}
           </div>
-          <button className="btn purple" onClick={order}>
-            Новая заявка <Plus size={17} />
-          </button>
-        </div>
-        {error && <p className="error">{error}</p>}
-        {tab === "overview" && (
+          <button className="btn purple" onClick={order}><Plus size={17}/> Новая заявка</button>
+        </header>
+        {error && <p className="error" role="alert">{error}</p>}
+        {loading && <p role="status" className="workspace-loading">Загружаем проекты…</p>}
+        {!loading && tab === "overview" && !selected && (
           <>
             <div className="dashboard-stats">
               <div>
@@ -183,9 +182,10 @@ export function Dashboard({
             <h3>Последние проекты</h3>
           </>
         )}
-        {["overview", "projects"].includes(tab) &&
+        {!loading && ["overview", "projects"].includes(tab) &&
           (selected ? (
             <ProjectPanel
+              key={selected.id}
               lead={selected}
               admin={admin}
               back={() => setSelected(null)}
@@ -193,7 +193,7 @@ export function Dashboard({
             />
           ) : tab === "projects" && admin ? (<React.Suspense fallback={<p role="status">Загружаем CRM…</p>}><CrmWorkspace mode="projects" leads={leads} open={setSelected} refresh={refresh} /></React.Suspense>) : leads.length ? (
             <div className="lead-list">
-              {leads.map((l) => (
+              {(tab === "overview" ? [...leads].sort((a,b) => b.created.localeCompare(a.created)).slice(0,5) : leads).map((l) => (
                 <button
                   className="lead-row"
                   key={l.id}
@@ -219,9 +219,9 @@ export function Dashboard({
           ) : (
             <div className="empty-state">
               <FolderOpen size={36} />
-              <h3>Здесь начнётся ваша история</h3>
+              <h3>У вас пока нет заявок</h3>
               <p>
-                Отправьте первую заявку. Её статус и обсуждение появятся здесь.
+                Отправьте заявку, чтобы следить за её статусом и переписываться с командой.
               </p>
               <button className="btn dark" onClick={order}>
                 Обсудить проект <ArrowUpRight size={17} />

@@ -4,12 +4,12 @@ import {projectSlug} from '../lib/portfolio';
 import {projectUrl} from '../lib/project-url';
 import {Reveal} from './reveal';
 
-const homepages:Record<string,string> = {'amoreterno.ru':'/assets/amoreterno-homepage.svg','holodilka60.ru':'/assets/holodilka-homepage.svg'};
+export const casePreviews:Record<string,string> = {'amoreterno.ru':'/assets/amoreterno-homepage.svg','holodilka60.ru':'/assets/holodilka-homepage.svg'};
 
 export function LiveProject({project,compact=false}:{project:PortfolioProject;compact?:boolean}) {
   const url = projectUrl(project.url);
   if (!url) return null;
-  const image = homepages[url.hostname] || project.image;
+  const image = casePreviews[url.hostname] || project.image;
   const destination = new URL('/',url.origin).href;
   return <article className={'studio-case'+(compact?' studio-case-compact':'')}>
     <a className="studio-case-preview" href={compact ? destination : '/portfolio/'+projectSlug(project)}

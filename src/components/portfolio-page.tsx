@@ -2,7 +2,8 @@ import {useEffect,useState} from 'react';
 import {ArrowLeft,ArrowUpRight,Check,GalleryHorizontalEnd,Layers} from 'lucide-react';
 import {portfolioItems,filterPortfolio,projectSlug,type PortfolioProject} from '../lib/portfolio';
 import {ConceptVisual} from './concept-visual';
-import {LiveProject} from './live-projects';
+import {LiveProject,casePreviews} from './live-projects';
+import {projectUrl} from '../lib/project-url';
 import {LeadSection} from './lead-section';
 import {Reveal} from './reveal';
 import './portfolio-page.css';
@@ -51,7 +52,10 @@ export function PortfolioPage({order,contacts}:{order:(name:string,context?:stri
         {!project.concept && <LeadSection contacts={contacts}/>}
       </> : <div className="case-empty"><h1>Проект не найден</h1><a className="secondary-panel" href="/portfolio">Открыть портфолио</a></div> :
       <>
-        <header className="page-banner" data-enter><div><h1>Портфолио</h1><p>Работающие сайты и задачи, которые мы решили вместе с клиентами.</p></div><span className="page-illustration" aria-hidden="true"><GalleryHorizontalEnd size={49}/></span></header>
+        <header className="page-banner" data-enter><div><h1>Портфолио</h1><p>Работающие сайты и задачи, которые мы решили вместе с клиентами.</p></div><div className="portfolio-collage" aria-hidden="true">
+          {real.map(item => {const url=projectUrl(item.url);return url ? casePreviews[url.hostname] || item.image : item.image;}).filter(Boolean).slice(0,2).map((src,index) =>
+            <img src={src} alt="" key={index} width={466} height={262} />)}
+        </div></header>
         <div className="catalog-filters" aria-label="Категории портфолио">{['Все',...categories].map(item => <button key={item} type="button" aria-pressed={category===item} onClick={() => setCategory(item)}>{item}</button>)}</div>
         {filtered.length ? <div className="studio-case-list">{filtered.map((item,index) => <Reveal key={projectSlug(item)} delay={index*55}>
           {item.url ? <LiveProject project={item}/> : <a className="case-card" href={'/portfolio/'+projectSlug(item)}><Preview project={item}/><div className="case-card-copy"><h2>{item.title}</h2><p>{item.description}</p></div></a>}

@@ -9,6 +9,7 @@ export function Reveal({children,className='',delay=0}:{children:ReactNode;class
       return;
     }
     const node = ref.current;
+    node.dataset.revealReady = "true";
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
         setSeen(true);
@@ -16,7 +17,7 @@ export function Reveal({children,className='',delay=0}:{children:ReactNode;class
       }
     },{threshold:.12});
     observer.observe(node);
-    return () => observer.disconnect();
+    return () => { observer.disconnect(); delete node.dataset.revealReady; };
   },[]);
   return <div ref={ref} className={`section-reveal ${className}`} data-visible={seen || undefined} style={{'--reveal-delay':`${delay}ms`} as CSSProperties}>{children}</div>;
 }

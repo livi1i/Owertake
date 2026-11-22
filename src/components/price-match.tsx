@@ -1,14 +1,14 @@
 import {useEffect,useState} from 'react';
 import {ArrowUpRight,Tag,X} from 'lucide-react';
 
-const storageKey = 'overtake:price-offer-dismissed';
+const storageKey = 'overtake:price-offer-dismissed-v2';
 
 export function PriceMatch({onDiscuss}: {onDiscuss: () => void}) {
   const [ready,setReady] = useState(false);
 
   useEffect(() => {
     try { if (sessionStorage.getItem(storageKey)) return; } catch {}
-    const timer = window.setTimeout(() => setReady(true),12000);
+    const timer = window.setTimeout(() => setReady(true),6500);
     return () => window.clearTimeout(timer);
   },[]);
 
@@ -26,7 +26,7 @@ export function PriceMatch({onDiscuss}: {onDiscuss: () => void}) {
       <h2 id="price-match-title">Нашли дешевле?</h2>
       <p>Сверим объём работ и, если сможем, предложим цену ниже.</p>
       <button className="offer-action" type="button" onClick={() => { dismiss(); onDiscuss(); }}>
-        Сравнить сметы <ArrowUpRight size={14} aria-hidden="true"/>
+        Связаться <ArrowUpRight size={14} aria-hidden="true"/>
       </button>
     </div>
     <button className="offer-close" type="button" onClick={dismiss} aria-label="Закрыть предложение"><X size={17}/></button>

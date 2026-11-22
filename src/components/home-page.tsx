@@ -9,11 +9,10 @@ import {LiveProjects} from './live-projects';
 import {Reveal} from './reveal';
 import {LeadSection} from './lead-section';
 import {ProcessSteps} from './process-steps';
-import {OfficeMap} from './office-map';
 import {mergeServices,servicesRequest,serviceCategoryUrl,defaultAgencyServices,type AgencyService} from '../lib/services';
 import {offerPrice,startingOffer} from '../lib/public-prices';
 import type {Content} from '../lib/app-shared';
-import heroImage from '../assets/soft-digital-hero.webp?inline';
+import heroImage from '../assets/studio-motion-ribbon.webp?inline';
 import togetherImage from '../assets/studio-together.webp?inline';
 
 const directions = [
@@ -58,8 +57,8 @@ export function HomePage({content,openLogin}:{content:Content;openLogin:()=>void
         </div>
         <div className="studio-hero-stage" aria-hidden="true">
           <div className="studio-hero-gridlines"/>
-          <div className="studio-hero-track"><i/><i/></div>
-          <div className="studio-hero-art"><img src={heroImage} alt="" width={1100} height={825} fetchPriority="high"/></div>
+          <div className="studio-hero-track"><i/><i/></div><div className="studio-hero-sweep"/>
+          <div className="studio-hero-art"><img src={heroImage} alt="" width={1080} height={810} fetchPriority="high"/></div>
           <span className="studio-hero-orbit orbit-code"><Code2 size={21}/></span>
           <span className="studio-hero-orbit orbit-flow"><Workflow size={20}/></span>
         </div>
@@ -78,7 +77,7 @@ export function HomePage({content,openLogin}:{content:Content;openLogin:()=>void
           const offer = service && startingOffer(slug,content.prices);
           return <Reveal key={category} delay={(index%5)*36}>
             <a className="studio-service-card" href={serviceCategoryUrl(category)}>
-              <div className="studio-card-top"><span className="studio-glyph"><Icon size={25}/></span><ArrowUpRight size={19} className="studio-card-arrow"/></div>
+              <div className="studio-card-top"><span className="studio-glyph"><Icon size={25}/></span><Icon className="studio-card-watermark" size={70} strokeWidth={1} aria-hidden="true"/><ArrowUpRight size={19} className="studio-card-arrow"/></div>
               <h3>{name}</h3><p>{text}</p><strong>{offer ? offerPrice(offer) : 'По согласованию'}</strong>
             </a>
           </Reveal>;
@@ -132,7 +131,6 @@ export function HomePage({content,openLogin}:{content:Content;openLogin:()=>void
     </section>
     <div className="section studio-last" id="contacts">
       <LeadSection contacts={content.contacts} heading="Следующий ход за вами"/>
-      <OfficeMap address={content.contacts.address || ''}/>
     </div>
   </main>;
 }

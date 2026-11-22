@@ -1,5 +1,5 @@
 export const COOKIE_KEY = 'overtake:cookie-preferences';
-export const COOKIE_VERSION = 1;
+export const COOKIE_VERSION = 2;
 export const COOKIE_MAX_AGE = 180 * 24 * 60 * 60 * 1000;
 export type CookieChoice = { version:number; necessary:true; analytics:false; marketing:false; savedAt:number };
 export function necessaryChoice(now = Date.now()):CookieChoice {

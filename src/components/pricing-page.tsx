@@ -5,6 +5,8 @@ import {offerPrice,offersFor,type PriceOverrides} from '../lib/public-prices';
 import './pricing-page.css';
 import {packages} from '../lib/project-packages';
 import {LeadSection} from './lead-section';
+import {InterfaceArt} from './interface-art';
+import {Reveal} from './reveal';
 
 
 export function PricingPage({order,prices,contacts}:{order:(name:string,description?:string)=>void;prices:PriceOverrides;contacts:Record<string,string>}) {
@@ -30,7 +32,7 @@ export function PricingPage({order,prices,contacts}:{order:(name:string,descript
   return <main id="main" className="pricing-page">
     <a className="catalog-back" href="/services"><ArrowLeft size={17}/> Каталог услуг</a>
     <div className="pricing-heading page-banner" data-enter>
-      <div><h1>Цены и пакеты услуг</h1><p>Стоимость за базовый объём. Согласуем смету до начала работ.</p><a className="secondary-panel" href="/calculator"><Calculator size={18}/> Рассчитать стоимость</a></div><span className="page-illustration" aria-hidden="true"><Calculator size={49}/></span>
+      <div><h1>Цены и пакеты услуг</h1><p>Стоимость за базовый объём. Согласуем смету до начала работ.</p><a className="secondary-panel" href="/calculator"><Calculator size={18}/> Рассчитать стоимость</a></div><InterfaceArt/>
     </div>
     {loading && <p role="status">Загружаем прайс…</p>}
     {error && <div className="catalog-empty" role="alert"><p>{error}</p><button className="btn purple" onClick={load}>Повторить загрузку</button></div>}
@@ -42,7 +44,7 @@ export function PricingPage({order,prices,contacts}:{order:(name:string,descript
             const service = items.find(item => item.slug === bundle.slug && item.status !== 'Временно недоступна');
             const offer = offersFor(bundle.slug, prices).find(item => item.code === bundle.code);
             if (!service || !offer) return null;
-            return <article key={bundle.code} className="pricing-package">
+            return <Reveal key={bundle.code} delay={(packages.indexOf(bundle)%3)*45}><article className="pricing-package">
               <h3>{bundle.name}</h3>
               <p>{bundle.audience}</p>
               <strong>{offerPrice(offer)}</strong>
@@ -50,7 +52,7 @@ export function PricingPage({order,prices,contacts}:{order:(name:string,descript
               <small>Сроки согласуем по задаче. Дополнительные работы и сторонние расходы считаем отдельно.</small>
               <button className="btn purple full" type="button" onClick={() => order(service.name, `Пакет «${bundle.name}» · ${offerPrice(offer)}. ${offer.scope}`)}>Обсудить пакет <ArrowUpRight size={17}/></button>
               <a className="secondary-panel" href={'/calculator?' + new URLSearchParams({service:bundle.slug,offer:bundle.code})}>Уточнить параметры</a>
-            </article>;
+            </article></Reveal>;
           })}
         </div>
       </section>

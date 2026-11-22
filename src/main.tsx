@@ -44,6 +44,7 @@ import { ThemePicker } from "./components/theme-picker";
 import {contactTelegram} from "./lib/contact-links";
 import "./soft-digital.css";
 import "./studio.css";
+import "./refinement.css";
 const ServiceCatalog = React.lazy(() => import("./components/service-catalog").then(m=>({default:m.ServiceCatalog})));
 const PricingPage = React.lazy(() => import("./components/pricing-page").then(m => ({default:m.PricingPage})));
 const ProjectCalculator = React.lazy(() => import("./components/project-calculator").then(m => ({default:m.ProjectCalculator})));
@@ -54,6 +55,7 @@ const PortfolioPage = React.lazy(() => import("./components/portfolio-page").the
 const NotFound = React.lazy(() => import("./components/not-found").then(m => ({default:m.NotFound})));
 import {serviceCategories, serviceCategoryUrl} from "./lib/services";
 import {api,services,type User,type Project,type Content} from "./lib/app-shared";
+const FooterMap = React.lazy(() => import("./components/office-map").then(m => ({default:m.OfficeMap})));
 const AboutPage = React.lazy(() => import("./components/about-page").then(m => ({default:m.AboutPage})));
 const HomePage = React.lazy(() => import("./components/home-page").then(m=>({default:m.HomePage})));
 const Dashboard = React.lazy(() => import("./components/dashboard").then(m=>({default:m.Dashboard})));
@@ -102,13 +104,14 @@ function App() {
     [selected, setSelected] = useState(services[0].name),
     [briefContext, setBriefContext] = useState(""),
     [menu, setMenu] = useState(false),
-    [toast, setToast] = useState("");
+    [toast, setToast] = useState(""),
+    [authReady, setAuthReady] = useState(false);
   useEffect(() => {
     api("me")
       .then((j) => setUser(j.user))
-      .catch(() => {});
-    const needsPublicContent = (location.pathname === "/" && !location.hash.startsWith("#cabinet")) || ["/contacts","/services","/pricing","/calculator","/about","/portfolio"].includes(location.pathname) || /^\/(services|portfolio)\//.test(location.pathname) || Object.hasOwn(legalTitles,location.pathname);
-    if(needsPublicContent) api("content").then(setContent).catch(() => {});
+      .catch(() => {})
+      .finally(() => setAuthReady(true));
+    api("content").then(setContent).catch(() => {});
     const h = () => {
       setRoute(location.hash || "#home");
       setMenu(false);
@@ -196,7 +199,7 @@ function App() {
           </button>
         </div>
       </header>
-      {!knownRoute ? <React.Suspense fallback={<main id="main" className="catalog-page">Страница не найдена</main>}><NotFound /></React.Suspense> : (location.pathname === "/admin" && user && user.role!=="admin") ? <main className="catalog-page" id="main"><h1>Доступ только для команды</h1><a className="catalog-home-link" href="/account">Открыть свой кабинет →</a></main> : (location.pathname === "/portfolio" || location.pathname.startsWith("/portfolio/")) ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем портфолио…</main>}><PortfolioPage order={order} contacts={content.contacts} /></React.Suspense> : location.pathname === "/about" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем страницу…</main>}><AboutPage contacts={content.contacts} /></React.Suspense> : location.pathname === "/contacts" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем контакты…</main>}><ContactsPage contacts={content.contacts} order={order} /></React.Suspense> : location.pathname === "/faq" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем вопросы…</main>}><FaqPage /></React.Suspense> : location.pathname === "/brief" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем бриф…</main>}><BriefWizard user={user} /></React.Suspense> : location.pathname === "/calculator" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем параметры проекта…</main>}><ProjectCalculator prices={content.prices} contacts={content.contacts} /></React.Suspense> : location.pathname === "/pricing" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем страницу стоимости…</main>}><PricingPage order={order} prices={content.prices} contacts={content.contacts} /></React.Suspense> : catalogPath ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем услуги…</main>}><ServiceCatalog path={location.pathname} order={order} prices={content.prices} contacts={content.contacts} /></React.Suspense> : legalPath ? <LegalPage path={legalPath} contacts={content.contacts} /> : dashboard ? (
+      {!knownRoute ? <React.Suspense fallback={<main id="main" className="catalog-page">Страница не найдена</main>}><NotFound /></React.Suspense> : (location.pathname === "/admin" && user && user.role!=="admin") ? <main className="catalog-page" id="main"><h1>Доступ только для команды</h1><a className="catalog-home-link" href="/account">Открыть свой кабинет →</a></main> : (location.pathname === "/portfolio" || location.pathname.startsWith("/portfolio/")) ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем портфолио…</main>}><PortfolioPage order={order} contacts={content.contacts} /></React.Suspense> : location.pathname === "/about" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем страницу…</main>}><AboutPage contacts={content.contacts} /></React.Suspense> : location.pathname === "/contacts" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем контакты…</main>}><ContactsPage contacts={content.contacts} order={order} /></React.Suspense> : location.pathname === "/faq" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем вопросы…</main>}><FaqPage /></React.Suspense> : location.pathname === "/brief" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем бриф…</main>}><BriefWizard user={user} /></React.Suspense> : location.pathname === "/calculator" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем параметры проекта…</main>}><ProjectCalculator prices={content.prices} contacts={content.contacts} /></React.Suspense> : location.pathname === "/pricing" ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем страницу стоимости…</main>}><PricingPage order={order} prices={content.prices} contacts={content.contacts} /></React.Suspense> : catalogPath ? <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем услуги…</main>}><ServiceCatalog path={location.pathname} order={order} prices={content.prices} contacts={content.contacts} /></React.Suspense> : legalPath ? <LegalPage path={legalPath} contacts={content.contacts} /> : dashboard ? (!authReady ? <main id="main" className="cabinet-entry" role="status">Загружаем личный кабинет…</main> :
         <React.Suspense fallback={<main id="main" className="catalog-page" role="status">Загружаем кабинет…</main>}><Dashboard
           user={user}
           content={content}
@@ -211,12 +214,10 @@ function App() {
       )}
       <footer className="studio-footer">
         <div className="studio-footer-main">
-          <div><a href="/" aria-label="OVERTAKE — главная"><Logo/></a><p>Цифровое агентство из Пскова.</p></div>
-          <nav aria-label="Разделы сайта"><strong>Агентство</strong><a href="/services">Услуги</a><a href="/portfolio">Портфолио</a><a href="/pricing">Цены</a><a href="/about">О нас</a></nav>
-          <nav aria-label="Связь с агентством"><strong>Контакты</strong><a href="tel:+79517506700">+7 (951) 750-67-00</a>
-            {contactTelegram(content.contacts.telegram || content.contacts.telegram2 || "") && <a href={contactTelegram(content.contacts.telegram || content.contacts.telegram2 || "")!} target="_blank" rel="noopener noreferrer">Telegram</a>}
-            <a href="/contacts">Как добраться</a><a href="/faq">Вопрос — ответ</a></nav>
-          <div><strong>Реквизиты</strong><p>ИП Игнатенко Илья Анатольевич<br/>ИНН 511007182150<br/>ОГРНИП 325600000016430</p></div>
+          <div className="footer-brand"><a href="/" aria-label="OVERTAKE — главная"><Logo/></a><p>Цифровое агентство · Псков</p></div>
+          <nav aria-label="Основные страницы"><a href="/services">Услуги</a><a href="/portfolio">Портфолио</a><a href="/pricing">Цены</a><a href="/about">О нас</a></nav>
+          <div className="footer-connect"><a href="tel:+79517506700">+7 (951) 750-67-00</a><a href="/contacts">Контакты</a><a href="/legal">Реквизиты</a></div>
+          {content.contacts.address && <React.Suspense fallback={null}><FooterMap address={content.contacts.address} compact/></React.Suspense>}
         </div>
         <div className="studio-footer-legal">
           <span>© {new Date().getFullYear()} OVERTAKE</span>

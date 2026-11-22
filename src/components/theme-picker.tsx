@@ -1,14 +1,14 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Sun, Moon, Monitor, Check} from 'lucide-react';
+import {Sun, Moon, Check} from 'lucide-react';
 import './theme.css';
 
-type Theme = 'light' | 'dark' | 'system';
+type Theme = 'light' | 'dark';
 const key = 'overtake:theme';
-const valid = (value: unknown): Theme => value === 'dark' || value === 'light' ? value : 'system';
-const choices = [{value:'light',label:'Светлая',Icon:Sun},{value:'dark',label:'Тёмная',Icon:Moon},{value:'system',label:'Как на устройстве',Icon:Monitor}] as const;
-function readTheme(): Theme {try{return valid(localStorage.getItem(key));}catch{return 'system';}}
+const valid = (value: unknown): Theme => value === 'dark' ? 'dark' : 'light';
+const choices = [{value:'light',label:'Светлая',Icon:Sun},{value:'dark',label:'Тёмная',Icon:Moon}] as const;
+function readTheme(): Theme {try{return valid(localStorage.getItem(key));}catch{return 'light';}}
 function applyTheme(theme: Theme) {
-  const dark = theme === 'dark' || (theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+  const dark = theme === 'dark';
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content',dark ? '#101b31' : '#f4f7fc');
 }
@@ -19,10 +19,6 @@ export function ThemePicker() {
   const menu = useRef<HTMLDetailsElement>(null);
   useEffect(()=>{
     applyTheme(theme);
-    const media = matchMedia('(prefers-color-scheme: dark)');
-    const syncSystem = ()=>{if(theme==='system')applyTheme(theme);};
-    media.addEventListener('change',syncSystem);
-    return ()=>media.removeEventListener('change',syncSystem);
   },[theme]);
   useEffect(()=>{
     const sync = (event: StorageEvent)=>{if(event.key===key||event.key===null)setTheme(readTheme());};
