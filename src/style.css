@@ -68,9 +68,6 @@ button:focus-visible,
 a:focus-visible {
   outline: 2px solid var(--purple);
 }
-::selection {
-  background: var(--ui-surface,#d9d0ff);
-}
 svg {
   flex-shrink: 0;
 }

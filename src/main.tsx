@@ -38,6 +38,7 @@ import "./components/catalog-common.css";
 import { PageScrollbar } from "./components/page-scrollbar";
 import { LegalPage, legalTitles, ConsentLabel, LEGAL_VERSION } from "./components/legal-pages";
 import { PriceMatch } from "./components/price-match";
+import { LEAD_HANDOFF_KEY, type LeadPrefill } from "./components/lead-section";
 import { CookiePreferences } from "./components/cookie-preferences";
 import { ThemePicker } from "./components/theme-picker";
 import {contactTelegram} from "./lib/contact-links";
@@ -71,6 +72,10 @@ function Logo() {
     </span>
   );
 }
+function PublicBriefRedirect() {
+  useEffect(() => { location.replace("/#request"); },[]);
+  return <main id="main" className="catalog-page site-route-loading"><a href="/#request">Перейти к форме заявки</a></main>;
+}
 function App() {
   const [effectsPaused, setEffectsPaused] = useState(false);
   const serviceMenu = useRef<HTMLDetailsElement>(null);
@@ -102,8 +107,8 @@ function App() {
     }),
     [route, setRoute] = useState(location.hash || "#home"),
     [modal, setModal] = useState(""),
-    [selected, setSelected] = useState(services[0].name),
-    [briefContext, setBriefContext] = useState(""),
+    [selected] = useState(services[0].name),
+    [homeLead, setHomeLead] = useState<LeadPrefill>(),
     [menu, setMenu] = useState(false),
     [toast, setToast] = useState(""),
     [authReady, setAuthReady] = useState(false);
@@ -113,6 +118,13 @@ function App() {
       .catch(() => {})
       .finally(() => setAuthReady(true));
     api("content").then(setContent).catch(() => {});
+    if (location.pathname === "/" && location.hash === "#request") {
+      try {
+        const saved = JSON.parse(sessionStorage.getItem(LEAD_HANDOFF_KEY) || "null");
+        sessionStorage.removeItem(LEAD_HANDOFF_KEY);
+        if (typeof saved?.service === "string" && typeof saved?.description === "string") setHomeLead(saved);
+      } catch {}
+    }
     const h = () => {
       setRoute(location.hash || "#home");
       setMenu(false);
@@ -127,11 +139,17 @@ function App() {
     }
   }, [toast]);
   const order = (service = "Обсуждение проекта", context = "") => {
-    service = typeof service === "string" ? service : "Обсуждение проекта";
-    try { sessionStorage.setItem("overtake:brief-handoff", JSON.stringify({service,context})); location.href = "/brief"; return; } catch { setToast("Не удалось перенести параметры. Можно отправить короткую заявку в этом окне."); }
-    setBriefContext(context);
-    setSelected(service);
-    setModal("brief");
+    const prefill = {service:typeof service === "string" ? service : "Обсуждение проекта",description:context};
+    if (location.pathname === "/" && !location.hash.startsWith("#cabinet")) {
+      setModal("");
+      setMenu(false);
+      setHomeLead(prefill);
+      if (location.hash !== "#request") history.pushState(null,"","#request");
+      setRoute("#request");
+      return;
+    }
+    try { sessionStorage.setItem(LEAD_HANDOFF_KEY, JSON.stringify(prefill)); } catch {}
+    location.href = "/#request";
   };
   const discussPrice = () => order("Сравнение стоимости", "Есть предложение от другого исполнителя. Хочу сравнить состав работ и обсудить стоимость.");
   const openLogin = () =>
@@ -209,7 +227,7 @@ function App() {
           </button>
         </div>
       </header>
-      {!knownRoute ? <React.Suspense fallback={<main id="main" className="catalog-page">Страница не найдена</main>}><NotFound /></React.Suspense> : (location.pathname === "/admin" && user && user.role!=="admin") ? <main className="catalog-page" id="main"><h1>Доступ только для команды</h1><a className="catalog-home-link" href="/account">Открыть свой кабинет →</a></main> : (location.pathname === "/portfolio" || location.pathname.startsWith("/portfolio/")) ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем портфолио…</main>}><PortfolioPage order={order} contacts={content.contacts} /></React.Suspense> : location.pathname === "/about" ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем страницу…</main>}><AboutPage contacts={content.contacts} /></React.Suspense> : location.pathname === "/contacts" ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем контакты…</main>}><ContactsPage contacts={content.contacts} /></React.Suspense> : location.pathname === "/faq" ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем вопросы…</main>}><FaqPage /></React.Suspense> : location.pathname === "/brief" ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем бриф…</main>}><BriefWizard user={user} /></React.Suspense> : location.pathname === "/calculator" ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем параметры проекта…</main>}><ProjectCalculator prices={content.prices} contacts={content.contacts} /></React.Suspense> : location.pathname === "/pricing" ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем страницу стоимости…</main>}><PricingPage order={order} prices={content.prices} contacts={content.contacts} /></React.Suspense> : catalogPath ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем услуги…</main>}><ServiceCatalog path={location.pathname} order={order} prices={content.prices} contacts={content.contacts} /></React.Suspense> : legalPath ? <LegalPage path={legalPath} contacts={content.contacts} /> : dashboard ? (!authReady ? <main id="main" className="cabinet-entry site-route-loading" role="status">Загружаем личный кабинет…</main> :
+      {!knownRoute ? <React.Suspense fallback={<main id="main" className="catalog-page">Страница не найдена</main>}><NotFound /></React.Suspense> : (location.pathname === "/admin" && user && user.role!=="admin") ? <main className="catalog-page" id="main"><h1>Доступ только для команды</h1><a className="catalog-home-link" href="/account">Открыть свой кабинет →</a></main> : (location.pathname === "/portfolio" || location.pathname.startsWith("/portfolio/")) ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем портфолио…</main>}><PortfolioPage contacts={content.contacts} /></React.Suspense> : location.pathname === "/about" ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем страницу…</main>}><AboutPage contacts={content.contacts} /></React.Suspense> : location.pathname === "/contacts" ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем контакты…</main>}><ContactsPage contacts={content.contacts} /></React.Suspense> : location.pathname === "/faq" ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем вопросы…</main>}><FaqPage /></React.Suspense> : location.pathname === "/brief" ? (!authReady ? <main id="main" className="catalog-page site-route-loading" role="status">Загружаем страницу…</main> : user ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем бриф…</main>}><BriefWizard user={user} /></React.Suspense> : <PublicBriefRedirect/>) : location.pathname === "/calculator" ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем параметры проекта…</main>}><ProjectCalculator prices={content.prices} contacts={content.contacts} /></React.Suspense> : location.pathname === "/pricing" ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем страницу стоимости…</main>}><PricingPage order={order} prices={content.prices} contacts={content.contacts} /></React.Suspense> : catalogPath ? <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем услуги…</main>}><ServiceCatalog path={location.pathname} order={order} prices={content.prices} contacts={content.contacts} /></React.Suspense> : legalPath ? <LegalPage path={legalPath} contacts={content.contacts} /> : dashboard ? (!authReady ? <main id="main" className="cabinet-entry site-route-loading" role="status">Загружаем личный кабинет…</main> :
         <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем кабинет…</main>}><Dashboard
           user={user}
           content={content}
@@ -220,7 +238,7 @@ function App() {
           notify={setToast}
         /></React.Suspense>
       ) : (
-        <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем главную…</main>}><HomePage content={content} openLogin={openLogin} effectsPaused={effectsPaused}/></React.Suspense>
+        <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем главную…</main>}><HomePage content={content} openLogin={openLogin} effectsPaused={effectsPaused} prefill={homeLead}/></React.Suspense>
       )}
       <footer className="studio-footer">
         <div className="studio-footer-main">
@@ -238,17 +256,15 @@ function App() {
       </footer>
       <div className="notice-dock">
         <CookiePreferences/>
-        {!dashboard && !modal && !legalPath && location.pathname !== "/brief" && knownRoute && <PriceMatch onDiscuss={discussPrice}/>}
       </div>
+      {!dashboard && !modal && !legalPath && location.pathname !== "/brief" && knownRoute && <PriceMatch onDiscuss={discussPrice}/>}
       {modal && (
         <Modal
           close={() => setModal("")}
           title={
             modal === "auth"
               ? "Личный кабинет"
-              : modal === "brief"
-                ? "Обсудим ваш проект"
-                : modal === "service"
+              : modal === "service"
                   ? selected
                   : modal === "case"
                     ? "Концепция проекта"
@@ -264,17 +280,6 @@ function App() {
                 setUser(j.user);
                 setModal("");
                 location.href = "/#cabinet";
-              }}
-            />
-          ) : modal === "brief" ? (
-            <Brief
-              user={user}
-              service={selected}
-              context={briefContext}
-              onSuccess={() => {
-                setModal("");
-                window.dispatchEvent(new Event("overtake:leads"));
-                setToast("Заявка получена. Спасибо за вашу идею!");
               }}
             />
           ) : modal === "service" ? (
@@ -567,100 +572,6 @@ function Auth({ onSuccess }: { onSuccess: () => void }) {
         </p>
       </form>
     </>
-  );
-}
-function Brief({
-  user,
-  service,
-  context = "",
-  onSuccess,
-}: {
-  user: User | null;
-  service: string;
-  context?: string;
-  onSuccess: () => void;
-}) {
-  const [error, setError] = useState(""),
-    [busy, setBusy] = useState(false);
-  return (
-    <form
-      onSubmit={async (e) => {
-        e.preventDefault();
-        setBusy(true);
-        setError("");
-        const f = Object.fromEntries(new FormData(e.currentTarget));
-        try {
-          await api("leads", { ...f, description: context ? context + "\n\nЗадача клиента:\n" + String(f.description) : f.description, consent: !!f.consent, consentVersion: LEGAL_VERSION });
-          onSuccess();
-        } catch (e) {
-          setError((e as Error).message);
-        } finally {
-          setBusy(false);
-        }
-      }}
-    >
-      <p className="muted">Не нужно готовое ТЗ. Начнём с вашей идеи.</p>
-      {context && <div className="pricing-brief-context"><b>Вы выбрали</b><p>{context}</p></div>}
-      <div className="form-grid">
-        <label>
-          Как вас зовут
-          <input
-            name="name"
-            defaultValue={user?.name}
-            placeholder="Ваше имя"
-            required
-            maxLength={80}
-          />
-        </label>
-        <label>
-          Почта или Telegram
-          <input
-            name="contact"
-            defaultValue={user?.email}
-            placeholder="mail@example.ru или @username"
-            required
-            maxLength={200}
-          />
-        </label>
-      </div>
-      <label>
-        Что нужно сделать
-        <select name="service" defaultValue={service}>
-          {!services.some(s => s.name === service) && <option value={service}>{service}</option>}
-          {services.map((s) => (
-            <option key={s.name}>{s.name}</option>
-          ))}
-        </select>
-      </label>
-      <label>
-        Расскажите о задаче
-        <textarea
-          name="description"
-          placeholder="Что хотите создать и какую задачу это должно решить?"
-          required
-          minLength={10}
-          maxLength={context ? 4000 : 5000}
-          rows={4}
-        />
-      </label>
-      <ConsentLabel purpose="для ответа на обращение и обсуждения проекта" />
-      {!user && (
-        <p className="form-note">
-          Для отслеживания проекта в кабинете войдите до отправки заявки. Без
-          входа заявка будет доступна только команде.
-        </p>
-      )}
-      {error && (
-        <p className="error" role="alert">
-          {error}
-        </p>
-      )}
-      <button className="btn purple full" disabled={busy}>
-        {busy ? "Отправляем…" : "Отправить заявку"}
-
-      </button>
-      <p className="form-note">Отправка заявки ни к чему вас не обязывает.</p>
-    </form>
   );
 }
 createRoot(document.getElementById("root")!).render(

@@ -10,6 +10,7 @@ const budgets = ['Нужна оценка','До 30 000 ₽','30 000–70 000 �
 const methods = ['Телефон','Почта','Telegram','ВКонтакте'] as const;
 type Method = typeof methods[number];
 export type LeadPrefill = {service:string;description:string};
+export const LEAD_HANDOFF_KEY = 'overtake:lead-handoff';
 
 function validContact(method:Method,value:string) {
   if (method === 'Телефон') return /^[+()\d .-]+$/.test(value) && /^(?:\d{10,15})$/.test(value.replace(/\D/g,''));

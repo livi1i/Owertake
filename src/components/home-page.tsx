@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import {LiveProjects} from './live-projects';
 import {Reveal} from './reveal';
-import {LeadSection} from './lead-section';
+import {LeadSection,type LeadPrefill} from './lead-section';
 import {ProcessSteps} from './process-steps';
 import {directions} from './studio-directions';
 import {CabinetPreview} from './cabinet-preview';
@@ -19,15 +19,20 @@ import togetherImage from '../assets/studio-partnership.webp?inline';
 const benefits = ['Работаем по договору','Согласуем смету заранее','Ведём от идеи до запуска','Поддерживаем после запуска'];
 const FaqHighlights = React.lazy(() => import('./faq-page').then(module => ({default:module.FaqHighlights})));
 
-export function HomePage({content,openLogin,effectsPaused}:{content:Content;openLogin:()=>void;effectsPaused:boolean}) {
+export function HomePage({content,openLogin,effectsPaused,prefill}:{content:Content;openLogin:()=>void;effectsPaused:boolean;prefill?:LeadPrefill}) {
   const [catalog,setCatalog] = useState<AgencyService[]>(defaultAgencyServices);
   useEffect(() => {
     let active = true;
     servicesRequest().then(result => { if (active) setCatalog(mergeServices(result.services)); }).catch(() => {});
     const anchor = location.hash.slice(1);
-    if (anchor && anchor !== 'cabinet') requestAnimationFrame(() => document.getElementById(anchor)?.scrollIntoView());
+    if (anchor && anchor !== 'cabinet') requestAnimationFrame(() => document.getElementById(anchor)?.scrollIntoView({behavior:anchor==='request'?'instant':'auto'}));
     return () => { active = false; };
   },[]);
+  useEffect(() => {
+    if (!prefill || location.hash!=='#request') return;
+    const frame=requestAnimationFrame(()=>document.getElementById('request')?.scrollIntoView({block:'start',behavior:'instant'}));
+    return () => cancelAnimationFrame(frame);
+  },[prefill]);
   return <main id="main" className="soft-home">
     <section className="studio-hero" id="home" aria-labelledby="hero-title">
       <div className="studio-hero-grid">
@@ -99,11 +104,13 @@ export function HomePage({content,openLogin,effectsPaused}:{content:Content;open
       </Reveal>
     </section>
     <section className="section studio-faq" id="questions">
-      <Reveal className="studio-faq-title"><span className="studio-glyph" aria-hidden="true"><CircleHelp size={28}/></span><h2>Вопрос — ответ</h2><p>О цене, сроках и работе над проектом.</p></Reveal>
+      <Reveal className="studio-faq-title"><h2>Вопрос — ответ</h2><p>О цене, сроках и работе над проектом.</p>
+        <div className="faq-illustration" aria-hidden="true"><span className="faq-illustration-orbit"/><span className="faq-illustration-main"><CircleHelp size={65}/></span><span className="faq-illustration-reply"><MessageSquare size={20}/><i/><i/><i/></span><span className="faq-illustration-check"><Check size={23}/></span></div>
+      </Reveal>
       <Reveal delay={75}><React.Suspense fallback={<p role="status">Загружаем вопросы…</p>}><FaqHighlights/></React.Suspense></Reveal>
     </section>
     <div className="section studio-last" id="contacts">
-      <LeadSection contacts={content.contacts} heading="Следующий ход за вами"
+      <LeadSection contacts={content.contacts} heading="Следующий ход за вами" prefill={prefill}
         introExtra={<OfficeMap address={content.contacts.address || ''} compact/>}/>
     </div>
   </main>;
