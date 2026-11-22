@@ -6,12 +6,12 @@ function yandexParams(address:string) {
     : new URLSearchParams({text:address});
 }
 
-export function OfficeMap({address}:{address:string}) {
+export function OfficeMap({address,compact=false}:{address:string;compact?:boolean}) {
   const place = address.trim();
   if (!place) return null;
   const params = yandexParams(place);
 
-  return <section className="office-map yandex-office" aria-label="Офис на карте">
+  return <section className={'office-map yandex-office'+(compact?' office-map-inline':'')} aria-label="Офис на карте">
     <div className="yandex-office-heading">
       <div><MapPin size={19}/><strong>{place}</strong></div>
       <a className="secondary-panel" href={'https://yandex.ru/maps/?'+params} target="_blank" rel="noopener noreferrer">Открыть в Яндекс Картах <ArrowUpRight size={16}/></a>

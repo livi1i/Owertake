@@ -1,4 +1,4 @@
-import {useEffect,useLayoutEffect,useRef,useState,type FormEvent} from 'react';
+import {useEffect,useLayoutEffect,useRef,useState,type FormEvent,type ReactNode} from 'react';
 import {ArrowUpRight,CheckCircle2,ClipboardList,MessageSquare,Send,Phone} from 'lucide-react';
 import {api} from '../lib/app-shared';
 import {contactEmail,contactTelegram} from '../lib/contact-links';
@@ -18,8 +18,8 @@ function validContact(method:Method,value:string) {
   return /^(?:(?:https:\/\/)?(?:m\.)?vk\.com\/|@)?[a-z\d_.-]{2,80}\/?$/i.test(value);
 }
 
-export function LeadSection({contacts={},prefill,heading='Обсудим ваш проект'}:{
-  contacts?:Record<string,string>;prefill?:LeadPrefill;heading?:string;
+export function LeadSection({contacts={},prefill,heading='Обсудим ваш проект',introExtra}:{
+  contacts?:Record<string,string>;prefill?:LeadPrefill;heading?:string;introExtra?:ReactNode;
 }) {
   const [method,setMethod] = useState<Method>('Телефон');
   const [service,setService] = useState('');
@@ -90,6 +90,7 @@ export function LeadSection({contacts={},prefill,heading='Обсудим ваш 
         <li><ClipboardList size={20}/><div><strong>Подготовим предложение</strong><span>Опишем состав работ, стоимость и сроки.</span></div></li>
         <li><CheckCircle2 size={20}/><div><strong>Согласуем старт</strong><span>Зафиксируем договорённости и начнём работу.</span></div></li>
       </ol>
+      {introExtra}
     </div>
     <div className="lead-surface">
       {result ? <div className="lead-success" ref={status} tabIndex={-1} role="status">

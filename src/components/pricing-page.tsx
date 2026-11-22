@@ -1,5 +1,5 @@
 import React,{useEffect,useState} from 'react';
-import {ArrowLeft,ArrowUpRight,Bot,Calculator,Check,Globe,LifeBuoy,Network,Printer,ShoppingBag,PanelsTopLeft} from 'lucide-react';
+import {ArrowLeft,ArrowUpRight,Bot,Calculator,Check,FileCheck2,Globe,Layers3,LifeBuoy,Network,Printer,Server,ShoppingBag,PanelsTopLeft} from 'lucide-react';
 import {mergeServices,serviceCategories,servicesRequest,type AgencyService} from '../lib/services';
 import {offerPrice,offersFor,type PriceOverrides} from '../lib/public-prices';
 import './pricing-page.css';
@@ -9,6 +9,11 @@ import packageArt from '../assets/studio-packages.webp?inline';
 import {Reveal} from './reveal';
 
 const packageIcons = [PanelsTopLeft,Globe,ShoppingBag,Bot,Network,LifeBuoy];
+const priceFactors = [
+  {Icon:Layers3,title:'Объём и сложность',text:'Считаем экраны, сценарии, интеграции и подготовку контента. Учитываем срок запуска. Минимум отдельного разового заказа — 500 ₽.'},
+  {Icon:Server,title:'Лицензии и инфраструктура',text:'Заранее согласуем, нужны ли домен, хостинг, лицензии или сторонние сервисы и кто их оплачивает.'},
+  {Icon:FileCheck2,title:'Оплата и правки',text:'Фиксируем состав работ, порядок правок, приёмку и оплату в договоре.'},
+];
 
 
 export function PricingPage({order,prices,contacts}:{order:(name:string,description?:string)=>void;prices:PriceOverrides;contacts:Record<string,string>}) {
@@ -95,15 +100,12 @@ export function PricingPage({order,prices,contacts}:{order:(name:string,descript
         </div>
       </section>
     </>}
-    <section className="pricing-section pricing-faq">
-      <h2>Что влияет на стоимость</h2>
-      {[
-        ['Объём и сложность','На цену влияют количество экранов и сценариев, интеграции, перенос материалов, готовность контента и сроки. Минимум отдельного разового заказа — 500 ₽.'],
-        ['Лицензии и инфраструктура','Согласуем, какие домены, хостинг, лицензии и сторонние сервисы нужны для проекта и кто их оплачивает.'],
-        ['Оплата и правки','Состав результата, порядок согласования правок, приёмку и оплату фиксируем в договоре.'],
-      ].map(([question,answer]) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}
+    <section className="pricing-section" aria-labelledby="price-factors-title">
+      <h2 id="price-factors-title">Что влияет на стоимость</h2>
+      <div className="price-factors">{priceFactors.map(({Icon,title,text})=><article key={title}>
+        <span className="studio-glyph" aria-hidden="true"><Icon size={23}/></span><h3>{title}</h3><p>{text}</p>
+      </article>)}</div>
     </section>
     <LeadSection contacts={contacts}/>
-    <div className="pricing-print-footer">OVERTAKE · ИП Игнатенко Илья Анатольевич · ИНН 511007182150 · ОГРНИП 325600000016430 · +7 (951) 750-67-00. Цены за базовый объём работ.</div>
   </main>;
 }

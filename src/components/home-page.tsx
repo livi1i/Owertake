@@ -111,8 +111,8 @@ export function HomePage({content,openLogin,effectsPaused}:{content:Content;open
       <Reveal delay={75}><React.Suspense fallback={<p role="status">Загружаем вопросы…</p>}><FaqHighlights/></React.Suspense></Reveal>
     </section>
     <div className="section studio-last" id="contacts">
-      <LeadSection contacts={content.contacts} heading="Следующий ход за вами"/>
-      <Reveal className="home-office"><OfficeMap address={content.contacts.address || ''}/></Reveal>
+      <LeadSection contacts={content.contacts} heading="Следующий ход за вами"
+        introExtra={<OfficeMap address={content.contacts.address || ''} compact/>}/>
     </div>
   </main>;
 }
