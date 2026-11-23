@@ -23,6 +23,7 @@ export function PortfolioPage({contacts}:{contacts:Record<string,string>}) {
   const project = items.find(item => projectSlug(item) === slug);
   const real = items.filter(item => !item.concept);
   const filtered = filterPortfolio(real,'',category,'Клиентские проекты');
+  const botCase = projectUrl(project?.url)?.hostname==="t.me";
   const categories = [...new Set(real.map(item => item.category))];
 
   function load() {
@@ -39,7 +40,7 @@ export function PortfolioPage({contacts}:{contacts:Record<string,string>}) {
     <a className="catalog-back" href={slug?'/portfolio':'/'}><ArrowLeft size={17}/>{slug?'Все проекты':'На главную'}</a>
     {loading ? <p role="status">Загружаем портфолио…</p> : error ? <div role="alert" className="case-empty"><p>{error}</p><button className="btn purple" onClick={load}>Повторить</button></div> :
       slug ? project ? <>
-        <header className="page-banner case-review-header" data-enter><div>
+        <header className={"page-banner case-review-header"+(botCase?" case-review-telegram":"")} data-enter><div>
           <span className="case-label">{project.concept?'Дизайн-концепция':project.category}</span>
           <h1>{project.title}</h1><p>{project.description}</p>
           {!project.concept && <ProjectSiteLink project={project} full/>}
@@ -50,7 +51,7 @@ export function PortfolioPage({contacts}:{contacts:Record<string,string>}) {
           {project.result && <section><h2>Что получилось</h2><p>{project.result}</p></section>}
           {project.technologies && <section><h2>Технологии</h2><div className="case-technologies">{project.technologies.split(',').map(item => <span key={item}><Check size={14}/>{item.trim()}</span>)}</div></section>}
         </div>}
-        {!project.concept && <LeadSection contacts={contacts} heading="Есть похожая задача?"/>}
+        <LeadSection contacts={contacts} heading="Есть похожая задача?"/>
       </> : <div className="case-empty"><h1>Проект не найден</h1><a className="secondary-panel" href="/portfolio">Открыть портфолио</a></div> :
       <>
         <header className="page-banner portfolio-heading" data-enter><div><h1>Портфолио</h1><p>Откройте кейс, чтобы увидеть задачу клиента, ход работы и готовый сайт.</p><a href="#portfolio-cases" className="secondary-panel">Смотреть кейсы</a></div><div className="portfolio-collage" aria-hidden="true">

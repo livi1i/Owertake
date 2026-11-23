@@ -1,24 +1,15 @@
 import {useMemo,useState} from 'react';
-import {Printer,Search,X} from 'lucide-react';
-import {pricebook,offerPrice,type PriceOverrides} from '../lib/public-prices';
+import {ArrowRight,Printer} from 'lucide-react';
+import {pricebook,offerPrice,type PublicOffer,type PriceOverrides} from '../lib/public-prices';
 import {pricebookTerms} from '../lib/pricebook-data';
 
 const pageSize=12;
-const normalize=(text:string)=>text.toLocaleLowerCase('ru').replaceAll('ё','е');
 
-export function Pricebook({prices}:{prices:PriceOverrides}) {
+export function Pricebook({prices,onOffer}:{prices:PriceOverrides;onOffer:(offer:PublicOffer)=>void}) {
   const groups=useMemo(()=>pricebook(prices),[prices]);
   const [category,setCategory]=useState(location.hash==='#extra-prices'?'02':'');
-  const [search,setSearch]=useState('');
   const [limit,setLimit]=useState(pageSize);
-  const terms=normalize(search).trim().split(/\s+/).filter(Boolean);
-  const results=groups
-    .filter(group=>!category || group.id===category)
-    .map(group=>({...group,offers:group.offers.filter(offer=>{
-      const text=normalize(offer.name+' '+offer.scope);
-      return terms.every(term=>text.includes(term));
-    })}))
-    .filter(group=>group.offers.length);
+  const results=groups.filter(group=>!category || group.id===category);
   const count=results.reduce((sum,group)=>sum+group.offers.length,0);
   const total=groups.reduce((sum,group)=>sum+group.offers.length,0);
   let position=0;
@@ -47,22 +38,14 @@ export function Pricebook({prices}:{prices:PriceOverrides}) {
         </div>
       </nav>
       <div className="price-index-content">
-        <div className="price-index-searchbar">
-          <label><Search aria-hidden="true" size={19}/><input type="search" aria-label="Поиск по прайсу" placeholder="Поиск услуги, например «онлайн-оплата»" value={search} onChange={event=>{setSearch(event.target.value);setLimit(pageSize);}}/></label>
-          {search && <button className="price-index-clear" type="button" aria-label="Очистить поиск" onClick={()=>{setSearch('');setLimit(pageSize);}}><X size={18}/></button>}
-        </div>
-        <p className="price-index-count" role="status">{search.trim() ? 'Найдено' : 'Услуг в разделе'} · {count}</p>
-        {!count && <div className="price-index-empty">
-          <p>Услуг по этому запросу нет.</p>
-          {category && <button type="button" className="secondary-panel" onClick={()=>selectCategory('')}>Искать во всех разделах</button>}
-        </div>}
+        <p className="price-index-count" role="status">Услуг в разделе · {count}</p>
         {results.map(group=>{
           const hidden=position>=limit;
           return <section className={hidden?'price-index-group print-only-price':'price-index-group'} key={group.id}>
             <h3>{group.name}</h3>
             <ul className="price-index-entries">{group.offers.map(offer=>
               <li className={position++>=limit?'print-only-price':undefined} key={offer.code}>
-                <div><strong>{offer.name}</strong><p>{offer.scope}</p></div><b>{offerPrice(offer)}</b>
+                <button type="button" onClick={()=>onOffer(offer)} aria-label={offer.name+" · "+offerPrice(offer)}><strong>{offer.name}</strong><b>{offerPrice(offer)}</b><ArrowRight size={15} aria-hidden="true"/></button><p className="price-print-scope">{offer.scope}</p>
               </li>,
             )}</ul>
           </section>;

@@ -21,9 +21,9 @@ export function ThemePicker() {
     window.addEventListener('storage',sync);
     return () => window.removeEventListener('storage',sync);
   },[]);
-  return <button className="theme-switch" type="button" aria-label="Тёмная тема" aria-pressed={dark}
+  return <button className="theme-switch" type="button" aria-label="Тёмная тема" role="switch" aria-checked={dark}
     title={dark?'Включить светлую тему':'Включить тёмную тему'} onClick={() => {
       setTheme(next);
       try { localStorage.setItem(key,next); } catch {}
-    }}><span className="theme-symbol" key={theme}>{dark?<Moon size={18}/>:<Sun size={18}/>}</span></button>;
+    }}><span className="theme-thumb" aria-hidden="true"/><Sun size={15} aria-hidden="true"/><Moon size={15} aria-hidden="true"/></button>;
 }

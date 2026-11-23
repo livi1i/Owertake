@@ -57,12 +57,12 @@ export function offersFor(slug:string, prices:PriceOverrides = {}):readonly Publ
 const rubles = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 });
 const periodLabels = {once:'',month:' / мес.',year:' / год',hour:' / ч'};
 
-export function priceLabel(amount:number, period:PricePeriod = 'once') {
-  return 'от '+rubles.format(amount)+' ₽'+periodLabels[period];
+export function formatPrice(amount:number, period:PricePeriod = 'once') {
+  return rubles.format(amount)+' ₽'+periodLabels[period];
 }
 
 export function offerPrice(offer:PublicOffer) {
-  return rubles.format(offer.amount)+' ₽'+periodLabels[offer.period];
+  return formatPrice(offer.amount,offer.period);
 }
 
 export function startingOffer(slug:string, prices?:PriceOverrides) {

@@ -1,33 +1,112 @@
-import React,{useEffect,useState} from 'react';
-import {ArrowLeft,Check,Layers} from 'lucide-react';
-import {defaultAgencyServices,mergeServices,filterServices,serviceCategories,servicesRequest,type AgencyService} from '../lib/services';
-import './service-catalog.css';
-import {offerPrice, offersFor, startingOffer, type PriceOverrides} from '../lib/public-prices';
-import {serviceCategoryUrl} from '../lib/services';
+import React,{useEffect,useRef,useState} from 'react';
+import {ArrowLeft,Calculator,ChevronDown} from 'lucide-react';
+import {defaultAgencyServices,filterServices,mergeServices,serviceCategories,serviceCategoryUrl,servicesRequest,type AgencyService} from '../lib/services';
+import {offerPrice,offersFor,type PriceOverrides} from '../lib/public-prices';
 import {ServicePreview,ServiceIcon} from './service-preview';
 import {LeadSection} from './lead-section';
 import {InterfaceArt} from './interface-art';
-import {packages} from '../lib/project-packages';
-export function ServiceCatalog({path,order,prices,contacts}:{path:string;order:(name:string)=>void;prices:PriceOverrides;contacts:Record<string,string>}){
- const [items,setItems]=useState(defaultAgencyServices),[loading,setLoading]=useState(true),[error,setError]=useState(''),[category,setCategory]=useState(() => {
-  const selected = new URLSearchParams(location.search).get('category');
-  return serviceCategories.find(item => item === selected) || 'Все';
- });
- const selectCategory = (next: string) => {
-  setCategory(next);
-  history.replaceState(history.state, '', next === 'Все' ? '/services' : serviceCategoryUrl(next));
- };
- const load=()=>{setLoading(true);setError('');servicesRequest().then(j=>setItems(mergeServices(j.services))).catch(e=>setError(e.message)).finally(()=>setLoading(false));};
- useEffect(load,[]);
- const slug=path.split('/')[2],service=items.find(s=>s.slug===slug&&s.status!=='Скрыта');
- const variants = service && service.status !== 'Временно недоступна' ? offersFor(service.slug, prices) : [];
- const found=filterServices(items,'',category);
- return <main id="main" className="catalog-page"><a className="catalog-back" href={slug?'/services':'/#home'}><ArrowLeft size={17}/>{slug?'Все услуги':'На главную'}</a>{error?<div className="catalog-empty" role="alert"><h1>Не удалось загрузить каталог</h1><p>{error}</p><button className="btn purple" onClick={load}>Попробовать снова</button></div>:loading?<div role="status" className="catalog-empty">Загружаем каталог…</div>:slug?service?<><div className="service-hero"><div><span className="catalog-kicker">OVERTAKE / {service.category}</span><h1>{service.name}</h1><p>{service.description}</p><span className="catalog-status">{service.status}</span></div><ServicePreview slug={service.slug}/></div><div className="service-detail-grid"><div><section className="catalog-panel"><h2>Для кого</h2><p>{service.audience}</p><h2>Что входит в работу</h2><ul className="catalog-includes">{service.includes.split(';').filter(Boolean).map(x=><li key={x}><Check size={17}/>{x}</li>)}</ul><p className="catalog-note">Состав работ уточняется под проект и фиксируется в договоре.</p></section>{variants.length > 0 && <section className="catalog-panel"><h2>Варианты и цены</h2><ul className="public-offers">{variants.map(offer => <li key={offer.code}><div><strong>{offer.name}</strong><p>{offer.scope}</p></div><b>{offerPrice(offer)}</b></li>)}</ul></section>}<section className="catalog-panel"><h2>Дополнительные возможности</h2><div className="catalog-tags">{service.options.split(';').filter(Boolean).map(x=><span key={x}>{x}</span>)}</div><h2>Как строится работа</h2><ol className="catalog-process">{['Обсуждаем задачу и требования','Согласуем объём, смету и сроки','Создаём и показываем промежуточный результат','Проверяем, передаём и запускаем'].map(x=><li key={x}>{x}</li>)}</ol></section><section className="catalog-panel"><h2>Частые вопросы</h2><details><summary>Когда будет готов проект?</summary><p>Срок зависит от объёма и готовности материалов. Согласуем график после обсуждения задачи.</p></details><details><summary>Как определяются стоимость и правки?</summary><p>Подготовим индивидуальную смету. Порядок правок, приёмки и передачи прав закрепим в договоре.</p></details><details><summary>Где посмотреть примеры?</summary><p>В портфолио можно открыть подробности проектов и посмотреть действующие сайты.</p><a href="/portfolio">Посмотреть проекты →</a></details></section></div><aside className="catalog-quote"><span className="catalog-kicker">ВАША ЗАДАЧА — ТОЧКА СТАРТА</span><h2>Сначала разберёмся в деталях</h2><p> {variants[0] ? <>Базовый вариант {offerPrice(variants[0])}. Итоговую цену и сроки согласуем после обсуждения.</> : 'Стоимость и сроки определим по задаче.'}</p>{service.status==='Временно недоступна'?<p className="catalog-status">Приём заказов временно приостановлен</p>:<button className="btn purple full" onClick={()=>order(service.name)}>Обсудить задачу </button>}<small>Отправка заявки не обязывает к заказу.</small>{service.status!=="Временно недоступна"&&<a className="config-service-link" style={{display:"inline-block",marginTop:20}} href={"/calculator?service="+service.slug}>Подобрать параметры проекта</a>}</aside></div><h2 className="catalog-related-title">Другие решения</h2><div className="catalog-grid">{items.filter(s=>s.slug!==slug&&s.status!=='Скрыта').slice(0,3).map(s=><ServiceCard key={s.slug} service={s} prices={prices}/>)}</div></>:<div className="catalog-empty"><h1>Услуга не найдена</h1><p>Возможно, она перемещена или скрыта.</p><a href="/services" className="btn purple">Открыть каталог</a></div>:<><header className="page-banner" data-enter><div><h1>Услуги для бизнеса</h1><p>От первого сайта до системы, которая связывает продажи, заявки и работу команды.</p><a className="secondary-panel" href="#request">Оставить заявку</a></div><InterfaceArt/></header><nav className="studio-jump" aria-label="Быстрые переходы"><a href="#service-products">Основные услуги</a><a href="#service-packages">Пакеты</a><a href="#service-extras">Допработы</a><a href={serviceCategoryUrl('Хостинг и домены')}>Хостинг и домены</a></nav><div className="catalog-filters" id="service-products" aria-label="Направления услуг">{['Все',...serviceCategories].map(x=><button key={x} aria-pressed={category===x} onClick={()=>selectCategory(x)}>{x}</button>)}</div>{found.length?<div className="catalog-grid">{found.map(s=><ServiceCard key={s.slug} service={s} prices={prices}/>)}</div>:<div className="catalog-empty"><h2>Ничего не нашли</h2><p>Выберите другое направление.</p><button className="btn purple" onClick={()=>selectCategory('Все')}>Сбросить фильтры</button></div>}<section className="studio-inner-section" id="service-packages"><div className="studio-section-head"><h2>Готовые пакеты</h2><a className="secondary-panel" href="/pricing#formats">Все пакеты и цены</a></div>
- <div className="studio-quick-packages">{packages.filter(item => items.some(service => service.slug === item.slug && !['Скрыта','Временно недоступна'].includes(service.status))).slice(0,3).map(item => {
-  const offer=offersFor(item.slug,prices).find(candidate=>candidate.code===item.code);
-  return offer && <a className="studio-step" href={'/calculator?'+new URLSearchParams({service:item.slug,offer:item.code})} key={item.code}><h3>{item.name}</h3><p>{item.audience}</p><strong>{offerPrice(offer)}</strong></a>;
- })}</div></section>
- <section className="catalog-panel studio-inner-section" id="service-extras"><h2>Отдельные работы</h2><ul className="public-offers">{offersFor('extra-work',prices).slice(0,6).map(offer => <li key={offer.code}><div><strong>{offer.name}</strong><p>{offer.scope}</p></div><b>{offerPrice(offer)}</b></li>)}</ul><a className="secondary-panel" href="/pricing#extra-prices">Все дополнительные работы</a></section>
- <LeadSection contacts={contacts}/></>}</main>;
+import {ProductPricing} from './pricing-page';
+import {ProductDialog,type ProductDetails} from './product-dialog';
+import './service-catalog.css';
+
+const featuredProducts=['landing','telegram','crm-setup','ai-assistants','ui-ux','web-apps'];
+const EmbeddedCalculator=React.lazy(()=>import('./project-calculator').then(module=>({default:module.ProjectCalculator})));
+
+export function ServiceCatalog({path,order,prices,contacts}:{
+  path:string;order:(name:string,description?:string)=>void;prices:PriceOverrides;contacts:Record<string,string>;
+}) {
+  const [items,setItems]=useState(defaultAgencyServices);
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState('');
+  const [category,setCategory]=useState(()=>{
+    const selected=new URLSearchParams(location.search).get('category');
+    return serviceCategories.find(item=>item===selected) || 'Все';
+  });
+  const [showAll,setShowAll]=useState(false);
+  const [calculatorOpen,setCalculatorOpen]=useState(location.hash==='#calculator');
+  const [product,setProduct]=useState<ProductDetails|null>(null);
+  const openedDeepLink=useRef(false);
+  const found=filterServices(items,'',category);
+  const preview=featuredProducts.flatMap(slug=>found.filter(item=>item.slug===slug));
+
+  function selectCategory(next:string) {
+    setCategory(next);
+    setShowAll(false);
+    history.replaceState(history.state,'',next==='Все'?'/services':serviceCategoryUrl(next));
+  }
+  function load() {
+    setLoading(true);
+    setError('');
+    servicesRequest().then(result=>setItems(mergeServices(result.services))).catch(error=>setError(error.message)).finally(()=>setLoading(false));
+  }
+  useEffect(load,[]);
+  function openProduct(service:AgencyService) {
+    setProduct({title:service.name,description:service.description,slug:service.slug,
+      offers:offersFor(service.slug,prices),available:service.status!=='Временно недоступна'});
+  }
+  useEffect(()=>{
+    if (loading || error) return;
+    function syncAnchor() {
+      const params=new URLSearchParams(location.search);
+      const anchor=location.hash.slice(1) || (params.get('view')==='pricing'?'pricebook':'');
+      if (anchor==='calculator') setCalculatorOpen(true);
+      if (anchor) document.getElementById(anchor)?.scrollIntoView({behavior:'instant'});
+    }
+    const frame=requestAnimationFrame(syncAnchor);
+    window.addEventListener('hashchange',syncAnchor);
+    return ()=>{cancelAnimationFrame(frame);window.removeEventListener('hashchange',syncAnchor);};
+  },[loading,error]);
+  useEffect(()=>{
+    if (loading || openedDeepLink.current) return;
+    openedDeepLink.current=true;
+    const slug=new URLSearchParams(location.search).get('product') || path.split('/')[2];
+    const service=slug && items.find(item=>item.slug===slug && item.status!=='Скрыта');
+    if (service) setProduct({title:service.name,description:service.description,slug:service.slug,
+      offers:offersFor(service.slug,prices),available:service.status!=='Временно недоступна'});
+  },[loading,items,path,prices]);
+
+  return <main id="main" className="catalog-page products-page">
+    <a className="catalog-back" href="/"><ArrowLeft size={17}/> На главную</a>
+    <header className="page-banner products-heading" data-enter>
+      <div><h1>Продукты и решения</h1><p>Выберите отдельный цифровой продукт или комплект работ под задачу бизнеса.</p>
+        <div className="product-intro-actions"><a className="btn purple" href="#formats">Смотреть комплекты</a><a className="secondary-panel" href="#calculator"><Calculator size={17}/> Рассчитать проект</a></div>
+      </div><InterfaceArt/>
+    </header>
+    <nav className="studio-jump" aria-label="Разделы каталога"><a href="#service-products">Продукты</a><a href="#formats">Готовые решения</a><a href="#pricebook">Весь прайс</a><a href="#calculator">Калькулятор</a></nav>
+    <section className="studio-inner-section" id="service-products" aria-labelledby="product-list-title">
+      <div className="product-section-heading"><h2 id="product-list-title">Продукты</h2>
+        <p>Откройте карточку, чтобы сравнить варианты и их точную стоимость.</p></div>
+      <div className="catalog-filters" aria-label="Фильтр направлений">{['Все',...serviceCategories].map(value=>
+        <button type="button" key={value} aria-pressed={category===value} onClick={()=>selectCategory(value)}>{value}</button>)}</div>
+      {error ? <div className="catalog-empty" role="alert"><p>{error}</p><button className="secondary-panel" onClick={load}>Повторить загрузку</button></div> :
+        loading ? <p role="status">Загружаем продукты…</p> :
+        found.length ? <div className="catalog-grid">{(category==='Все'&&!showAll&&preview.length?preview:found).map(service=>
+          <ServiceCard key={service.slug} service={service} prices={prices} onOpen={()=>openProduct(service)}/>)}</div> :
+        <div className="catalog-empty"><h3>В этом направлении пока нет решений</h3><button className="secondary-panel" onClick={()=>selectCategory('Все')}>Сбросить фильтр</button></div>}
+      {!loading && !error && category==='Все' && preview.length>0 && found.length>preview.length &&
+        <button className="secondary-panel products-more" type="button" onClick={()=>setShowAll(!showAll)}>{showAll?'Свернуть каталог':'Показать все продукты'}</button>}
+    </section>
+    <ProductPricing order={order} prices={prices} onOffer={offer=>setProduct({title:offer.name,description:offer.scope,offers:[offer]})}/>
+    <section id="calculator" className="studio-inner-section catalog-calculator" aria-labelledby="catalog-calculator-title">
+      <h2 id="catalog-calculator-title">Калькулятор проекта</h2>
+      <details open={calculatorOpen} onToggle={event=>setCalculatorOpen(event.currentTarget.open)}>
+        <summary><Calculator size={20}/> Настроить параметры проекта <ChevronDown size={17} aria-hidden="true"/></summary>
+        {calculatorOpen && <React.Suspense fallback={<p role="status">Загружаем калькулятор…</p>}>
+          <EmbeddedCalculator embedded prices={prices} contacts={contacts} onRequest={order}/>
+        </React.Suspense>}
+      </details>
+    </section>
+    <LeadSection contacts={contacts}/>
+    {product && <ProductDialog product={product} close={()=>setProduct(null)} order={order}/>}
+  </main>;
 }
-function ServiceCard({service:s,prices}:{service:AgencyService;prices:PriceOverrides}){const offer = s.status === 'Временно недоступна' ? undefined : startingOffer(s.slug, prices); return <a className="catalog-card" href={'/services/'+s.slug}><ServicePreview slug={s.slug}/><div className="catalog-card-top"><ServiceIcon slug={s.slug}/></div><small>{s.category}</small><h2>{s.name}</h2><p>{s.description}</p><div className="catalog-card-foot"><span>{offer ? offerPrice(offer) : s.status}</span><span>Подробнее</span></div></a>}
+
+function ServiceCard({service,prices,onOpen}:{service:AgencyService;prices:PriceOverrides;onOpen:()=>void}) {
+  const offers=service.status==='Временно недоступна'?[]:offersFor(service.slug,prices);
+  const offer=offers[0];
+  return <article className="catalog-card catalog-card-button">
+    <ServicePreview slug={service.slug}/><div className="catalog-card-top"><ServiceIcon slug={service.slug}/></div>
+    <small>{service.category}</small><span className="catalog-card-title">{service.name}</span><span className="catalog-card-description">{service.description}</span>
+    <span className="catalog-card-foot"><span>{offer ? offerPrice(offer) : service.status}</span><button type="button" onClick={onOpen} aria-label={"Подробнее · "+service.name}>Подробнее</button></span>
+  </article>;
+}

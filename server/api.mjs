@@ -215,7 +215,7 @@ export async function api(req, env) {
     if(path==='/api/admin/seo'){
       requireAdmin();if(req.method==='GET')return json({pages:(await all("SELECT data FROM content WHERE id LIKE 'seo:%'")).map(r=>JSON.parse(r.data))});
       if(req.method==='PUT'){
-        if(typeof body.path!=='string'||body.path.length>120||!/^\/(?:services(?:\/[a-z0-9-]+)?|portfolio(?:\/[a-z0-9-]+)?|pricing|contacts|faq)?$/.test(body.path)||typeof body.title!=='string'||body.title.length>160||typeof body.description!=='string'||body.description.length>320)fail('Проверьте адрес, заголовок (до 160) и описание (до 320 символов)');
+        if(typeof body.path!=='string'||body.path.length>120||!/^\/(?:services(?:\/[a-z0-9-]+)?|portfolio(?:\/[a-z0-9-]+)?|about|contacts|faq)?$/.test(body.path)||typeof body.title!=='string'||body.title.length>160||typeof body.description!=='string'||body.description.length>320)fail('Проверьте адрес, заголовок (до 160) и описание (до 320 символов)');
         const item={path:body.path,title:body.title.trim(),description:body.description.trim()};await run('INSERT INTO content(id,data) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data','seo:'+item.path,JSON.stringify(item));return json({ok:true});
       }
     }

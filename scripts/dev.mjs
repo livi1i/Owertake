@@ -20,10 +20,11 @@ const server = await createServer({
             const path=new URL(req.url,'http://127.0.0.1:5178').pathname;
             if(path.startsWith('/assets/')){if(!/^\/assets\/[A-Za-z0-9_.-]+$/.test(path)||!existsSync('public'+path)){res.writeHead(404);res.end();return;}return next();}
             if(!['GET','HEAD'].includes(req.method)||path.startsWith('/src/')||path.startsWith('/node_modules/')||path.startsWith('/@'))return next();
+            if(path==='/pricing'){res.writeHead(301,{Location:'/services?view=pricing'});res.end();return;}
             try{const origin='http://127.0.0.1:5178';const data=await seoContent(db,seoDefaults);let body,status=200,type='text/html; charset=utf-8';
               if(path==='/robots.txt'){body=seoRobots(origin);type='text/plain; charset=utf-8';}
               else if(path==='/sitemap.xml'){body=seoSitemap(data,origin);type='application/xml; charset=utf-8';}
-              else {const page=seoResolve(path,data);status=page.status;body=seoHtml(await s.transformIndexHtml(path,await readFile('index.html','utf8')),path,page,origin);}
+              else {const page=seoResolve(path,data);if(page.redirect){res.writeHead(page.status,{Location:page.redirect});res.end();return;}status=page.status;body=seoHtml(await s.transformIndexHtml(path,await readFile('index.html','utf8')),path,page,origin);}
               res.writeHead(status,{'Content-Type':type,'Cache-Control':'no-store','X-Robots-Tag':'noindex, nofollow'});res.end(req.method==='HEAD'?undefined:body);return;
             }catch(e){console.error(e);res.writeHead(503);res.end('Preview unavailable');return;}
           }

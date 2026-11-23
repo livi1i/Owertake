@@ -19,8 +19,8 @@ function validContact(method:Method,value:string) {
   return /^(?:(?:https:\/\/)?(?:m\.)?vk\.com\/|@)?[a-z\d_.-]{2,80}\/?$/i.test(value);
 }
 
-export function LeadSection({contacts={},prefill,heading='Обсудим ваш проект',introExtra}:{
-  contacts?:Record<string,string>;prefill?:LeadPrefill;heading?:string;introExtra?:ReactNode;
+export function LeadSection({contacts={},prefill,heading='Обсудим ваш проект',introExtra,id='request'}:{
+  contacts?:Record<string,string>;prefill?:LeadPrefill;heading?:string;introExtra?:ReactNode;id?:string;
 }) {
   const [method,setMethod] = useState<Method>('Телефон');
   const [service,setService] = useState('');
@@ -82,9 +82,9 @@ export function LeadSection({contacts={},prefill,heading='Обсудим ваш 
   }
 
   const selectOptions = service && !projectTypes.includes(service) ? [service,...projectTypes] : projectTypes;
-  return <section className="lead-section" id="request" aria-labelledby="request-title">
+  return <section className="lead-section" id={id} aria-labelledby={id+"-title"}>
     <div className="lead-intro">
-      <h2 id="request-title">{heading}</h2>
+      <h2 id={id+"-title"}>{heading}</h2>
       <p>Расскажите, что хотите изменить. Подберём решение и уточним, сколько займёт работа.</p>
       <ol className="lead-steps">
         <li><MessageSquare size={20}/><div><strong>Уточним задачу</strong><span>Свяжемся удобным для вас способом.</span></div></li>

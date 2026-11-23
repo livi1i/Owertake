@@ -1,4 +1,4 @@
-import {offerCode,offersFor,priceLabel,type PriceOverrides} from './public-prices.ts';
+import {offerCode,offersFor,formatPrice,type PriceOverrides} from './public-prices.ts';
 
 export const projectPresets = [
   {id:'landing',slug:'landing',name:'Лендинг',days:[7,15]},
@@ -56,7 +56,7 @@ export function buildProjectQuote(input:{slug:string;preset:string;code:string;d
   const urgentFee = input.urgent ? Math.ceil(oneTimeTotal * urgentRate / 100) : 0;
   const totals = (['once','month','year','hour'] as const).flatMap(period => {
     const sum = period==='once' ? oneTimeTotal + urgentFee : lines.reduce((amount,offer) => amount + (offer.period === period ? offer.amount : 0),0);
-    return sum ? [priceLabel(sum,period)] : [];
+    return sum ? [formatPrice(sum,period)] : [];
   });
   const preset = projectPresets.find(item => item.id === input.preset && item.id !== 'other');
   const days = preset?.days;

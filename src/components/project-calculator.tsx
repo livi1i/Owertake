@@ -1,14 +1,14 @@
 import {useEffect,useRef,useState} from 'react';
 import {ArrowLeft,Bolt,Check} from 'lucide-react';
 import {mergeServices,serviceCategories,servicesRequest,type AgencyService} from '../lib/services';
-import {offerCode,offerPrice,priceLabel,type PriceOverrides} from '../lib/public-prices';
+import {offerCode,offerPrice,formatPrice,type PriceOverrides} from '../lib/public-prices';
 import {buildProjectQuote,designLevels,urgentRate,projectPresets,type DesignLevel} from '../lib/project-quote';
 import {LeadSection,type LeadPrefill} from './lead-section';
 import {CalculatorArt} from './calculator-art';
 import {StudioSelect} from './studio-select';
 import './project-calculator.css';
 
-export function ProjectCalculator({prices,contacts}:{prices:PriceOverrides;contacts:Record<string,string>}) {
+export function ProjectCalculator({prices,contacts,embedded=false,onRequest}:{prices:PriceOverrides;contacts:Record<string,string>;embedded?:boolean;onRequest?:(service:string,description:string)=>void}) {
   const params = new URLSearchParams(location.search);
   const initialSlug = params.get('service') || 'landing';
   const initialCode = params.get('offer') || '';
@@ -58,18 +58,22 @@ export function ProjectCalculator({prices,contacts}:{prices:PriceOverrides;conta
       ...(quote.lines.length ? ['Состав расчёта:',...quote.lines.map(item => `• ${item.name} — ${offerPrice(item)}`)] : []),
       ...(adjustableDesign ? [`Дизайн: ${designLevels.find(item => item.id === design)?.name}`] : []),
       `Стоимость: ${quote.totals.join(' + ') || 'по индивидуальной оценке'}`,
-      ...(urgent ? [quote.urgentFee ? 'Ускоренный запуск: ориентир доплаты '+priceLabel(quote.urgentFee)+'.' : 'Ускоренный запуск: нужна индивидуальная оценка.'] : []),
+      ...(urgent ? [quote.urgentFee ? 'Ускоренный запуск: ориентир доплаты '+formatPrice(quote.urgentFee)+'.' : 'Ускоренный запуск: нужна индивидуальная оценка.'] : []),
       `Срок: ${quote.timeline}`,
       'Итоговую смету и дату запуска прошу согласовать.',
     ].join('\n');
+    if (onRequest) { onRequest(label,description); return; }
     setPrefill({service:label,description});
     formAnchor.current?.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'});
     formAnchor.current?.querySelector('input')?.focus({preventScroll:true});
   }
 
-  return <main id="main" className="project-calculator">
-    <a className="catalog-back" href="/pricing"><ArrowLeft size={17}/> Цены</a>
-    <header className="page-banner config-heading" data-enter><div><h1>Сколько стоит<br/>ваш проект?</h1><p>Выберите задачу и функции. Расчёт обновится сразу и перейдёт в заявку вместе с составом работ.</p></div><CalculatorArt/></header>
+  const Container=embedded?"div":"main";
+  return <Container id={embedded?undefined:"main"} className="project-calculator">
+    {embedded ? <p className="embedded-calculator-intro">Выберите параметры проекта. Предварительная сумма обновится сразу.</p> : <>
+      <a className="catalog-back" href="/services#calculator"><ArrowLeft size={17}/> Продукты и решения</a>
+      <header className="page-banner config-heading" data-enter><div><h1>Сколько стоит<br/>ваш проект?</h1><p>Выберите задачу и функции. Расчёт обновится сразу и перейдёт в заявку вместе с составом работ.</p></div><CalculatorArt/></header>
+    </>}
     {loading ? <p role="status" className="config-empty">Загружаем прайс…</p> : error ? <div role="alert" className="config-empty"><p>{error}</p><button className="btn purple" onClick={load}>Повторить</button></div> : <div className="config-layout">
       <div className="config-controls">
         <section className="config-panel"><div className="config-step"><span>01</span><h2>Что сделать</h2></div>
@@ -98,12 +102,12 @@ export function ProjectCalculator({prices,contacts}:{prices:PriceOverrides;conta
         <span className="catalog-kicker">ПРЕДВАРИТЕЛЬНЫЙ РАСЧЁТ</span>
         <h2>{projectPresets.find(item => item.id === preset && item.id !== 'other')?.name || service?.name || 'Индивидуальный проект'}</h2>
         <div key={quote.totals.join()+quote.timeline} className="quote-totals" aria-live="polite"><strong>{quote.totals.join(' + ') || 'По согласованию'}</strong><p>{quote.timeline}</p></div>
-        {quote.urgentFee>0 && <p className="quote-fee">Доплата за срочный запуск · {priceLabel(quote.urgentFee)}</p>}
+        {quote.urgentFee>0 && <p className="quote-fee">Доплата за срочный запуск · {formatPrice(quote.urgentFee)}</p>}
         {quote.lines.length>0 && <ul className="quote-lines">{quote.lines.map(item => <li key={item.code}><Check size={15}/><span>{item.name}<small>{offerPrice(item)}</small></span></li>)}</ul>}
         <p className="config-hint">Это ориентир по прайсу и планированию. Итоговую стоимость и доступную дату запуска подтвердим после обсуждения.</p>
         <button className="btn purple full" onClick={requestQuote}>Получить расчёт</button>
       </aside>
     </div>}
-    <div ref={formAnchor} className="request-anchor"><LeadSection contacts={contacts} prefill={prefill} heading="Отправить расчёт команде"/></div>
-  </main>;
+    {!embedded && <div ref={formAnchor} className="request-anchor"><LeadSection contacts={contacts} prefill={prefill} heading="Отправить расчёт команде"/></div>}
+  </Container>;
 }

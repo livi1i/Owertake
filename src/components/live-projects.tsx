@@ -2,7 +2,7 @@ import {Globe,Send} from 'lucide-react';
 import type {PortfolioProject} from '../lib/portfolio';
 import {projectSlug} from '../lib/portfolio';
 import {projectUrl} from '../lib/project-url';
-import {Reveal} from './reveal';
+import './live-projects.css';
 import {getBotScreens} from './bot-case-media';
 
 export const casePreviews:Record<string,string> = {'amoreterno.ru':'/assets/amoreterno-homepage.svg','holodilka60.ru':'/assets/holodilka-homepage.svg'};
@@ -21,12 +21,13 @@ export function LiveProject({project,compact=false}:{project:PortfolioProject;co
   const url = projectUrl(project.url);
   if (!url) return null;
   const screens=getBotScreens(url);
+  const botVariant=url.pathname.includes("xplore_app_bot")?"xplore":"wheel";
   const image = casePreviews[url.hostname] || project.image;
   const destination = new URL('/',url.origin).href;
   return <article className={'studio-case'+(compact?' studio-case-compact':'')}>
-    <a className={'studio-case-preview'+(screens?' studio-case-preview-bot':'')} href={compact ? (screens?url.href:destination) : '/portfolio/'+projectSlug(project)}
+    <a className={'studio-case-preview'+(screens?' studio-case-preview-bot bot-showcase-'+botVariant:'')} href={compact ? (screens?url.href:destination) : '/portfolio/'+projectSlug(project)}
       target={compact?'_blank':undefined} rel={compact?'noopener noreferrer':undefined} aria-label={`Посмотреть ${project.title}`}>
-      {screens ? <div className="bot-screen-pair">{screens.map(({src,alt})=><img key={alt} src={src} alt={alt} loading="lazy" decoding="async"/>)}</div> :
+      {screens ? <div className="bot-screen-pair">{screens.map(({src,alt},index)=><div className="bot-screen" key={alt} data-layer={index}><img src={src} alt={alt} loading={compact?"eager":"lazy"} decoding="async"/></div>)}</div> :
         image ? <img src={image} alt={'Главная страница '+project.title} loading="lazy" decoding="async"/> : <div className="studio-case-fallback"><Globe size={39}/><strong>{project.title}</strong></div>}
       </a>
     {!compact && <div className="studio-case-copy">
@@ -37,15 +38,4 @@ export function LiveProject({project,compact=false}:{project:PortfolioProject;co
       </div>
     </div>}
   </article>;
-}
-
-export function LiveProjects({projects}:{projects:PortfolioProject[]}) {
-  const real = projects.filter(project => project.confirmed === true && projectUrl(project.url));
-  if (!real.length) return null;
-  return <section className="section studio-work" id="work">
-    <Reveal><div className="studio-section-head"><div><h2>Портфолио</h2><p>Действующие сайты и мини-приложения нашей команды.</p></div>
-      <a className="secondary-panel" href="/portfolio">Все работы и примеры</a>
-    </div></Reveal>
-    <div className="studio-case-list">{real.map((project,index) => <Reveal delay={index*65} key={projectSlug(project)}><LiveProject project={project}/></Reveal>)}</div>
-  </section>;
 }
