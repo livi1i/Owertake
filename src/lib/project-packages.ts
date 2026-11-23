@@ -1,8 +1,10 @@
+import {offerAt,offerCode} from './public-prices.ts';
+
 export const packages = [
-  {slug:'landing', code:'OV-003', name:'Лендинг под ключ', audience:'Для запуска продукта или отдельной услуги', included:['До восьми уникальных блоков','Адаптивный дизайн и формы','Базовое SEO']},
-  {slug:'corporate', code:'OV-005', name:'Корпоративный сайт', audience:'Для компании с несколькими направлениями', included:['До десяти типовых страниц','Управление контентом','Адаптивная вёрстка и формы']},
-  {slug:'ecommerce', code:'OV-008', name:'Интернет-магазин', audience:'Для запуска первых продаж онлайн', included:['До 100 товаров импортом','Корзина и оформление заказа','Один способ оплаты и доставки']},
-  {slug:'telegram', code:'OV-191', name:'Telegram для заявок', audience:'Для команды, принимающей обращения в Telegram', included:['Один сценарий до восьми вопросов','Уведомление менеджеру']},
-  {slug:'crm-setup', code:'OV-107', name:'Старт в CRM', audience:'Для небольшого отдела продаж', included:['До пяти пользователей и одна воронка','До десяти полей','Два робота и одна форма']},
-  {slug:'support', code:'OV-287', name:'Поддержка сайта', audience:'Для проекта, который уже работает', included:['Контроль, обновления и резервное копирование','До пяти часов правок в месяц']},
-];
+  {slug:'landing',row:8,name:'Лендинг под ключ',audience:'Для запуска продукта или отдельной услуги'},
+  {slug:'corporate',row:11,name:'Корпоративный сайт',audience:'Для компании с несколькими направлениями'},
+  {slug:'ecommerce',row:16,name:'Интернет-магазин',audience:'Для первых продаж онлайн'},
+  {slug:'telegram',row:89,name:'Telegram для заявок',audience:'Для приёма обращений в Telegram'},
+  {slug:'crm-setup',row:59,name:'Старт в CRM',audience:'Для небольшого отдела продаж'},
+  {slug:'support',row:227,name:'Поддержка сайта',audience:'Для проекта, который уже работает'},
+].map(({row,...bundle})=>({...bundle,code:offerCode(row),included:[offerAt(row).scope]}));

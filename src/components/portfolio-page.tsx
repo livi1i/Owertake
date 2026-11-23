@@ -2,7 +2,7 @@ import {useEffect,useState} from 'react';
 import {ArrowLeft,Check,Layers} from 'lucide-react';
 import {portfolioItems,filterPortfolio,projectSlug,type PortfolioProject} from '../lib/portfolio';
 import {ConceptVisual} from './concept-visual';
-import {LiveProject,casePreviews} from './live-projects';
+import {LiveProject,ProjectSiteLink,casePreviews} from './live-projects';
 import {projectUrl} from '../lib/project-url';
 import {LeadSection} from './lead-section';
 import {Reveal} from './reveal';
@@ -42,7 +42,7 @@ export function PortfolioPage({contacts}:{contacts:Record<string,string>}) {
         <header className="page-banner case-review-header" data-enter><div>
           <span className="case-label">{project.concept?'Дизайн-концепция':project.category}</span>
           <h1>{project.title}</h1><p>{project.description}</p>
-          {!project.concept && project.url && <a className="secondary-panel" href={project.url} target="_blank" rel="noopener noreferrer">Открыть сайт</a>}
+          {!project.concept && <ProjectSiteLink project={project} full/>}
         </div>{!project.concept && project.url ? <LiveProject project={project} compact/> : <Preview project={project}/>}</header>
         {!project.concept && <CaseReview url={project.url}/>}
         {(project.task||project.result||project.technologies) && <div className="case-review-notes">

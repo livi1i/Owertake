@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {ArrowLeft,Bolt,Check} from 'lucide-react';
 import {mergeServices,serviceCategories,servicesRequest,type AgencyService} from '../lib/services';
-import {offerPrice,priceLabel,type PriceOverrides} from '../lib/public-prices';
+import {offerCode,offerPrice,priceLabel,type PriceOverrides} from '../lib/public-prices';
 import {buildProjectQuote,designLevels,urgentRate,projectPresets,type DesignLevel} from '../lib/project-quote';
 import {LeadSection,type LeadPrefill} from './lead-section';
 import {CalculatorArt} from './calculator-art';
@@ -12,7 +12,7 @@ export function ProjectCalculator({prices,contacts}:{prices:PriceOverrides;conta
   const params = new URLSearchParams(location.search);
   const initialSlug = params.get('service') || 'landing';
   const initialCode = params.get('offer') || '';
-  const initialPreset = projectPresets.find(item => item.slug === initialSlug && (item.id !== 'redesign' || initialCode === 'OV-015'));
+  const initialPreset = projectPresets.find(item => item.slug === initialSlug && (item.id !== 'redesign' || initialCode === offerCode(19)));
   const [items,setItems] = useState<AgencyService[]>([]);
   const [preset,setPreset] = useState<string>(initialPreset?.id || 'other');
   const [slug,setSlug] = useState(initialSlug);
@@ -79,7 +79,7 @@ export function ProjectCalculator({prices,contacts}:{prices:PriceOverrides;conta
         </section>
         <section className="config-panel"><div className="config-step"><span>02</span><h2>Объём работ</h2></div>
           {quote.variants.length ? <div className="quote-pills quote-volume" aria-label="Объём работ">{quote.variants.map(item => <button type="button" key={item.code}
-            aria-pressed={item.code===quote.base?.code} onClick={() => {setCode(item.code);if (item.code==='OV-002') setDesign('current');}}>{item.name}</button>)}</div> : <p>Уточним объём по описанию задачи.</p>}
+            aria-pressed={item.code===quote.base?.code} onClick={() => {setCode(item.code);if ([offerCode(6),offerCode(7)].includes(item.code)) setDesign('current');}}>{item.name}</button>)}</div> : <p>Уточним объём по описанию задачи.</p>}
           {quote.base && <p className="config-hint">{quote.base.scope}</p>}
         </section>
         {adjustableDesign && <section className="config-panel"><div className="config-step"><span>03</span><h2>Дизайн</h2></div>

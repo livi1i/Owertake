@@ -183,7 +183,7 @@ function App() {
             <summary>Услуги <ChevronDown size={14} aria-hidden="true"/></summary>
             <div className="service-menu-panel">
               <div className="service-menu-catalog">
-                <div className="service-menu-heading"><strong>Направления</strong><a href="/services">Весь каталог</a></div>
+                <div className="service-menu-heading"><strong>Направления</strong><a className="menu-catalog-link" href="/services">Весь каталог</a></div>
                 <div className="service-menu-grid">{directions.map(({category,name,text,Icon}) => <a key={category} href={serviceCategoryUrl(category)}>
                   <span className="service-menu-icon"><Icon size={19} strokeWidth={1.75} aria-hidden="true"/></span><span><strong>{name}</strong><small>{text}</small></span>
                 </a>)}</div>

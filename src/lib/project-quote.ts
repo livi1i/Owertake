@@ -1,4 +1,4 @@
-import {offersFor,priceLabel,type PriceOverrides} from './public-prices.ts';
+import {offerCode,offersFor,priceLabel,type PriceOverrides} from './public-prices.ts';
 
 export const projectPresets = [
   {id:'landing',slug:'landing',name:'Лендинг',days:[7,15]},
@@ -18,21 +18,20 @@ export type DesignLevel = typeof designLevels[number]['id'];
 export const urgentRate = 20;
 
 export const extras = [
-  {id:'alerts',name:'Уведомления о заявках',site:'OV-065',bot:'OV-198'},
-  {id:'scenario',name:'Дополнительный сценарий',site:'',bot:'OV-202'},
-  {id:'text',name:'Текст под ключ',site:'OV-412',bot:''},
-  {id:'language',name:'Второй язык',site:'OV-060',bot:''},
-  {id:'onec',name:'Интеграция с 1С',site:'OV-103',bot:''},
-  {id:'crm',name:'Подключение к CRM',site:'OV-175',bot:'OV-179'},
-  {id:'payment',name:'Онлайн-оплата',site:'OV-529',bot:'OV-209'},
-  {id:'quiz',name:'Квиз',site:'OV-043',bot:''},
-  {id:'calculator',name:'Калькулятор',site:'OV-044',bot:''},
-  {id:'news',name:'Блог / новости',site:'OV-046',bot:''},
-  {id:'portal',name:'Личный кабинет',site:'OV-077',bot:''},
+  {id:'alerts',name:'Уведомления о заявках',site:offerCode(110),bot:offerCode(95)},
+  {id:'scenario',name:'Дополнительный сценарий',site:'',bot:offerCode(102)},
+  {id:'text',name:'Текст одной страницы',site:offerCode(162),bot:''},
+  {id:'language',name:'Второй язык',site:offerCode(41),bot:''},
+  {id:'onec',name:'Интеграция с 1С',site:offerCode(114),bot:''},
+  {id:'crm',name:'Подключение к CRM',site:offerCode(82),bot:offerCode(97)},
+  {id:'payment',name:'Онлайн-оплата',site:offerCode(51),bot:offerCode(93)},
+  {id:'quiz',name:'Квиз',site:offerCode(33),bot:''},
+  {id:'calculator',name:'Калькулятор',site:offerCode(34),bot:''},
+  {id:'portal',name:'Базовый личный кабинет',site:offerCode(69),bot:''},
 ] as const;
 
 export function quoteVariants(slug:string,prices:PriceOverrides,preset:string) {
-  return offersFor(slug,prices).filter(offer => preset !== 'redesign' || offer.code === 'OV-015');
+  return offersFor(slug,prices).filter(offer => preset !== 'redesign' || offer.code === offerCode(19));
 }
 
 export function buildProjectQuote(input:{slug:string;preset:string;code:string;design:DesignLevel;extras:string[];urgent:boolean},prices:PriceOverrides) {
@@ -40,22 +39,22 @@ export function buildProjectQuote(input:{slug:string;preset:string;code:string;d
   const site = ['landing','corporate','ecommerce'].includes(input.slug) || input.preset === 'redesign';
   const variants = quoteVariants(input.slug,prices,input.preset);
   let base = variants.find(offer => offer.code === input.code) || variants[0];
-  if (base?.code === 'OV-002' && input.design !== 'current') base = variants.find(offer => offer.code === 'OV-003') || base;
+  if (base && [offerCode(6),offerCode(7)].includes(base.code) && input.design !== 'current') base = variants.find(offer => offer.code === offerCode(8)) || base;
   const included = new Set<string>();
-  if (['OV-008','OV-009'].includes(base?.code || '')) included.add('payment');
-  if (base?.code === 'OV-009') included.add('portal');
-  if (['OV-006'].includes(base?.code || '')) included.add('news');
-  if (['OV-010','OV-191','OV-192','OV-194','OV-198'].includes(base?.code || '')) included.add('alerts');
+  if (base?.code === offerCode(17)) included.add('payment');
+
+
+  if ([offerCode(15),offerCode(89),offerCode(90),offerCode(95)].includes(base?.code || '')) included.add('alerts');
   const options = extras.filter(extra => bot ? extra.bot : site && extra.site).map(extra => ({
     ...extra,included:included.has(extra.id),
     offer:[...offersFor('extra-work',prices),...offersFor('telegram',prices)].find(offer => offer.code === (bot ? extra.bot : extra.site)),
   }));
   const chosen = options.filter(option => input.extras.includes(option.id) && !option.included && option.offer);
-  const uiKit = input.design === 'premium' && site ? offersFor('ui-ux',prices).find(offer => offer.code === 'OV-234') : undefined;
+  const uiKit = input.design === 'premium' && site ? offersFor('ui-ux',prices).find(offer => offer.code === offerCode(157)) : undefined;
   const lines = [...(base ? [base] : []),...(uiKit ? [uiKit] : []),...chosen.map(option => option.offer!)];
   const oneTimeTotal = lines.reduce((sum,offer) => sum + (offer.period==='once' ? offer.amount : 0),0);
   const urgentFee = input.urgent ? Math.ceil(oneTimeTotal * urgentRate / 100) : 0;
-  const totals = (['once','month','year'] as const).flatMap(period => {
+  const totals = (['once','month','year','hour'] as const).flatMap(period => {
     const sum = period==='once' ? oneTimeTotal + urgentFee : lines.reduce((amount,offer) => amount + (offer.period === period ? offer.amount : 0),0);
     return sum ? [priceLabel(sum,period)] : [];
   });

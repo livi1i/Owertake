@@ -1,4 +1,4 @@
-import {CalendarDays,FileCheck2,LayoutGrid,MailCheck,MapPinned,PackageCheck,Search,SlidersHorizontal} from 'lucide-react';
+import {CalendarDays,ChartNoAxesColumn,FileCheck2,History,LayoutGrid,MailCheck,MapPinned,PackageCheck,Search,Send,SlidersHorizontal,Timer,Workflow} from 'lucide-react';
 import {projectUrl} from '../lib/project-url';
 import {Reveal} from './reveal';
 
@@ -23,11 +23,32 @@ const reviews = {
       {Icon:SlidersHorizontal,title:'Подбор и сервис',text:'Есть отдельный сценарий для замены и совместимости, а услуги для бизнеса вынесены в самостоятельный раздел.'},
     ],
   },
+  't.me/randweelore_bot':{
+    goal:'Сделать случайный выбор простым: вставить свои варианты, покрутить колесо и при желании отправить итог друзьям.',
+    path:['Добавить варианты','Выбрать обычный режим или выбывание','Получить и отправить результат'],
+    features:[
+      {Icon:LayoutGrid,title:'Своё колесо',text:'Добавляйте тексты и числа по одному или вставляйте готовый список. Колесо поддерживает от 2 до 60 вариантов.'},
+      {Icon:Timer,title:'Настройки вращения',text:'Задайте время от 2 до 20 секунд. В приложении есть светлая и тёмная темы, звук вращения и мелодия результата.'},
+      {Icon:History,title:'Выбывание и история',text:'В обычном режиме колесо сразу выбирает вариант. В режиме выбывания после каждого вращения один вариант исключается, а последний оставшийся побеждает.'},
+      {Icon:Send,title:'Колесо и итог по ссылке',text:'Можно поделиться подготовленным колесом или отправить результат вращения в Telegram.'},
+    ],
+  },
+  't.me/xplore_app_bot':{
+    goal:'Помочь превратить большую цель в конкретные действия и видеть прогресс по времени, которое действительно ушло на практику.',
+    path:['Создать направление','Добавить навык и действие','Выполнить действие и увидеть прогресс'],
+    features:[
+      {Icon:LayoutGrid,title:'Свои направления',text:'Работу, учёбу, спорт, творчество и другие области можно разложить по направлениям. В каждом направлении собираются навыки и действия.'},
+      {Icon:Workflow,title:'Конкретные действия',text:'Выберите направление и навык, затем сформулируйте новый шаг или повторите уже знакомое действие.'},
+      {Icon:Timer,title:'Практика и XP',text:'Одна минута выполненной практики даёт 1 XP. Прогресс учитывается после выполнения действия.'},
+      {Icon:ChartNoAxesColumn,title:'Цели и ритм недели',text:'Цели задают ориентиры, а обзор показывает XP за последние семь дней, время практики и выполненные действия.'},
+    ],
+  },
 };
 
 export function CaseReview({url}:{url?:string}) {
-  const host=projectUrl(url)?.hostname;
-  const review=reviews[host as keyof typeof reviews];
+  const address=projectUrl(url);
+  const key=address?.hostname==='t.me'?address.hostname+address.pathname.replace(/\/$/,''):address?.hostname;
+  const review=reviews[key as keyof typeof reviews];
   if (!review) return null;
   return <div className="case-review">
     <Reveal><section className="case-review-goal"><span className="studio-glyph"><FileCheck2 size={22}/></span><div><h2>Задача проекта</h2><p>{review.goal}</p></div></section></Reveal>

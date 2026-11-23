@@ -250,7 +250,7 @@ export async function api(req, env) {
       requireAdmin();
       if (!body.contacts || typeof body.contacts !== "object" || Array.isArray(body.contacts) || Object.values(body.contacts).some(v=>typeof v!=="string" || v.length>1000)) fail("Контакты должны быть текстом не длиннее 1000 символов");
       if (body.prices !== undefined && (!body.prices || typeof body.prices !== "object" || Array.isArray(body.prices) ||
-        Object.entries(body.prices).some(([key,value]) => /^OV-[0-9]{3}$/.test(key) &&
+        Object.entries(body.prices).some(([key,value]) => /^(?:OV-[0-9]{3}|P26-[0-9]{1,3})$/.test(key) &&
           (typeof value !== "string" || (value !== "" && (!/^[0-9]{1,8}(?:\.[0-9]{1,2})?$/.test(value) || Number(value) <= 0)))))) fail("Укажите корректную сумму в рублях");
       if (!Array.isArray(body.projects) || body.projects.length > 30)
         fail("Некорректные проекты");

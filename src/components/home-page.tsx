@@ -14,7 +14,7 @@ import {HeroShowcase} from './hero-showcase';
 import {mergeServices,servicesRequest,serviceCategoryUrl,defaultAgencyServices,type AgencyService} from '../lib/services';
 import {offerPrice,startingOffer} from '../lib/public-prices';
 import type {Content} from '../lib/app-shared';
-import togetherImage from '../assets/studio-partnership.webp?inline';
+import {PartnershipArt} from './partnership-art';
 
 const benefits = ['Работаем по договору','Согласуем смету заранее','Ведём от идеи до запуска','Поддерживаем после запуска'];
 const FaqHighlights = React.lazy(() => import('./faq-page').then(module => ({default:module.FaqHighlights})));
@@ -93,9 +93,7 @@ export function HomePage({content,openLogin,effectsPaused,prefill}:{content:Cont
     </section>
     <ProcessSteps/>
     <section className="section studio-about" id="about">
-      <Reveal className="studio-about-photo">
-        <img src={togetherImage} alt="" width={900} height={600} loading="lazy" decoding="async"/>
-      </Reveal>
+      <PartnershipArt/>
       <Reveal className="studio-about-copy" delay={80}>
         <h2>Кто за этим стоит</h2>
         <p>OVERTAKE — независимое цифровое агентство. Объединяем разработку, дизайн и продвижение, чтобы решать задачи бизнеса целиком.</p>

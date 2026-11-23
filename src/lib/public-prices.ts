@@ -1,137 +1,70 @@
-// Public selection from the supplied workbook, sheet «Прайс», columns C, D, F and I.
-export type PricePeriod = 'once' | 'month' | 'year';
+import {workbookGroups} from './pricebook-data.ts';
+
+export type PricePeriod = 'once' | 'month' | 'year' | 'hour';
 export type PublicOffer = { code: string; name: string; scope: string; amount: number; period: PricePeriod };
-
-const offers: Readonly<Record<string, readonly PublicOffer[]>> = {
-  "extra-work": [
-    {"code": "OV-065", "name": "Уведомления о заявках в Telegram", "scope": "Одно уведомление в чат через бота, без CRM", "amount": 3500, "period": "once"},
-    {"code": "OV-202", "name": "Дополнительный сценарий бота", "scope": "Одна линейная ветка в действующем боте", "amount": 3500, "period": "once"},
-    {"code": "OV-412", "name": "Тексты для сайта — от 5 страниц", "scope": "Минимум 5 страниц по доп. прайсу.", "amount": 5250, "period": "once"},
-    {"code": "OV-060", "name": "Второй язык до 10 страниц", "scope": "Размещение предоставленного перевода, настройка SEO hreflang", "amount": 8000, "period": "once"},
-    {"code": "OV-103", "name": "Обмен остатками с 1С", "scope": "Один формат обмена, одно направление, стандартная номенклатура", "amount": 32000, "period": "once"},
-    {"code": "OV-175", "name": "Подключение формы к CRM", "scope": "Одна форма, один метод API, до 10 полей", "amount": 7200, "period": "once"},
-    {"code": "OV-179", "name": "Подключение Telegram к CRM", "scope": "Один чат/бот, создание лида и назначение", "amount": 10400, "period": "once"},
-    {"code": "OV-529", "name": "Подключение онлайн-оплаты", "scope": "Типовой объём по названию услуги; точный состав согласуется до заказа.", "amount": 42000, "period": "once"},
-    {"code": "OV-209", "name": "Оплата в Telegram-боте", "scope": "Один провайдер, один тариф/товар; комиссии отдельно", "amount": 12800, "period": "once"},
-    {"code": "OV-043", "name": "Квиз до 5 шагов", "scope": "Ветвление без сложного скоринга, передача результата на e-mail", "amount": 4200, "period": "once"},
-    {"code": "OV-044", "name": "Калькулятор до 5 параметров", "scope": "Формула расчёта, ползунки/поля, вывод суммы; без оплаты", "amount": 9660, "period": "once"},
-    {"code": "OV-046", "name": "Блок новостей", "scope": "Вывод последних 3 публикаций из существующей CMS", "amount": 1680, "period": "once"},
-    {"code": "OV-077", "name": "Личный кабинет пользователя", "scope": "Вход, профиль, восстановление доступа, список своих заявок", "amount": 19200, "period": "once"},
-  ],
-  "landing": [
-    {"code": "OV-002", "name": "Лендинг на готовом шаблоне", "scope": "До 6 блоков, адаптивность, 1 форма; материалы от клиента", "amount": 11893, "period": "once"},
-    {"code": "OV-003", "name": "Лендинг с индивидуальным дизайном", "scope": "До 8 уникальных блоков, адаптив, формы, базовое SEO; без сложных анимаций", "amount": 19200, "period": "once"},
-    {"code": "OV-004", "name": "Сайт-визитка до 5 страниц", "scope": "Главная, услуги, о компании, контакты и ещё 1 страница; готовые компоненты", "amount": 16000, "period": "once"},
-  ],
-  "corporate": [
-    {"code": "OV-005", "name": "Корпоративный сайт — старт", "scope": "До 10 типовых страниц, CMS, формы, адаптив; без каталога и сложных интеграций", "amount": 13293, "period": "once"},
-    {"code": "OV-006", "name": "Корпоративный сайт — расширенный", "scope": "До 20 страниц и 3 шаблонов, новости/статьи, CMS, базовая аналитика", "amount": 56000, "period": "once"},
-    {"code": "OV-007", "name": "Сайт-каталог без оплаты", "scope": "До 100 карточек через импорт, категории, поиск, заявки вместо оплаты", "amount": 38400, "period": "once"},
-    {"code": "OV-010", "name": "Сайт услуг с онлайн-записью", "scope": "До 7 страниц, календарь записи через готовый сервис, уведомления", "amount": 25600, "period": "once"},
-  ],
-  "ecommerce": [
-    {"code": "OV-008", "name": "Интернет-магазин — старт", "scope": "До 100 товаров импортом, корзина, оформление, 1 оплата, 1 доставка; без 1С", "amount": 15393, "period": "once"},
-    {"code": "OV-009", "name": "Интернет-магазин — бизнес", "scope": "До 1000 товаров импортом, фильтры, 2 оплаты, 2 доставки, кабинет покупателя", "amount": 24500, "period": "once"},
-  ],
-  "telegram": [
-    {"code": "OV-190", "name": "Telegram-бот: меню и FAQ", "scope": "До 8 кнопок и 12 ответов, без базы данных", "amount": 4800, "period": "once"},
-    {"code": "OV-191", "name": "Telegram-бот: заявки", "scope": "Один сценарий до 8 вопросов, уведомление менеджеру", "amount": 7200, "period": "once"},
-    {"code": "OV-192", "name": "Telegram-бот: запись", "scope": "Один календарь через существующий сервис, подтверждение записи", "amount": 10400, "period": "once"},
-    {"code": "OV-194", "name": "Telegram-бот: магазин", "scope": "Каталог, корзина, заказ, уведомления; эквайринг отдельно", "amount": 30400, "period": "once"},
-    {"code": "OV-196", "name": "Telegram Mini App — MVP", "scope": "До 5 экранов, Telegram Login, одна бизнес-функция", "amount": 57600, "period": "once"},
-    {"code": "OV-198", "name": "Telegram-бот: уведомления", "scope": "До 3 событий, 1 чат/список получателей", "amount": 6100, "period": "once"},
-  ],
-  "automation": [
-    {"code": "OV-216", "name": "Автоматизация заявок без CRM", "scope": "Форма, таблица, уведомление, контроль дублей базовый", "amount": 10400, "period": "once"},
-    {"code": "OV-214", "name": "Автоматизация формирования документа", "scope": "Один шаблон документа и один триггер", "amount": 16000, "period": "once"},
-    {"code": "OV-217", "name": "Автоматизация счетов и оплат", "scope": "Один шаблон, одна система оплаты и статусы", "amount": 28800, "period": "once"},
-  ],
-  "integrations": [
-    {"code": "OV-213", "name": "Автоматизация переноса заявок", "scope": "Один источник и одна целевая система", "amount": 12000, "period": "once"},
-    {"code": "OV-221", "name": "ETL: обмен между двумя системами", "scope": "Одна схема сопоставления, до 20 полей, регламентная выгрузка", "amount": 28800, "period": "once"},
-  ],
-  "ai-assistants": [
-    {"code": "OV-223", "name": "Настройка ИИ-чат-помощника", "scope": "Один канал и одна база знаний; API/модели оплачиваются отдельно", "amount": 30400, "period": "once"},
-    {"code": "OV-224", "name": "ИИ-поиск по документам — MVP", "scope": "До 1000 документов, индекс, поиск, базовый UI и оценка качества", "amount": 48000, "period": "once"},
-    {"code": "OV-225", "name": "ИИ-классификация заявок", "scope": "До 5 категорий и одна схема маршрутизации", "amount": 24000, "period": "once"},
-  ],
-  "ui-ux": [
-    {"code": "OV-231", "name": "Прототип страницы", "scope": "Схема одного экрана до 6 блоков без финального UI", "amount": 3200, "period": "once"},
-    {"code": "OV-234", "name": "UI-kit проекта", "scope": "Цвета, шрифты, кнопки, инпуты, типовые карточки", "amount": 13600, "period": "once"},
-    {"code": "OV-015", "name": "Редизайн сайта до 10 страниц", "scope": "Обновление интерфейса и адаптива на существующей архитектуре", "amount": 28800, "period": "once"},
-  ],
-  "branding": [
-    {"code": "OV-237", "name": "Разработка логотипа — базовая", "scope": "До 2 концепций, 2 круга доработок, SVG/PNG", "amount": 10400, "period": "once"},
-  ],
-  "seo": [
-    {"code": "OV-241", "name": "Настройка базового SEO нового сайта", "scope": "Title/Description 10 страниц, sitemap, robots и индексация", "amount": 7700, "period": "once"},
-    {"code": "OV-421", "name": "SEO-оптимизация сайта", "scope": "Типовой объём по названию услуги; точный состав согласуется до заказа.", "amount": 22750, "period": "once"},
-    {"code": "OV-426", "name": "Поисковое продвижение", "scope": "Цена от. Типовой объём по названию услуги; точный состав согласуется до заказа.", "amount": 28000, "period": "month"},
-    {"code": "OV-430", "name": "Запуск рекламы в Яндекс Директе", "scope": "Подготовка и настройка рекламной кампании. Рекламный бюджет согласуется отдельно.", "amount": 10500, "period": "once"},
-  ],
-  "smm": [
-    {"code": "OV-537", "name": "Оформление Telegram-канала и 5 постов", "scope": "Типовой объём по названию услуги; точный состав согласуется до заказа.", "amount": 17500, "period": "month"},
-    {"code": "OV-539", "name": "Ведение Telegram-канала", "scope": "Типовой объём по названию услуги; точный состав согласуется до заказа.", "amount": 31500, "period": "month"},
-  ],
-  "web-apps": [
-    {"code": "OV-013", "name": "Личный кабинет — MVP", "scope": "Вход, профиль, заявки и статусы, простая роль администратора", "amount": 76800, "period": "once"},
-    {"code": "OV-014", "name": "B2B-портал — MVP", "scope": "Кабинет контрагента, каталог, заявки, роли; одна интеграция только по ТЗ", "amount": 128000, "period": "once"},
-  ],
-  "mobile": [
-    {"code": "OV-531", "name": "PWA для существующего сайта", "scope": "Цена от. Типовой объём по названию услуги; точный состав согласуется до заказа.", "amount": 6440, "period": "once"},
-  ],
-  "crm": [
-    {"code": "OV-115", "name": "Собственная CRM — MVP", "scope": "Авторизация, клиенты, сделки, 1 воронка, задачи, 2 роли, базовый интерфейс", "amount": 96000, "period": "once"},
-    {"code": "OV-116", "name": "Собственная CRM — бизнес", "scope": "MVP + отчёты, документы, 3 роли, 2 интеграции, история действий", "amount": 224000, "period": "once"},
-  ],
-  "crm-setup": [
-    {"code": "OV-107", "name": "Первичная настройка CRM", "scope": "До 5 пользователей, 1 воронка, до 10 полей, 2 робота, 1 форма", "amount": 9600, "period": "once"},
-    {"code": "OV-108", "name": "CRM для отдела продаж", "scope": "До 15 пользователей, 2 воронки, 5 роботов, 2 канала, первичное обучение", "amount": 19200, "period": "once"},
-    {"code": "OV-110", "name": "Перенос отдела продаж в CRM", "scope": "План миграции, импорт до 5000 чистых записей, 2 воронки, обучение", "amount": 32000, "period": "once"},
-  ],
-  "support": [
-    {"code": "OV-286", "name": "Поддержка сайта «Лайт», 2 ч/мес", "scope": "Контроль доступности, бэкап, до 2 ч согласованных простых правок; рабочие часы", "amount": 2250, "period": "month"},
-    {"code": "OV-287", "name": "Поддержка сайта «Стандарт», 5 ч/мес", "scope": "Контроль, резервное копирование, обновления, до 5 ч правок; рабочие часы", "amount": 4800, "period": "month"},
-    {"code": "OV-288", "name": "Поддержка сайта «Бизнес», 10 ч/мес", "scope": "До 10 ч правок, мониторинг, приоритетная очередь в рабочее время", "amount": 8800, "period": "month"},
-    {"code": "OV-289", "name": "Поддержка интернет-магазина, 5 ч/мес", "scope": "Контроль корзины/заказов, бэкапы, до 5 ч правок", "amount": 7200, "period": "month"},
-    {"code": "OV-290", "name": "Поддержка CRM, 3 ч/мес", "scope": "Проверка роботов и интеграций, до 3 ч согласованных изменений", "amount": 4150, "period": "month"},
-    {"code": "OV-292", "name": "Поддержка Telegram-бота, 2 ч/мес", "scope": "Проверка работоспособности, логи и до 2 ч мелких правок", "amount": 2550, "period": "month"},
-  ],
-  "hosting": [
-    {"code": "OV-301", "name": "Хостинг «Старт» — месяц", "scope": "Месячная оплата; один стандартный сайт до 2 ГБ, базовые резервные копии, без разработческих часов.", "amount": 440, "period": "month"},
-    {"code": "OV-302", "name": "Хостинг «Бизнес» — месяц", "scope": "Месячная оплата; ресурсы для сайта услуг до 8 ГБ, резервные копии, без разработческих часов.", "amount": 790, "period": "month"},
-    {"code": "OV-303", "name": "Хостинг «Магазин» — месяц", "scope": "Месячная оплата; типовой магазин до 15 ГБ, технический мониторинг, без правок.", "amount": 1490, "period": "month"},
-    {"code": "OV-210", "name": "Размещение бота на сервере", "scope": "Один контейнер/процесс, автозапуск, базовые логи", "amount": 3850, "period": "once"},
-  ],
-  "domains": [
-    {"code": "OV-307", "name": "Регистрация домена .RU или .РФ", "scope": "Регистрация свободного домена .RU/.РФ на клиента на 1 год при закупке регистратора до 600 ₽; если дороже — согласовать доплату до покупки.", "amount": 455, "period": "year"},
-    {"code": "OV-308", "name": "Продление домена .RU или .РФ", "scope": "Продление .RU/.РФ на 1 год при закупке регистратора до 600 ₽; если дороже — согласовать доплату до оплаты.", "amount": 600, "period": "year"},
-    {"code": "OV-309", "name": "Регистрация домена .COM", "scope": "Домен .COM: ориентир; цена зависит от регистратора и зоны, согласовать перед покупкой.", "amount": 2490, "period": "year"},
-  ],
-};
-
 export type PriceOverrides = Readonly<Record<string, string>>;
 
-export function offersFor(slug: string, prices: PriceOverrides = {}): readonly PublicOffer[] {
-  const variants = Object.hasOwn(offers, slug) ? offers[slug] : [];
-  return variants.map(offer => {
-    const value = prices[offer.code];
-    if (typeof value !== 'string' || !/^[0-9]{1,8}(?:\.[0-9]{1,2})?$/.test(value) || Number(value) <= 0) return offer;
-    return {...offer, amount: Number(value)};
-  });
+const selection: Readonly<Record<string, readonly number[]>> = {
+  'extra-work':[110,102,162,41,114,82,97,51,93,33,34,69,22,31],
+  landing:[6,7,8,9,10],
+  corporate:[11,12,13,14,15],
+  ecommerce:[16,17,18],
+  telegram:[88,89,90,91,92,94,95,96,97,99,100,101],
+  automation:[126,127,128,129],
+  integrations:[105,106,107,113,114,115],
+  'ai-assistants':[130,131,133,134],
+  'ui-ux':[155,156,157,19,158],
+  branding:[141,142,146,147],
+  seo:[173,174,177,180,187],
+  smm:[192,193,194,196],
+  'web-apps':[202,203,204,205],
+  mobile:[206,207,208],
+  crm:[66,67,68],
+  'crm-setup':[59,60,61,62],
+  support:[226,227,228,229,230],
+  hosting:[237,238,243],
+  domains:[239,240,241],
+};
+
+export const offerCode = (row:number) => 'P26-'+row;
+
+function priceOverride(offer:PublicOffer, prices:PriceOverrides):PublicOffer {
+  const amount = prices[offer.code];
+  return typeof amount === 'string' && /^[0-9]{1,8}(?:\.[0-9]{1,2})?$/.test(amount) && Number(amount)>0
+    ? {...offer,amount:Number(amount)}
+    : offer;
+}
+
+const groups = workbookGroups.map(({id,name,offers})=>({
+  id,name,offers:offers.map(([row,name,scope,amount,period]):PublicOffer=>({code:offerCode(row),name,scope,amount,period})),
+}));
+const offersByCode = new Map(groups.flatMap(group=>group.offers.map(offer=>[offer.code,offer] as const)));
+
+export function offerAt(row:number, prices:PriceOverrides = {}):PublicOffer {
+  const offer=offersByCode.get(offerCode(row));
+  if (!offer) throw new Error('Unknown pricebook row: '+row);
+  return priceOverride(offer,prices);
+}
+
+export function pricebook(prices:PriceOverrides = {}) {
+  return groups.map(group=>({...group,offers:group.offers.map(offer=>priceOverride(offer,prices))}));
+}
+
+export function offersFor(slug:string, prices:PriceOverrides = {}):readonly PublicOffer[] {
+  return Object.hasOwn(selection,slug) ? selection[slug].map(row=>offerAt(row,prices)) : [];
 }
 
 const rubles = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 });
-const periodLabels = { once: '', month: ' / мес.', year: ' / год' };
+const periodLabels = {once:'',month:' / мес.',year:' / год',hour:' / ч'};
 
-export function priceLabel(amount:number,period:PricePeriod='once') {
-  return `от ${rubles.format(amount)} ₽${periodLabels[period]}`;
+export function priceLabel(amount:number, period:PricePeriod = 'once') {
+  return 'от '+rubles.format(amount)+' ₽'+periodLabels[period];
 }
 
-export function offerPrice(offer: PublicOffer) {
-  return priceLabel(offer.amount,offer.period);
+export function offerPrice(offer:PublicOffer) {
+  return rubles.format(offer.amount)+' ₽'+periodLabels[offer.period];
 }
 
-export function startingOffer(slug: string, prices?: PriceOverrides) {
-  return offersFor(slug, prices)[0];
+export function startingOffer(slug:string, prices?:PriceOverrides) {
+  return offersFor(slug,prices)[0];
 }

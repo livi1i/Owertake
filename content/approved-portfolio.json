@@ -14,5 +14,21 @@
     "url": "https://holodilka60.ru/",
     "description": "Каталог холодильного оборудования и комплектующих: поиск товаров и информация о сервисе в Пскове.",
     "confirmed": true
+  },
+  {
+    "title": "Крутика! · RANDWEELORE",
+    "slug": "randweelore",
+    "category": "Telegram-боты",
+    "url": "https://t.me/randweelore_bot",
+    "description": "Мини-приложение для случайного выбора: своё колесо, режим на выбывание и результат, которым можно поделиться.",
+    "confirmed": true
+  },
+  {
+    "title": "XPLORE",
+    "slug": "xplore",
+    "category": "Telegram-боты",
+    "url": "https://t.me/xplore_app_bot",
+    "description": "Мини-приложение для развития навыков: направления, цели и конкретные действия с учётом времени практики.",
+    "confirmed": true
   }
 ]

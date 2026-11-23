@@ -1,12 +1,13 @@
 import React,{useEffect,useState} from 'react';
-import {ArrowLeft,Bot,Calculator,Check,FileCheck2,Globe,Layers3,LifeBuoy,Network,Printer,Server,ShoppingBag,PanelsTopLeft} from 'lucide-react';
-import {mergeServices,serviceCategories,servicesRequest,type AgencyService} from '../lib/services';
+import {ArrowLeft,Bot,Calculator,Check,FileCheck2,Globe,Layers3,LifeBuoy,Network,Server,ShoppingBag,PanelsTopLeft} from 'lucide-react';
+import {mergeServices,servicesRequest,type AgencyService} from '../lib/services';
 import {offerPrice,offersFor,type PriceOverrides} from '../lib/public-prices';
 import './pricing-page.css';
 import {packages} from '../lib/project-packages';
 import {LeadSection} from './lead-section';
 import packageArt from '../assets/studio-packages.webp?inline';
 import {Reveal} from './reveal';
+import {Pricebook} from './pricebook';
 
 const packageIcons = [PanelsTopLeft,Globe,ShoppingBag,Bot,Network,LifeBuoy];
 const priceFactors = [
@@ -20,7 +21,6 @@ export function PricingPage({order,prices,contacts}:{order:(name:string,descript
   const [items,setItems] = useState<AgencyService[]>([]);
   const [error,setError] = useState('');
   const [loading,setLoading] = useState(true);
-  const [category,setCategory] = useState('Все');
 
   const load = () => {
     setLoading(true);
@@ -33,13 +33,13 @@ export function PricingPage({order,prices,contacts}:{order:(name:string,descript
   useEffect(load,[]);
   useEffect(() => {
     const anchor=location.hash.slice(1);
-    if (!loading && ['formats','extra-prices','request'].includes(anchor)) document.getElementById(anchor)?.scrollIntoView();
+    if (!loading && ['formats','pricebook','extra-prices','request'].includes(anchor)) document.getElementById(anchor)?.scrollIntoView();
   },[loading]);
 
   return <main id="main" className="pricing-page">
-    <a className="catalog-back" href="/services"><ArrowLeft size={17}/> Каталог услуг</a>
+    <a className="catalog-back" href="/"><ArrowLeft size={17}/> На главную</a>
     <div className="pricing-heading page-banner" data-enter>
-      <div><h1>Цены и пакеты услуг</h1><p>Выберите готовое решение или соберите смету из нужных работ. Согласуем цену до старта.</p><a className="secondary-panel" href="/calculator"><Calculator size={18}/> Рассчитать стоимость</a></div><img className="package-hero-art" src={packageArt} alt="" width={950} height={633}/>
+      <div><h1>Цены и пакеты услуг</h1><p>Стоимость и состав конкретных работ. Подберите готовое решение или соберите смету под свой проект.</p><div className="pricing-heading-actions"><a className="btn purple" href="#pricebook">Смотреть прайс</a><a className="secondary-panel" href="/calculator"><Calculator size={18}/> Рассчитать проект</a></div></div><img className="package-hero-art" src={packageArt} alt="" width={950} height={633}/>
     </div>
     {loading && <p role="status">Загружаем прайс…</p>}
     {error && <div className="catalog-empty" role="alert"><p>{error}</p><button className="btn purple" onClick={load}>Повторить загрузку</button></div>}
@@ -65,41 +65,9 @@ export function PricingPage({order,prices,contacts}:{order:(name:string,descript
         </div>
         <p className="pricing-package-note">Сроки, дополнительные работы и сторонние расходы согласуем отдельно.</p>
       </section>
-      <section className="pricing-section">
-        <div className="pricing-section-title">
-          <h2>Прайс основных услуг</h2>
-          <button className="pricing-print" type="button" onClick={() => window.print()}><Printer size={16}/> Печать / PDF</button>
-        </div>
-        <div className="catalog-filters" aria-label="Категории стоимости">
-          {['Все',...serviceCategories,'Допработы'].map(item => <button type="button" key={item} aria-pressed={category === item} onClick={() => setCategory(item)}>{item}</button>)}
-        </div>
-        <div className="pricebook">
-          {(category === 'Все' || category === 'Допработы') && <section className="catalog-panel pricebook-group" id="extra-prices">
-            <h3>Дополнительные работы</h3>
-            <ul className="public-offers">{offersFor('extra-work',prices).map(offer => <li key={offer.code}><div><strong>{offer.name}</strong><p>{offer.scope}</p></div><b>{offerPrice(offer)}</b></li>)}</ul>
-          </section>}
-          {serviceCategories.filter(item => category === 'Все' || category === item).map(group => {
-            const services = items.filter(service => service.category === group);
-            if (!services.length) return null;
-            return <section className="catalog-panel pricebook-group" key={group}>
-              <h3>{group}</h3>
-              <ul className="public-offers">
-                {services.flatMap(service => {
-                  const offers = offersFor(service.slug, prices);
-                  if (service.status === 'Временно недоступна' || !offers.length) {
-                    return <li key={service.slug}><div><a href={'/services/' + service.slug}>{service.name}</a></div><b>{service.status === 'Временно недоступна' ? 'Временно недоступна' : 'По согласованию'}</b></li>;
-                  }
-                  return offers.map(offer => <li key={offer.code}>
-                    <div><a href={'/services/' + service.slug}>{offer.name}</a><p>{offer.scope}</p></div>
-                    <b>{offerPrice(offer)}</b>
-                  </li>);
-                })}
-              </ul>
-            </section>;
-          })}
-        </div>
-      </section>
     </>}
+    <Pricebook prices={prices}/>
+
     <section className="pricing-section" aria-labelledby="price-factors-title">
       <h2 id="price-factors-title">Что влияет на стоимость</h2>
       <div className="price-factors">{priceFactors.map(({Icon,title,text})=><article key={title}>

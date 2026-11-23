@@ -3,56 +3,51 @@
 :root { color-scheme: light; }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --paper: #14121e;
-  --ink: #f0edf8;
-  --muted: #bbb3cb;
-  --line: #40374f;
-  --purple: #b49af6;
-  --ui-text: #f0edf8;
-  --ui-muted: #c0b6d1;
-  --ui-subtle: #aea3c1;
-  --ui-surface: #211c2e;
-  --ui-soft: #292039;
+  --paper: #0c1526;
+  --ink: #eef7ff;
+  --muted: #b1c9e4;
+  --line: #2b3f5c;
+  --purple: #91c9ff;
+  --ui-text: #eef7ff;
+  --ui-muted: #b1c9e4;
+  --ui-subtle: #a6bbda;
+  --ui-surface: #142238;
+  --ui-soft: #192c48;
   --ui-tint: #202b41;
-  --ui-border: #443953;
+  --ui-border: #2b3f5c;
   --ui-glint: #ffffff0c;
   --ui-danger: #ffaaa9;
   --ui-success: #9de0c3;
-  background: #14121e;
   color: var(--ink);
 }
-html[data-theme="dark"] body {
-  background: radial-gradient(ellipse at 92% 6%,#28487825,transparent 26%),
-    radial-gradient(ellipse at 0 28%,#713f9b1c,transparent 30%),#14121e;
-}
-html[data-theme="dark"] .header { background: #201b2de8; border-color: #ffffff12; box-shadow: 0 4px 35px #0002; }
-html[data-theme="dark"] .header .btn.dark { background: #e4daf7; color: #2c2141; }
+html[data-theme="dark"] .header { background: #142238e8; border-color: #ffffff12; box-shadow: 0 4px 35px #0002; }
+html[data-theme="dark"] .header .btn.dark { background: #a2d7ff; color: #102342; }
 html[data-theme="dark"] .nav a:hover,
-html[data-theme="dark"] .nav a:focus-visible { background: #3d2d53; color: #e0cbff; }
-html[data-theme="dark"] .gradient-text { background-image: linear-gradient(112deg,#c29afa 5%,#b49af6 50%,#7bc9ee); }
-html[data-theme="dark"] :is(.service-card,.catalog-card) { background: linear-gradient(145deg,#29252e,#201e25); border-color:#45404e; }
-html[data-theme="dark"] :is(.service-icon,.lead-icon,.tags span,.tag-purple,.book-controls button:hover,.modal-close,.auth-tabs,.notice,.pricing-brief-context) { background: #332743; color: #d0b9f4; }
-html[data-theme="dark"] :is(.filters button.active,.auth-tabs .active,.dashboard-sidebar nav button.active) { background: #443158; color: #edddff; }
-html[data-theme="dark"] .about { background: radial-gradient(ellipse at 10% 70%,#62417b20,transparent 50%),#1c1828; }
-html[data-theme="dark"] .faq-section { background: #191522; }
-html[data-theme="dark"] .book-controls { background: #211b2dd9; border-color: #483b59; }
-html[data-theme="dark"] .modal { background: radial-gradient(ellipse at 100% 0,#5f3b8025,transparent 60%),#211b2e; border-color: #483b59; }
-html[data-theme="dark"] :is(input,textarea,select) { background-color: #191522; border-color: #50435f; color: #f0edf8; }
-html[data-theme="dark"] :is(input,textarea)::placeholder { color: #a99dbb; opacity: 1; }
+html[data-theme="dark"] .nav a:focus-visible { background: #1b3552; color: #e0efff; }
+html[data-theme="dark"] .gradient-text { background-image: linear-gradient(112deg,#9bcaff 5%,#91c9ff 50%,#9dd7ff); }
+html[data-theme="dark"] :is(.service-card,.catalog-card) { background: linear-gradient(145deg,#172a43,#111d31); border-color:#2b3f5c; }
+html[data-theme="dark"] :is(.service-icon,.lead-icon,.tags span,.tag-purple,.book-controls button:hover,.modal-close,.auth-tabs,.notice,.pricing-brief-context) { background: #192c48; color: #a2d7ff; }
+html[data-theme="dark"] :is(.filters button.active,.auth-tabs .active,.dashboard-sidebar nav button.active) { background: #1b3552; color: #e0efff; }
+html[data-theme="dark"] .about { background: radial-gradient(ellipse at 10% 70%,#3a7dc320,transparent 50%),#11213b; }
+html[data-theme="dark"] .faq-section { background: #0f1b2e; }
+html[data-theme="dark"] .book-controls { background: #142238d9; border-color: #2b3f5c; }
+html[data-theme="dark"] .modal { background: radial-gradient(ellipse at 100% 0,#3067a525,transparent 60%),#142238; border-color: #2b3f5c; }
+html[data-theme="dark"] :is(input,textarea,select) { background-color: #0f1b2e; border-color: #476580; color: #eef7ff; }
+html[data-theme="dark"] :is(input,textarea)::placeholder { color: #a6bbda; opacity: 1; }
 html[data-theme="dark"] .error { background: #49282e; color: #ffd0ce; }
 html[data-theme="dark"] .success { background: #233e37; color: #b5ead6; }
-html[data-theme="dark"] .contact-section { background: radial-gradient(ellipse at 100% 0,#4582a62d,transparent 60%),linear-gradient(115deg,#382549,#493365 60%,#2f4665); }
-html[data-theme="dark"] .seo-fallback { color: #eee6fc; }
-html[data-theme="dark"] .seo-fallback a { color: #cfb2ff; }
+html[data-theme="dark"] .contact-section { background: radial-gradient(ellipse at 100% 0,#4582a62d,transparent 60%),linear-gradient(115deg,#152a49,#1b3552 60%,#234671); }
+html[data-theme="dark"] .seo-fallback { color: #eef7ff; }
+html[data-theme="dark"] .seo-fallback a { color: #a2d7ff; }
 /* These frames represent separate products, rather than the agency's UI. */
 :where(.service-animation,.dashboard-preview,.mock-crm,.mock-bot,.website-design) { color-scheme: light; color: #242235; }
-html[data-theme="dark"] :is(.catalog-heading h1 span,.portfolio-page-heading h1 span,.contacts-heading h1 span) { color: #bd9be9; }
-html[data-theme="dark"] .catalog-icon { background: linear-gradient(135deg,#49335f,#2e3d59); color: #d0b6f5; }
-html[data-theme="dark"] .catalog-card:nth-child(3n+2) .catalog-icon { background: linear-gradient(135deg,#343659,#29455f); color: #9ac9f1; }
-html[data-theme="dark"] :is(.pricing-extras label:has(input:checked),.contacts-meeting fieldset label:has(input:checked),.config-features label:has(input:checked)) { background: #3a2b4f; border-color: #b49ad5; }
-html[data-theme="dark"] .brief-steps li[aria-current="step"] { color: #eedfff; }
-html[data-theme="dark"] .brief-steps li[aria-current="step"]>span { background: #7250a4; color: #fff; }
-html[data-theme="dark"] .pricing-package.featured { border-color: #9672bd; background: linear-gradient(145deg,#30223f,#202b41); }
+html[data-theme="dark"] :is(.catalog-heading h1 span,.portfolio-page-heading h1 span,.contacts-heading h1 span) { color: #a2d7ff; }
+html[data-theme="dark"] .catalog-icon { background: linear-gradient(135deg,#1b3552,#254766); color: #c8e7ff; }
+html[data-theme="dark"] .catalog-card:nth-child(3n+2) .catalog-icon { background: linear-gradient(135deg,#1d395c,#29455f); color: #9ac9f1; }
+html[data-theme="dark"] :is(.pricing-extras label:has(input:checked),.contacts-meeting fieldset label:has(input:checked),.config-features label:has(input:checked)) { background: #1b3552; border-color: #82b7ef; }
+html[data-theme="dark"] .brief-steps li[aria-current="step"] { color: #e0efff; }
+html[data-theme="dark"] .brief-steps li[aria-current="step"]>span { background: #245bb9; color: #fff; }
+html[data-theme="dark"] .pricing-package.featured { border-color: #477eaf; background: linear-gradient(145deg,#173252,#202b41); }
 .theme-symbol { display: grid; place-items: center; width: 20px; height: 20px; animation: theme-symbol-in .4s cubic-bezier(.2,.8,.2,1); }
 @keyframes theme-symbol-in { from { opacity: 0; transform: rotate(-35deg) scale(.7); } to { opacity: 1; transform: rotate(0) scale(1); } }
 @media(prefers-reduced-motion:reduce) { .theme-symbol { animation: none; } }

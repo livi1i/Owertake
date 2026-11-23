@@ -20,7 +20,7 @@
   --soft-glint: inset 0 1px 0 var(--ui-glint);
   --studio-primary: linear-gradient(145deg,#2162db 0%,#154dc9 50%,#103ba6 100%);
   --showcase-blue: #558de450;
-  --showcase-cyan: #7cd9f35c;
+  --showcase-cyan: #86c7fa65;
   --showcase-frame: #f6fbff;
   --showcase-edge: #a8c9ed;
   --showcase-ink: #17345c;
@@ -53,7 +53,7 @@
   --soft-shadow: 0 2px 5px #01091642,0 12px 25px #01091655;
   --soft-glint: inset 0 1px 0 var(--ui-glint);
   --showcase-blue: #205bdd70;
-  --showcase-cyan: #2eaccb3e;
+  --showcase-cyan: #3a7dc34a;
   --showcase-frame: #172944;
   --showcase-edge: #547aa3;
   --showcase-ink: #e4f2ff;
