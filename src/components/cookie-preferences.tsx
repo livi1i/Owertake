@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react';
 import {Cookie} from 'lucide-react';
-import {COOKIE_KEY,necessaryChoice,parseCookieChoice,type CookieChoice} from '../lib/cookie-preferences';
+import {COOKIE_ACCEPTED_EVENT,COOKIE_KEY,necessaryChoice,parseCookieChoice,type CookieChoice} from '../lib/cookie-preferences';
 import './cookie-preferences.css';
 
 function readChoice() {
@@ -22,6 +22,7 @@ export function CookiePreferences() {
     const next = necessaryChoice();
     try { localStorage.setItem(COOKIE_KEY,JSON.stringify(next)); } catch {}
     setChoice(next);
+    window.dispatchEvent(new Event(COOKIE_ACCEPTED_EVENT));
   }
 
   if (choice) return null;

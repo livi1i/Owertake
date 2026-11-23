@@ -261,7 +261,7 @@ function App() {
       <div className="notice-dock">
         <CookiePreferences/>
       </div>
-      {!dashboard && !modal && !legalPath && location.pathname !== "/brief" && knownRoute && <PriceMatch onDiscuss={discussPrice}/>}
+      <PriceMatch allowed={!dashboard && !modal && !legalPath && location.pathname !== "/brief" && knownRoute} onDiscuss={discussPrice}/>
       {modal && (
         <Modal
           close={() => setModal("")}

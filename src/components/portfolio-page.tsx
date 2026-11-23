@@ -23,7 +23,9 @@ export function PortfolioPage({contacts}:{contacts:Record<string,string>}) {
   const project = items.find(item => projectSlug(item) === slug);
   const real = items.filter(item => !item.concept);
   const filtered = filterPortfolio(real,'',category,'Клиентские проекты');
-  const botCase = projectUrl(project?.url)?.hostname==="t.me";
+  const botAddress=projectUrl(project?.url);
+  const botCase=botAddress?.hostname==="t.me";
+  const wheelCase=botCase && botAddress?.pathname==="/randweelore_bot";
   const categories = [...new Set(real.map(item => item.category))];
 
   function load() {
@@ -42,7 +44,7 @@ export function PortfolioPage({contacts}:{contacts:Record<string,string>}) {
       slug ? project ? <>
         <header className={"page-banner case-review-header"+(botCase?" case-review-telegram":"")} data-enter><div>
           <span className="case-label">{project.concept?'Дизайн-концепция':project.category}</span>
-          <h1>{project.title}</h1><p>{project.description}</p>
+          <h1>{wheelCase?project.title.split(" · ")[0]:project.title}</h1>{wheelCase&&<span className="case-bot-handle">@randweelore_bot</span>}<p>{project.description}</p>
           {!project.concept && <ProjectSiteLink project={project} full/>}
         </div>{!project.concept && project.url ? <LiveProject project={project} compact/> : <Preview project={project}/>}</header>
         {!project.concept && <CaseReview url={project.url}/>}

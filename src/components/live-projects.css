@@ -37,3 +37,5 @@ html[data-theme] .bot-showcase-xplore { --bot-color:#423798; --bot-light:#9eaefc
 @media(prefers-reduced-motion:reduce) {
   .studio-case-preview-bot .bot-screen { animation:none; transition:none; }
 }
+
+.case-review-telegram .case-bot-handle { display:block; margin-block:6px 10px; font-size:clamp(.85rem,1.45vw,1rem); color:var(--azure); font-weight:670; }
