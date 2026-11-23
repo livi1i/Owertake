@@ -631,3 +631,7 @@ html.effects-paused :is(.studio-hero-grid::before,.studio-hero-grid::after) { an
 @media (forced-colors:active) {
   .studio-hero .hero-line:last-child em { color:CanvasText; background:none; }
 }
+
+@media (min-width:1600px) {
+  .studio-hero h1 { font-size:3.65rem; }
+}

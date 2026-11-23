@@ -12,7 +12,7 @@ import {CabinetPreview} from './cabinet-preview';
 import {OfficeMap} from './office-map';
 import {HeroShowcase} from './hero-showcase';
 import {mergeServices,servicesRequest,serviceCategoryUrl,defaultAgencyServices,type AgencyService} from '../lib/services';
-import {offerPrice,startingOffer} from '../lib/public-prices';
+import {priceLabel,startingOffer} from '../lib/public-prices';
 import type {Content} from '../lib/app-shared';
 import {PartnershipArt} from './partnership-art';
 
@@ -66,7 +66,7 @@ export function HomePage({content,openLogin,effectsPaused,prefill}:{content:Cont
           return <Reveal key={category} delay={(index%5)*36}>
             <a className="studio-service-card" href={serviceCategoryUrl(category)}>
               <div className="studio-card-top"><span className="studio-glyph"><Icon size={25}/></span><Icon className="studio-card-watermark" size={70} strokeWidth={1} aria-hidden="true"/></div>
-              <h3>{name}</h3><p>{text}</p><strong>{offer ? offerPrice(offer) : 'По согласованию'}</strong>
+              <h3>{name}</h3><p>{text}</p><strong>{offer ? priceLabel(offer.amount,offer.period) : 'По согласованию'}</strong>
             </a>
           </Reveal>;
         })}

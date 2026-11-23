@@ -98,7 +98,7 @@ export function ProjectCalculator({prices,contacts}:{prices:PriceOverrides;conta
         <span className="catalog-kicker">ПРЕДВАРИТЕЛЬНЫЙ РАСЧЁТ</span>
         <h2>{projectPresets.find(item => item.id === preset && item.id !== 'other')?.name || service?.name || 'Индивидуальный проект'}</h2>
         <div key={quote.totals.join()+quote.timeline} className="quote-totals" aria-live="polite"><strong>{quote.totals.join(' + ') || 'По согласованию'}</strong><p>{quote.timeline}</p></div>
-        {quote.urgentFee>0 && <p className="quote-fee">Срочный запуск · +{priceLabel(quote.urgentFee)}</p>}
+        {quote.urgentFee>0 && <p className="quote-fee">Доплата за срочный запуск · {priceLabel(quote.urgentFee)}</p>}
         {quote.lines.length>0 && <ul className="quote-lines">{quote.lines.map(item => <li key={item.code}><Check size={15}/><span>{item.name}<small>{offerPrice(item)}</small></span></li>)}</ul>}
         <p className="config-hint">Это ориентир по прайсу и планированию. Итоговую стоимость и доступную дату запуска подтвердим после обсуждения.</p>
         <button className="btn purple full" onClick={requestQuote}>Получить расчёт</button>
