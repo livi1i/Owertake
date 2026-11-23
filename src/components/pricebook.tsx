@@ -15,7 +15,7 @@ export function Pricebook({prices}:{prices:PriceOverrides}) {
   const results=groups
     .filter(group=>!category || group.id===category)
     .map(group=>({...group,offers:group.offers.filter(offer=>{
-      const text=normalize(offer.name+' '+offer.scope+' '+group.name);
+      const text=normalize(offer.name+' '+offer.scope);
       return terms.every(term=>text.includes(term));
     })}))
     .filter(group=>group.offers.length);
