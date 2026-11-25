@@ -44,6 +44,33 @@ test('OS5 migration is additive, repeatable and preserves public content and ori
   db.sqlite.close();
 });
 
+test('OS5 workspace settings and staff edits are persisted and isolated',async t=>{
+  const {db,account}=await fixture(t);
+  const owner=await account('owner-edits@example.test','admin');
+  const client=await account('client-edits@example.test');
+  const os=owner.os;
+  const personal={name:'Owner',phone:'+7 921 123 45 67',tz:'Europe/Moscow'};
+  assert.equal((await os('profile','PUT',personal)).status,200);
+  assert.equal((await os('profile')).data.settings.phone,personal.phone);
+  assert.deepEqual((await client.os('profile')).data.settings,{});
+  await os('alert-settings','PUT',{key:'email_renewals',enabled:true});
+  await os('alert-settings','PUT',{key:'inapp_tasks',enabled:false});
+  assert.deepEqual((await os('alert-settings')).data.settings,{email_renewals:true,inapp_tasks:false});
+  assert.deepEqual((await client.os('alert-settings')).data.settings,{});
+  const request={name:'Client',contact:'client@example.test',service:'Site',description:'Requested a company website'};
+  assert.equal((await os('requests','POST',request)).status,400);
+  const entry=await os('requests','POST',{...request,consent:true});
+  assert.equal(entry.status,201);
+  const record=JSON.parse(db.sqlite.prepare('SELECT data FROM content WHERE id=?').get('consent:'+entry.data.id).data);
+  assert.equal(record.actor,owner.id);
+  assert.equal((await client.os('requests/'+entry.data.id,'PUT',request)).status,403);
+  assert.equal((await os('requests/'+entry.data.id,'PUT',{...request,service:'Bot'})).status,200);
+  const stage=(await os('stages','POST',{title:'New stage'})).data.id;
+  await os('stages/'+stage,'PUT',{title:'Renamed stage'});
+  assert.equal((await os('stages')).data.items.find(row=>row.id===stage).title,'Renamed stage');
+  assert.equal((await os('stages/'+stage,'DELETE',{})).status,200);
+});
+
 test('OS5 links original request, unique customer, approved brief, price snapshot, reviewed contract and confirmed bank payment',async t=>{
   const {db,call,account}=await fixture(t);
   const owner=await account('owner@example.test','admin');

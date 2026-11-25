@@ -61,6 +61,30 @@ export async function os5(request, path, user, body, db, prices, {fail,text,hex,
     if (!await one(`SELECT 1 FROM os5_projects p JOIN os5_memberships m ON m.project_id=p.id
       JOIN os5_invoices i ON i.id=p.invoice_id WHERE i.id=? AND m.user_id=? AND i.issued_at IS NOT NULL AND i.revoked_at IS NULL`,invoiceId,user.id)) os5NotFound();
   };
+  if (['profile','alert-settings'].includes(section) && !id) {
+    const key='os5:'+section+':'+user.id;
+    const previous=JSON.parse((await one('SELECT data FROM content WHERE id=?',key))?.data||'{}');
+    if (method==='GET') return json({settings:previous});
+    if (method==='PUT') {
+      let settings;
+      const commands=[];
+      if (section==='profile') {
+        const name=required(body.name,'Имя',80);
+        settings={phone:text(body.phone,60),tz:options(body.tz,['Europe/Moscow','Europe/Kaliningrad','Europe/Stockholm'])};
+        commands.push(command('UPDATE users SET name=? WHERE id=?',name,user.id));
+      } else {
+        const setting=options(body.key,['inapp_leads','inapp_tasks','inapp_payments','inapp_renewals','email_leads','email_project','email_renewals','email_services','email_news']);
+        if (typeof body.enabled!=='boolean') fail('Укажите состояние уведомления');
+        settings={...previous,[setting]:body.enabled};
+        await mutate(command("INSERT INTO content(id,data) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET data=json_set(content.data,?,json(?))",
+          key,JSON.stringify(settings),'$.'+setting,JSON.stringify(body.enabled)));
+        return json({settings});
+      }
+      commands.push(command('INSERT INTO content(id,data) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',key,JSON.stringify(settings)));
+      await mutate(...commands);
+      return json({settings});
+    }
+  }
   if (section==='preferences' && !id) {
     if (method==='GET') return json({preferences:await one('SELECT theme,accent,layout,density FROM os5_preferences WHERE user_id=?',user.id)});
     if (method==='PUT') {
@@ -169,6 +193,21 @@ export async function os5(request, path, user, body, db, prices, {fail,text,hex,
     return json({ok:true});
   }
   staff();
+  if (section==='requests' && !action && (method==='POST'&&!id || method==='PUT'&&id)) {
+    const args=[required(body.name,'Имя',80),required(body.contact,'Контакт',200),
+      required(body.service,'Услуга',100),required(body.description,'Описание',5000)];
+    if (id) {
+      await get('leads',id);
+      await mutate(command('UPDATE leads SET name=?,contact=?,service=?,description=? WHERE id=?',...args,id),commandAudit('request',id,'updated'));
+      return json({ok:true});
+    }
+    if (body.consent!==true) fail('Подтвердите согласие клиента на обработку данных');
+    const key=os5Id(),created=os5Stamp();
+    const consent={recordId:key,purpose:'inquiry',version:'2026-11-16.1',accepted:true,created,source:'staff-recorded',actor:user.id};
+    await mutate(command('INSERT INTO leads(id,name,contact,service,description,created) VALUES (?,?,?,?,?,?)',key,...args,created),
+      command('INSERT INTO content(id,data) VALUES (?,?)','consent:'+key,JSON.stringify(consent)),commandAudit('request',key,'created'));
+    return json({id:key},201);
+  }
   if (method==='GET' && !id) {
     const lists={
       requests:`SELECT l.id,l.user_id,l.name,l.contact,l.service,l.description,l.status,l.created,d.id AS deal_id,p.name AS partner_name,
@@ -284,7 +323,7 @@ export async function os5(request, path, user, body, db, prices, {fail,text,hex,
     if (!(result[0].meta?.changes ?? result[0].changes)) fail('Сделка уже изменилась',409);
     return json({ok:true});
   }
-  if (method==='POST' && section==='clients' && !id) {
+  if (section==='clients' && !action && (method==='POST'&&!id || method==='PUT'&&id)) {
     const kind=options(body.kind,['person','entrepreneur','company']),name=required(body.name,'Имя или наименование');
     const email=text(body.email,200).toLowerCase()||null,rawPhone=text(body.phone,60),taxId=text(body.taxId,30)||null;
     const digits=rawPhone.replace(/\D/g,'');
@@ -295,9 +334,15 @@ export async function os5(request, path, user, body, db, prices, {fail,text,hex,
     if (taxId && !new RegExp(kind==='company'?'^\\d{10}$':'^\\d{12}$').test(taxId)) fail('Проверьте ИНН');
     if (!email && !phone && !taxId) fail('Укажите хотя бы один идентификатор контрагента');
     const details=Object.fromEntries(['address','signatory','authority','registration','kpp'].map(key=>[key,text(body[key],400)]));
-    const duplicate=await all('SELECT id FROM os5_clients WHERE email=? OR phone=? OR tax_id=?',email,phone,taxId);
+    if (id) await get('os5_clients',id);
+    const duplicate=await all('SELECT id FROM os5_clients WHERE (email=? OR phone=? OR tax_id=?) AND id<>?',email,phone,taxId,id||'');
     if (duplicate.length===1) return json({id:duplicate[0].id,existing:true},409);
     if (duplicate.length>1) fail('Контакты совпали у нескольких карточек. Проверьте контрагентов вручную',409);
+    if (id) {
+      await mutate(command('UPDATE os5_clients SET kind=?,name=?,email=?,phone=?,tax_id=?,details=? WHERE id=?',kind,name,email,phone,taxId,JSON.stringify(details),id),
+        commandAudit('client',id,'updated'));
+      return json({id});
+    }
     const key=os5Id();
     await mutate(command('INSERT INTO os5_clients(id,kind,name,email,phone,tax_id,details,created) VALUES (?,?,?,?,?,?,?,?)',key,kind,name,email,phone,taxId,JSON.stringify(details),os5Stamp()),commandAudit('client',key,'created'));
     return json({id:key},201);
@@ -321,6 +366,20 @@ export async function os5(request, path, user, body, db, prices, {fail,text,hex,
     const key=os5Id(),title=required(body.title,'Название этапа',70);
     await mutate(command('INSERT INTO os5_stages SELECT ?,?,COALESCE(MAX(position),0)+10,0 FROM os5_stages',key,title),commandAudit('stage',key,'created'));
     return json({id:key},201);
+  }
+  if (method==='PUT' && section==='stages' && id) {
+    await get('os5_stages',id);
+    const title=required(body.title,'Название этапа',70);
+    await mutate(command('UPDATE os5_stages SET title=? WHERE id=?',title,id),commandAudit('stage',id,'renamed'));
+    return json({ok:true});
+  }
+  if (method==='PUT' && section==='deals' && id && !action) {
+    const row=await get('os5_deals',id),title=required(body.title,'Название сделки');
+    if (row.archived_at||row.version!==body.version) fail('Сделка уже изменилась или архивирована',409);
+    const result=await mutate(command('UPDATE os5_deals SET title=?,version=version+1 WHERE id=? AND version=?',title,id,body.version),
+      command('INSERT INTO os5_audit(actor_id,entity,entity_id,action,created) SELECT ?,?,?,?,? WHERE changes()=1',user.id,'deal',id,'updated',os5Stamp()));
+    if (!(result[0].meta?.changes??result[0].changes)) fail('Сделка уже изменилась',409);
+    return json({ok:true});
   }
   if (method==='DELETE' && section==='stages' && id) {
     const stage=await get('os5_stages',id);
@@ -487,7 +546,14 @@ export async function os5(request, path, user, body, db, prices, {fail,text,hex,
   }
   if (method==='POST' && section==='tasks' && id && action==='done') {
     await get('os5_tasks',id);
-    await mutate(command('UPDATE os5_tasks SET done_at=COALESCE(done_at,?) WHERE id=?',os5Stamp(),id),commandAudit('task',id,'done'));
+    const done=body.done!==false;
+    await mutate(command('UPDATE os5_tasks SET done_at=? WHERE id=?',done?os5Stamp():null,id),commandAudit('task',id,done?'done':'reopened'));
+    return json({ok:true});
+  }
+  if (method==='PUT' && section==='tasks' && id && !action) {
+    await get('os5_tasks',id);
+    const title=required(body.title,'Задача');
+    await mutate(command('UPDATE os5_tasks SET title=?,due_on=? WHERE id=?',title,body.dueOn?date(body.dueOn):null,id),commandAudit('task',id,'updated'));
     return json({ok:true});
   }
   if (method==='POST' && ['deals','clients'].includes(section) && id && ['archive','restore'].includes(action)) {

@@ -6,6 +6,7 @@ from pathlib import Path
 import hashlib
 import json
 import os
+import re
 import socket
 import sqlite3
 import subprocess
@@ -96,7 +97,13 @@ with tempfile.TemporaryDirectory(prefix="overtake-os5-qa-") as temporary, ExitSt
             except urllib.error.URLError:
                 if retry==29: raise
                 time.sleep(.1)
-        call("/cabinet",status=200)
+        shell,headers=call("/cabinet",status=200)
+        assert b'workspace' in shell and b'modal-root' in shell
+        assert headers["X-Robots-Tag"]=="noindex, nofollow"
+        assert "frame-ancestors 'none'" in headers["Content-Security-Policy"]
+        module=re.search(rb'<script type="module"[^>]+src="([^"]+)"',shell)
+        bundle,bundle_headers=call(module.group(1).decode())
+        assert b'client-portal' in bundle and "javascript" in bundle_headers["Content-Type"]
         call("/api/os5/projects",status=401)
         def login(role):
             _,headers=call("/api/login","POST",{"email":role_email[role],"password":password})
@@ -104,6 +111,18 @@ with tempfile.TemporaryDirectory(prefix="overtake-os5-qa-") as temporary, ExitSt
         owner,client,unrelated,_=map(login,role_email)
         def os5(path,method="GET",body=None,cookie=owner,status=200):
             return call("/api/os5/"+path,method,body,cookie,status)[0]
+        preferences={"theme":"dark","accent":"blue","layout":"left","density":"comfortable"}
+        os5("preferences","PUT",preferences)
+        assert os5("preferences")["preferences"]==preferences
+        os5("alert-settings","PUT",{"key":"email_renewals","enabled":True})
+        assert os5("alert-settings")["settings"]["email_renewals"] is True
+        assert not os5("alert-settings",cookie=client)["settings"]
+        os5("profile","PUT",{"name":"Fixture owner","phone":"+7 921 000-12-34","tz":"Europe/Moscow"})
+        assert os5("profile")["settings"]["phone"]=="+7 921 000-12-34"
+        custom_stage=os5("stages","POST",{"title":"Temporary"},status=201)["id"]
+        os5("stages/"+custom_stage,"PUT",{"title":"Renamed"})
+        assert any(row["title"]=="Renamed" for row in os5("stages")["items"])
+        os5("stages/"+custom_stage,"DELETE",{})
         partner=os5("partners","POST",{"name":"Test partner","code":"partner-test"},status=201)
         value,_=call("/api/leads","POST",{"name":"Test client","contact":role_email["client"],"service":"Landing",
             "description":"Production flow in an isolated SQLite test","consent":True,"referral":"partner-test"},client)
@@ -113,9 +132,13 @@ with tempfile.TemporaryDirectory(prefix="overtake-os5-qa-") as temporary, ExitSt
         customer={"name":"Test client","kind":"person","email":role_email["client"],"address":"Test address"}
         customer_id=os5("clients","POST",customer,status=201)["id"]
         assert os5("clients","POST",customer,status=409)["id"]==customer_id
+        os5("clients/"+customer_id,"PUT",{**customer,"name":"Updated client"})
+        assert os5("clients/"+customer_id)["client"]["name"]=="Updated client"
         deal=os5("requests/"+source+"/convert","POST",{"clientId":customer_id},status=201)["id"]
         assert os5("requests/"+source+"/convert","POST",{"clientId":customer_id})["id"]==deal
         os5("deals/"+deal+"/stage","POST",{"stageId":"won","version":1},status=409)
+        os5("deals/"+deal,"PUT",{"title":"Renamed test deal","version":1})
+        os5("deals/"+deal,"PUT",{"title":"Stale edit","version":1},status=409)
         os5("deals/"+deal+"/project","POST",{},status=409)
         os5("users/manager/role","POST",{"role":"manager","basis":"Approved test employee"})
         manager=login("manager")

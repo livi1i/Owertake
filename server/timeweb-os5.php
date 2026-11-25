@@ -84,6 +84,30 @@ function os5_dispatch(string $path,string $method,array $body): never {
     [,,, $section,$id,$action,$sub]=array_pad(explode('/',$path),7,null);
     $owner=$user['role']==='admin';
     $manager=$user['role']==='manager';
+    if (in_array($section,['profile','alert-settings'],true)&&!$id) {
+        $key='os5:'.$section.':'.$user['id'];
+        $previous=json_decode(one('SELECT data FROM content WHERE id=?',[$key])['data']??'{}',true,512,JSON_THROW_ON_ERROR);
+        if ($method==='GET') reply(['settings'=>(object)$previous]);
+        if ($method==='PUT'&&$section==='profile') {
+            $name=os5_string($body['name']??null,'Имя',80);
+            $settings=['phone'=>txt($body['phone']??'',60),'tz'=>os5_choice($body['tz']??null,['Europe/Moscow','Europe/Kaliningrad','Europe/Stockholm'])];
+            os5_atomic(function()use($name,$key,$settings,$user){
+                query('UPDATE users SET name=? WHERE id=?',[$name,$user['id']]);
+                query('INSERT INTO content(id,data) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',
+                    [$key,json_encode($settings,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR)]);
+            });
+            reply(['settings'=>$settings]);
+        }
+        if ($method==='PUT') {
+            $setting=os5_choice($body['key']??null,['inapp_leads','inapp_tasks','inapp_payments','inapp_renewals','email_leads','email_project','email_renewals','email_services','email_news']);
+            $enabled=$body['enabled']??null;
+            if (!is_bool($enabled)) bad('Укажите состояние уведомления');
+            $settings=[...$previous,$setting=>$enabled];
+            query('INSERT INTO content(id,data) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET data=json_set(content.data,?,json(?))',
+                [$key,json_encode($settings,JSON_THROW_ON_ERROR),'$.'.$setting,$enabled?'true':'false']);
+            reply(['settings'=>$settings]);
+        }
+    }
     if ($section==='preferences'&&!$id) {
         if ($method==='GET') reply(['preferences'=>one('SELECT theme,accent,layout,density FROM os5_preferences WHERE user_id=?',[$user['id']])?:null]);
         if ($method==='PUT') {
@@ -199,6 +223,27 @@ function os5_dispatch(string $path,string $method,array $body): never {
         reply(['ok'=>true]);
     }
     admin();
+    if ($section==='requests'&&!$action&&(($method==='POST'&&!$id)||($method==='PUT'&&$id))) {
+        $args=[os5_string($body['name']??null,'Имя',80),os5_string($body['contact']??null,'Контакт',200),
+            os5_string($body['service']??null,'Услуга',100),os5_string($body['description']??null,'Описание',5000)];
+        if ($id) {
+            os5_get('leads',$id);
+            os5_atomic(function()use($args,$id){
+                query('UPDATE leads SET name=?,contact=?,service=?,description=? WHERE id=?',[...$args,$id]);
+                os5_audit('request',$id,'updated');
+            });
+            reply(['ok'=>true]);
+        }
+        if (($body['consent']??false)!==true) bad('Подтвердите согласие клиента на обработку данных');
+        $key=uid();$created=stamp();
+        $consent=['recordId'=>$key,'purpose'=>'inquiry','version'=>'2026-11-16.1','accepted'=>true,'created'=>$created,'source'=>'staff-recorded','actor'=>$user['id']];
+        os5_atomic(function()use($key,$created,$args,$consent){
+            query('INSERT INTO leads(id,name,contact,service,description,created) VALUES(?,?,?,?,?,?)',[$key,...$args,$created]);
+            query('INSERT INTO content(id,data) VALUES(?,?)',['consent:'.$key,json_encode($consent,JSON_THROW_ON_ERROR)]);
+            os5_audit('request',$key,'created');
+        });
+        reply(['id'=>$key],201);
+    }
     if ($method==='GET'&&!$id) {
         $lists=[
             'requests'=>"SELECT l.id,l.user_id,l.name,l.contact,l.service,l.description,l.status,l.created,d.id AS deal_id,p.name AS partner_name,
@@ -271,7 +316,7 @@ function os5_owner_action(string $method,?string $section,?string $id,?string $a
         });
         reply(['ok'=>true]);
     }
-    if ($method==='POST'&&$section==='clients'&&!$id) {
+    if ($section==='clients'&&!$action&&(($method==='POST'&&!$id)||($method==='PUT'&&$id))) {
         $kind=os5_choice($body['kind']??null,['person','entrepreneur','company']);
         $name=os5_string($body['name']??null,'Имя или наименование');
         $email=strtolower(txt($body['email']??'',200))?:null;
@@ -285,17 +330,24 @@ function os5_owner_action(string $method,?string $section,?string $id,?string $a
         if (!$email&&!$phone&&!$tax) bad('Укажите хотя бы один идентификатор контрагента');
         $details=[];
         foreach (['address','signatory','authority','registration','kpp'] as $key) $details[$key]=txt($body[$key]??'',400);
-        $result=os5_atomic(function()use($kind,$name,$email,$phone,$tax,$details){
-            $match=many('SELECT id FROM os5_clients WHERE email=? OR phone=? OR tax_id=?',[$email,$phone,$tax]);
+        $result=os5_atomic(function()use($id,$kind,$name,$email,$phone,$tax,$details){
+            if ($id) os5_get('os5_clients',$id);
+            $match=many('SELECT id FROM os5_clients WHERE (email=? OR phone=? OR tax_id=?) AND id<>?',[$email,$phone,$tax,$id??'']);
             if (count($match)===1) return ['id'=>$match[0]['id'],'existing'=>true];
             if (count($match)>1) bad('Контакты совпали у нескольких карточек. Проверьте контрагентов вручную',409);
+            if ($id) {
+                query('UPDATE os5_clients SET kind=?,name=?,email=?,phone=?,tax_id=?,details=? WHERE id=?',
+                    [$kind,$name,$email,$phone,$tax,json_encode($details,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),$id]);
+                os5_audit('client',$id,'updated');
+                return ['id'=>$id,'existing'=>false];
+            }
             $key=uid();
             query('INSERT INTO os5_clients(id,kind,name,email,phone,tax_id,details,created) VALUES(?,?,?,?,?,?,?,?)',
                 [$key,$kind,$name,$email,$phone,$tax,json_encode($details,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),stamp()]);
             os5_audit('client',$key,'created');
             return ['id'=>$key,'existing'=>false];
         });
-        reply($result,$result['existing']?409:201);
+        reply($result,$result['existing']?409:($id?200:201));
     }
     if ($method==='POST'&&(($section==='deals'&&!$id)||($section==='requests'&&$id&&$action==='convert'))) {
         $source=$section==='requests'?os5_get('leads',$id):null;
@@ -353,6 +405,25 @@ function os5_owner_action(string $method,?string $section,?string $id,?string $a
             $row=os5_get('os5_stages',$id);
             if ($row['terminal']||$id==='new'||one('SELECT 1 FROM os5_deals WHERE stage_id=?',[$id])) bad('Этап защищён или содержит сделки',409);
             query('DELETE FROM os5_stages WHERE id=?',[$id]);os5_audit('stage',$id,'deleted');
+        });
+        reply(['ok'=>true]);
+    }
+    if ($section==='stages'&&$method==='PUT'&&$id) {
+        os5_get('os5_stages',$id);
+        $title=os5_string($body['title']??null,'Название этапа',70);
+        os5_atomic(function()use($title,$id){
+            query('UPDATE os5_stages SET title=? WHERE id=?',[$title,$id]);
+            os5_audit('stage',$id,'renamed');
+        });
+        reply(['ok'=>true]);
+    }
+    if ($section==='deals'&&$method==='PUT'&&$id&&!$action) {
+        $row=os5_get('os5_deals',$id);$title=os5_string($body['title']??null,'Название сделки');
+        if ($row['archived_at']||$row['version']!==($body['version']??null)) bad('Сделка уже изменилась или архивирована',409);
+        os5_atomic(function()use($title,$id,$row){
+            if (!query('UPDATE os5_deals SET title=?,version=version+1 WHERE id=? AND version=?',[$title,$id,$row['version']])->rowCount())
+                bad('Сделка уже изменилась',409);
+            os5_audit('deal',$id,'updated');
         });
         reply(['ok'=>true]);
     }
@@ -543,8 +614,20 @@ function os5_owner_other(string $method,?string $section,?string $id,?string $ac
     }
     if ($section==='tasks'&&$method==='POST'&&$id&&$action==='done') {
         os5_get('os5_tasks',$id);
-        os5_atomic(function()use($id){
-            if(query('UPDATE os5_tasks SET done_at=? WHERE id=? AND done_at IS NULL',[stamp(),$id])->rowCount()) os5_audit('task',$id,'done');
+        $done=($body['done']??true)!==false;
+        os5_atomic(function()use($id,$done){
+            query('UPDATE os5_tasks SET done_at=? WHERE id=?',[$done?stamp():null,$id]);
+            os5_audit('task',$id,$done?'done':'reopened');
+        });
+        reply(['ok'=>true]);
+    }
+    if ($section==='tasks'&&$method==='PUT'&&$id&&!$action) {
+        os5_get('os5_tasks',$id);
+        $title=os5_string($body['title']??null,'Задача');
+        $due=empty($body['dueOn'])?null:os5_date($body['dueOn']);
+        os5_atomic(function()use($title,$due,$id){
+            query('UPDATE os5_tasks SET title=?,due_on=? WHERE id=?',[$title,$due,$id]);
+            os5_audit('task',$id,'updated');
         });
         reply(['ok'=>true]);
     }

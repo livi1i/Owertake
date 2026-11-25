@@ -17,7 +17,17 @@ try{
  $db=new PDO('sqlite:'.$private.'/data.sqlite',null,null,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_TIMEOUT=>10]);$db->exec('PRAGMA foreign_keys=ON');$db->exec('PRAGMA busy_timeout=10000');
  if(!one("SELECT name FROM sqlite_master WHERE name='users'")){$lock=fopen($private.'/schema.lock','c');flock($lock,LOCK_EX);if(!one("SELECT name FROM sqlite_master WHERE name='users'")){$db->beginTransaction();$db->exec(file_get_contents($private.'/schema.sql'));$db->commit();chmod($private.'/data.sqlite',0600);}flock($lock,LOCK_UN);fclose($lock);}
  $method=$_SERVER['REQUEST_METHOD'];$path=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH);$body=[];
- if(!str_starts_with($path,'/api/')){if(!in_array($method,['GET','HEAD'],true))reply(['error'=>'Метод не поддерживается'],405);if(function_exists('render_seo'))render_seo($path);reply(['error'=>'SEO module unavailable'],503);}
+ if(!str_starts_with($path,'/api/')){
+  if(!in_array($method,['GET','HEAD'],true))reply(['error'=>'Метод не поддерживается'],405);
+  if(preg_match('~^/cabinet(?:/[a-z-]+)?$~D',$path)&&function_exists('os5_enabled')&&os5_enabled()){
+   header('Content-Type: text/html; charset=utf-8');header('Cache-Control: private, no-store');header('X-Robots-Tag: noindex, nofollow');
+   header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
+   if($method==='GET')echo json_decode(file_get_contents($release.'/client/assets/os5-workspace-shell.js'),true,512,JSON_THROW_ON_ERROR);
+   exit;
+  }
+  if(function_exists('render_seo'))render_seo($path);
+  reply(['error'=>'SEO module unavailable'],503);
+ }
  if(!in_array($method,['GET','HEAD'],true)){
   if(!str_contains($_SERVER['CONTENT_TYPE']??'','application/json'))bad('Ожидается JSON',415);
   $origin=$_SERVER['HTTP_ORIGIN']??'';if($origin&&$origin!==$config['origin'])bad('Недопустимый источник запроса',403);
