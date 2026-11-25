@@ -1,3 +1,4 @@
+import {pricebook} from "../src/lib/public-prices.ts";
 import {existsSync} from "node:fs";
 import {readFile} from "node:fs/promises";
 import {seoContent,seoResolve,seoHtml,seoRobots,seoSitemap} from "../server/seo.mjs";
@@ -8,7 +9,9 @@ const seoDefaults={services:defaultAgencyServices,projects:portfolioConcepts,faq
 import { createServer } from "vite";
 import { api } from "../server/api.mjs";
 import { database } from "./local-db.mjs";
-const db = database(".local/overtake.sqlite");
+const os5 = process.env.OVERTAKE_OS5_PREVIEW === "1";
+const prices = os5 ? pricebook().flatMap(group=>group.offers).map(({amount,...item})=>({...item,minor:Math.round(amount*100)})) : undefined;
+const db = database(os5?".local/overtake-os5-preview.sqlite":".local/overtake.sqlite",{os5});
 const server = await createServer({
   server: { host: "127.0.0.1", port: 5178, strictPort: true },
   plugins: [
@@ -32,7 +35,7 @@ const server = await createServer({
             const chunks = [];
             for await (const chunk of req) {
               chunks.push(chunk);
-              if (chunks.reduce((n, c) => n + c.length, 0) > (/^\/api\/leads\/[\w-]+\/attachments$/.test(req.url) && req.method === "POST" ? 710000 : 21000)) {
+              if (chunks.reduce((n, c) => n + c.length, 0) > ((/^\/api\/os5\/invoices\/[^/]+\/(issue|signed)$/.test(req.url)||/^\/api\/leads\/[\w-]+\/attachments$/.test(req.url)) && req.method === "POST" ? 710000 : 21000)) {
                 res.writeHead(413);
                 res.end();
                 return;
@@ -48,7 +51,7 @@ const server = await createServer({
                   : Buffer.concat(chunks),
                 duplex: "half",
               }),
-              { DB: db },
+              { DB: db, OS5_PRICES:prices },
             );
             res.writeHead(r.status, Object.fromEntries(r.headers));
             res.end(Buffer.from(await r.arrayBuffer()));

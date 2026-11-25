@@ -63,6 +63,7 @@ import {api,services,type User,type Project,type Content} from "./lib/app-shared
 const AboutPage = React.lazy(() => import("./components/about-page").then(m => ({default:m.AboutPage})));
 const HomePage = React.lazy(() => import("./components/home-page").then(m=>({default:m.HomePage})));
 const Dashboard = React.lazy(() => import("./components/dashboard").then(m=>({default:m.Dashboard})));
+const Os5Workspace=React.lazy(()=>import("./components/os5-workspace").then(m=>({default:m.Os5Workspace})));
 function Logo() {
   return (
     <span className="logo">
@@ -80,6 +81,10 @@ function PublicBriefRedirect() {
 }
 function App() {
   const [effectsPaused, setEffectsPaused] = useState(false);
+  const [os5Enabled,setOs5Enabled]=useState<boolean|null>(null);
+  const os5Route=/^\/cabinet(?:\/[a-z-]+)?$/.test(location.pathname);
+  useEffect(()=>{api("os5/status").then(value=>setOs5Enabled(Boolean(value.enabled))).catch(()=>setOs5Enabled(false));},[]);
+  useEffect(()=>{if(os5Enabled && location.pathname==="/" && location.hash==="#cabinet") location.replace("/cabinet");},[os5Enabled]);
   const serviceMenu = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
     const close = (event:PointerEvent) => {
@@ -155,16 +160,26 @@ function App() {
   };
   const discussPrice = () => order("Сравнение стоимости", "Есть предложение от другого исполнителя. Хочу сравнить состав работ и обсудить стоимость.");
   const openLogin = () =>
-    user ? (location.href = "/#cabinet") : setModal("auth");
+    user ? (location.href = os5Enabled?"/cabinet":"/#cabinet") : setModal("auth");
   const logout = async () => {
     await api("logout", {});
     setUser(null);
-    location.hash = "#home";
+    if(os5Route) location.href="/";
+    else location.hash = "#home";
   };
   const catalogPath = location.pathname === "/services" || location.pathname.startsWith("/services/");
   const dashboard = route.startsWith("#cabinet") || ["/account","/admin"].includes(location.pathname);
-  const knownRoute = ["/","/about","/account","/admin","/contacts","/faq","/brief","/calculator","/services","/portfolio",...Object.keys(legalTitles)].includes(location.pathname) || /^\/(services|portfolio)\/[a-z0-9-]+$/.test(location.pathname);
+  const knownRoute = os5Route || ["/","/about","/account","/admin","/contacts","/faq","/brief","/calculator","/services","/portfolio",...Object.keys(legalTitles)].includes(location.pathname) || /^\/(services|portfolio)\/[a-z0-9-]+$/.test(location.pathname);
   const legalPath = legalTitles[location.pathname] ? location.pathname : "";
+  if(os5Route) {
+    if(!authReady||os5Enabled===null) return <main id="main" className="catalog-page"><p role="status">Загружаем рабочее пространство…</p></main>;
+    if(os5Enabled && user) return <React.Suspense fallback={<p role="status">Загружаем CRM…</p>}><Os5Workspace user={user} logout={logout}/></React.Suspense>;
+    return <main id="main" className="catalog-page"><a href="/">На сайт OVERTAKE</a><h1>Рабочее пространство OVERTAKE</h1>
+      {user?<p>CRM 5.0 пока недоступна. <a href={user.role==="admin"?"/admin":"/account"}>Перейти в существующий кабинет</a></p>:
+        <button className="btn purple" onClick={()=>setModal("auth")}>Войти в кабинет</button>}
+      {modal==="auth"&&<Modal close={()=>setModal("")} title="Вход"><Auth onSuccess={async()=>{const data=await api("me");setUser(data.user);setModal("");}}/></Modal>}
+    </main>;
+  }
   return (
     <MotionConfig reducedMotion="user">
       <PageScrollbar />
@@ -283,7 +298,7 @@ function App() {
                 const j = await api("me");
                 setUser(j.user);
                 setModal("");
-                location.href = "/#cabinet";
+                if(!os5Route) location.href = os5Enabled?"/cabinet":"/#cabinet";
               }}
             />
           ) : modal === "service" ? (

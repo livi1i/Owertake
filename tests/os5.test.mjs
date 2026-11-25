@@ -1,0 +1,156 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {api} from '../server/api.mjs';
+import {database} from '../scripts/local-db.mjs';
+import {pricebook} from '../src/lib/public-prices.ts';
+
+const prices=pricebook().flatMap(group=>group.offers).map(({amount,...item})=>({...item,minor:Math.round(amount*100)}));
+const pdf=mark=>Buffer.from('%PDF-1.4\n% '+mark+'\n%%EOF\n').toString('base64');
+const organization={name:'Test seller',taxId:'123456789012',registration:'123456789012345',address:'Test address',
+  signatory:'Test signer',bank:'Test bank',bik:'123456789',account:'12345678901234567890',
+  correspondent:'12345678901234567890',tax:'Approved test status',templateApproval:'Test review'};
+const customer={kind:'person',name:'Test customer',email:'CLIENT@example.test',phone:'+7 (921) 123-45-67',address:'Test address'};
+
+async function fixture(t) {
+  const db=database(':memory:',{os5:true});
+  t.after(()=>db.sqlite.close());
+  async function call(route,method='GET',body,cookie='') {
+    const res=await api(new Request('https://test.local/api/'+route,{method,headers:{cookie,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)}),{DB:db,OS5_PRICES:prices});
+    return {status:res.status,cookie:res.headers.get('set-cookie')?.split(';')[0],data:res.headers.get('content-type')?.includes('json')?await res.json():await res.text()};
+  }
+  async function account(email,role) {
+    const password='Test-only-password-123';
+    assert.equal((await call('register','POST',{name:'Test account',email,password,consent:true})).status,200);
+    if (role) db.sqlite.prepare('UPDATE users SET role=? WHERE email=?').run(role,email);
+    const login=await call('login','POST',{email,password});
+    assert.equal(login.status,200);
+    const user=(await call('me','GET',undefined,login.cookie)).data.user;
+    return {cookie:login.cookie,id:user.id,os:(route,method,body)=>call('os5/'+route,method,body,login.cookie)};
+  }
+  return {db,call,account};
+}
+
+test('OS5 migration is additive, repeatable and preserves public content and original records',()=>{
+  const db=database();
+  db.sqlite.exec("INSERT INTO content VALUES ('public','{}'); INSERT INTO leads(id,name,contact,service,description,created) VALUES('legacy','Name','Contact','Site','Description','2026-11-25')");
+  const migration=readFileSync(new URL('../drizzle/0001_os5.sql',import.meta.url),'utf8');
+  db.sqlite.exec(migration);
+  db.sqlite.exec(migration);
+  assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM os5_stages').get().n,8);
+  assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM leads WHERE id=?').get('legacy').n,1);
+  assert.equal(db.sqlite.prepare("SELECT data FROM content WHERE id='public'").get().data,'{}');
+  assert.deepEqual(db.sqlite.prepare('PRAGMA foreign_key_check').all(),[]);
+  db.sqlite.close();
+});
+
+test('OS5 links original request, unique customer, approved brief, price snapshot, reviewed contract and confirmed bank payment',async t=>{
+  const {db,call,account}=await fixture(t);
+  const owner=await account('owner@example.test','admin');
+  const clientAccount=await account('client@example.test');
+  const other=await account('other@example.test');
+  const manager=await account('manager@example.test','manager');
+  const os=owner.os;
+  const partner=await os('partners','POST',{name:'Partner',code:'partner-test'});
+  assert.equal(partner.status,201);
+  const req=await call('leads','POST',{name:'Test',contact:'client@example.test',service:'Лендинг',description:'Project scope',consent:true,referral:'partner-test'},clientAccount.cookie);
+  assert.equal(req.status,200);
+  const list=await os('requests');
+  assert.equal(list.data.items.find(item=>item.id===req.data.id).user_id,clientAccount.id);
+  assert.equal(list.data.items[0].partner_name,'Partner');
+  const client=await os('clients','POST',customer);
+  assert.equal(client.status,201);
+  const duplicate=await os('clients','POST',{...customer,email:'different@example.test',phone:'8 921 123 45 67'});
+  assert.equal(duplicate.status,409);
+  assert.equal(duplicate.data.id,client.data.id);
+  const newDeal=()=>os('requests/'+req.data.id+'/convert','POST',{clientId:client.data.id});
+  const deal=(await newDeal()).data.id;
+  assert.equal((await newDeal()).data.id,deal);
+  assert.equal((await os('deals/'+deal+'/stage','POST',{stageId:'won',version:1})).status,409);
+  assert.equal((await os('stages/new','DELETE',{})).status,409);
+  assert.equal((await manager.os('deals')).data.items.length,0);
+  assert.equal((await manager.os('org')).status,403);
+  assert.equal((await manager.os('deals/'+deal+'/stage','POST',{stageId:'brief',version:1})).status,404);
+  assert.equal((await os('deals/'+deal+'/assign','POST',{userId:manager.id})).status,200);
+  const assigned=(await manager.os('deals')).data.items[0];
+  assert.equal(assigned.id,deal);
+  assert.equal((await manager.os('deals/'+deal+'/stage','POST',{stageId:'contract',version:assigned.version})).status,200);
+  assert.equal((await os('overview')).data.counts.received,0);
+  assert.equal((await os('projects')).data.projects.length,0);
+  assert.equal((await os('deals/'+deal+'/project','POST',{})).status,409);
+  const brief=(await os('briefs','POST',{dealId:deal,scope:'A responsive site with one contact form'})).data.id;
+  const lines=[{code:'P26-7',quantity:2,unitAmount:1}];
+  assert.equal((await os('quotes','POST',{briefId:brief,lines})).status,409);
+  assert.equal((await os('briefs/'+brief+'/approve','POST',{basis:'Client approval recorded'})).status,200);
+  const quote=await os('quotes','POST',{briefId:brief,lines});
+  assert.equal(quote.data.total,1380000);
+  assert.equal((await os('invoices','POST',{quoteId:quote.data.id,startMinor:5000})).status,400);
+  const invoice=(await os('invoices','POST',{quoteId:quote.data.id,startMinor:690000,terms:'Agreed first and final instalments'})).data.id;
+  const issue=()=>os('invoices/'+invoice+'/issue','POST',{pdf:pdf('original'),reviewed:true});
+  assert.equal((await issue()).status,409);
+  assert.equal((await other.os('org','PUT',organization)).status,403);
+  assert.equal((await os('org','PUT',organization)).status,200);
+  assert.equal((await issue()).status,200);
+  assert.equal((await issue()).status,409);
+  assert.equal((await os('deals/'+deal+'/project','POST',{})).status,409);
+  assert.equal((await os('invoices/'+invoice+'/signed','POST',{pdf:pdf('original')})).status,400);
+  const signature=await os('invoices/'+invoice+'/signed','POST',{pdf:pdf('signed')});
+  assert.equal(signature.status,201);
+  assert.equal((await os('deals/'+deal+'/project','POST',{})).status,409);
+  const review='signatures/'+signature.data.id+'/review';
+  assert.equal((await os(review,'POST',{bothParties:false,basis:'only one signature'})).status,400);
+  assert.equal((await os(review,'POST',{bothParties:true,basis:'Test review of both parties'})).status,200);
+  const paymentBody={invoiceId:invoice,amount:690000,reference:'bank-unit-1',proof:'Example statement row',occurredOn:'2026-11-25'};
+  assert.equal((await other.os('payments','POST',paymentBody)).status,403);
+  const payment=await os('payments','POST',paymentBody);
+  assert.equal(payment.status,201);
+  assert.equal((await os('payments','POST',paymentBody)).status,409);
+  assert.equal((await os('deals/'+deal+'/project','POST',{})).status,409);
+  assert.equal((await os('payments/'+payment.data.id+'/verify','POST',{basis:'Checked against test bank record'})).status,200);
+  const [created,repeat]=await Promise.all([os('deals/'+deal+'/project','POST',{}),os('deals/'+deal+'/project','POST',{})]);
+  assert.equal(created.data.id,repeat.data.id);
+  const id=created.data.id;
+  assert.ok(id);
+  assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM os5_projects').get().n,1);
+  assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM os5_milestones').get().n,6);
+  assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM os5_tasks').get().n,1);
+  const stored=db.sqlite.prepare('SELECT deal_id,client_id,invoice_id FROM os5_projects WHERE id=?').get(id);
+  assert.deepEqual({...stored},{deal_id:deal,client_id:client.data.id,invoice_id:invoice});
+  assert.equal((await clientAccount.os('projects/'+id)).status,404);
+  await os('projects/'+id+'/memberships','POST',{userId:clientAccount.id,basis:'Verified representation outside test account'});
+  const mine=await clientAccount.os('projects/'+id);
+  assert.equal(mine.status,200);
+  assert.equal((await clientAccount.os('invoices/'+invoice+'/pdf')).status,200);
+  assert.equal((await other.os('projects/'+id)).status,404);
+  assert.equal((await other.os('invoices/'+invoice+'/pdf')).status,404);
+  assert.equal((await clientAccount.os('projects/'+id+'/milestones/3','POST',{})).status,409);
+  assert.equal((await manager.os('projects/'+id)).status,200);
+  assert.equal((await manager.os('invoices/'+invoice+'/pdf')).status,404);
+  assert.equal((await clientAccount.os('projects/'+id+'/milestones/1','POST',{})).status,409);
+  assert.equal((await os('projects/'+id+'/milestones/1','PUT',{})).status,200);
+  assert.equal((await manager.os('projects/'+id+'/milestones/1','POST',{})).status,403);
+  assert.equal((await clientAccount.os('projects/'+id+'/milestones/1','POST',{})).status,200);
+  const ticket=await clientAccount.os('projects/'+id+'/support','POST',{kind:'defect',subject:'Broken button',body:'Details for the agency'});
+  assert.equal(ticket.status,201);
+  assert.equal((await other.os('projects/'+id+'/support','POST',{kind:'defect',subject:'Foreign project',body:'Must not be saved'})).status,404);
+  assert.equal((await other.os('support/'+ticket.data.id+'/messages')).status,404);
+  assert.equal((await manager.os('support/'+ticket.data.id+'/messages','POST',{body:'Checking the defect'})).status,201);
+  assert.equal((await clientAccount.os('support/'+ticket.data.id+'/messages')).data.messages[0].body,'Checking the defect');
+  assert.equal((await os('overview')).data.counts.received,690000);
+  const consultation=await clientAccount.os('projects/'+id+'/support','POST',{kind:'question',subject:'Consultation',body:'How do I update the site?'});
+  assert.equal(consultation.status,201);
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) AS n FROM os5_payments').get().n,1);
+  const refund=(amount,reference)=>os('payments','POST',{...paymentBody,amount,reference,refundOf:payment.data.id});
+  const partRefund=await refund(135000,'bank-refund-1');
+  assert.equal(partRefund.status,201);
+  const verifyRefund=id=>os('payments/'+id+'/verify','POST',{basis:'Checked against test bank refund'});
+  assert.equal((await verifyRefund(partRefund.data.id)).status,200);
+  assert.equal((await os('overview')).data.counts.received,555000);
+  const excessiveRefund=await refund(600000,'bank-refund-2');
+  assert.equal(excessiveRefund.status,201);
+  assert.equal((await verifyRefund(excessiveRefund.data.id)).status,409);
+  assert.equal((await os('clients/'+client.data.id+'/archive','POST',{})).status,409);
+  const audit=(await os('audit')).data.items;
+  assert.equal(audit.filter(event=>event.action==='converted').length,1);
+  assert.equal(audit.filter(event=>event.action==='verified').length,2);
+});

@@ -70,7 +70,8 @@ export function LeadSection({contacts={},prefill,heading='Обсудим ваш 
     setBusy(true);
     try {
       const payload = `Способ связи: ${method}\nБюджет: ${String(data.get('budget'))}\n\n${description.trim()}`;
-      const response = await api('leads',{name,contact,service,description:payload,consent:data.has('consent'),consentVersion:LEGAL_VERSION});
+      const referral=new URLSearchParams(location.search).get("ref");
+      const response = await api('leads',{name,contact,service,description:payload,...(referral&&/^[a-z0-9][a-z0-9-]{2,39}$/.test(referral)?{referral}:{}),consent:data.has('consent'),consentVersion:LEGAL_VERSION});
       setResult(response.id);
       window.dispatchEvent(new Event('overtake:leads'));
     } catch (error) {
