@@ -1,5 +1,5 @@
 import React,{useRef} from 'react';
-import {useInView} from 'motion/react';
+import {useInView} from 'framer-motion';
 import {ArrowUpRight,Send,Check,Plus} from 'lucide-react';
 import './project-visual.css';
 

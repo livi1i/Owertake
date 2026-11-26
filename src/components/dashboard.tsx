@@ -1,4 +1,5 @@
 import React,{useState,useEffect} from "react";
+import {motion,useReducedMotion} from "framer-motion";
 import {
   ArrowUpRight,
   ArrowRight,
@@ -81,6 +82,7 @@ export function Dashboard({
     return () => window.removeEventListener("overtake:leads", update);
   }, [user]);
   const admin = user?.role === "admin";
+  const reduce = useReducedMotion() || document.documentElement.classList.contains("effects-paused");
   if (!user)
     return (
       <main className="cabinet-entry" id="main">
@@ -144,13 +146,15 @@ export function Dashboard({
         </button>
       </aside>
       <div className="dashboard-main">
-        <header className="dashboard-heading" data-enter>
+        <motion.header className="dashboard-heading" key={tab}
+          initial={reduce ? false : {opacity:0,y:8}} animate={{opacity:1,y:0}}
+          transition={{duration:.28,ease:[.22,1,.36,1]}}>
           <div>
             <h1>{tab === "overview" ? "Обзор проектов" : tabs.find(t => t.id === tab)?.label}</h1>
             {tab === "overview" && <p>Статусы проектов, документы и переписка с командой.</p>}
           </div>
           <button className="btn purple" onClick={order}><Plus size={17}/> Новая заявка</button>
-        </header>
+        </motion.header>
         {error && <p className="error" role="alert">{error}</p>}
         {loading && <p role="status" className="workspace-loading">Загружаем проекты…</p>}
         {!loading && tab === "overview" && !selected && (

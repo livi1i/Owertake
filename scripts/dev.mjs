@@ -9,19 +9,21 @@ import { createServer } from "vite";
 import { api } from "../server/api.mjs";
 import { database } from "./local-db.mjs";
 const db = database(".local/overtake.sqlite");
+const port = Number(process.env.OVERTAKE_PREVIEW_PORT || 5178);
+const origin = "http://127.0.0.1:" + port;
 const server = await createServer({
-  server: { host: "127.0.0.1", port: 5178, strictPort: true },
+  server: { host: "127.0.0.1", port, strictPort: true },
   plugins: [
     {
       name: "api",
       configureServer(s) {
         s.middlewares.use(async (req, res, next) => {
           if (!req.url.startsWith("/api/")) {
-            const path=new URL(req.url,'http://127.0.0.1:5178').pathname;
+            const path=new URL(req.url,origin).pathname;
             if(path.startsWith('/assets/')){if(!/^\/assets\/[A-Za-z0-9_.-]+$/.test(path)||!existsSync('public'+path)){res.writeHead(404);res.end();return;}return next();}
             if(!['GET','HEAD'].includes(req.method)||path.startsWith('/src/')||path.startsWith('/node_modules/')||path.startsWith('/@'))return next();
             if(path==='/pricing'){res.writeHead(301,{Location:'/services?view=pricing'});res.end();return;}
-            try{const origin='http://127.0.0.1:5178';const data=await seoContent(db,seoDefaults);let body,status=200,type='text/html; charset=utf-8';
+            try{const data=await seoContent(db,seoDefaults);let body,status=200,type='text/html; charset=utf-8';
               if(path==='/robots.txt'){body=seoRobots(origin);type='text/plain; charset=utf-8';}
               else if(path==='/sitemap.xml'){body=seoSitemap(data,origin);type='application/xml; charset=utf-8';}
               else {const page=seoResolve(path,data);if(page.redirect){res.writeHead(page.status,{Location:page.redirect});res.end();return;}status=page.status;body=seoHtml(await s.transformIndexHtml(path,await readFile('index.html','utf8')),path,page,origin);}

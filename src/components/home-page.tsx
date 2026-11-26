@@ -1,153 +1,178 @@
-/// <reference types="vite/client" />
 import {useEffect,useRef} from 'react';
-import {ArrowDown,ArrowRight,Check,Mail,Phone,Send} from 'lucide-react';
-import {casePreviews} from './live-projects';
-import {getBotScreens} from './bot-case-media';
-import {projectSlug,type PortfolioProject} from '../lib/portfolio';
-import {projectUrl} from '../lib/project-url';
-import {Reveal} from './reveal';
+import {motion,type Transition} from 'framer-motion';
+import {ArrowRight} from 'lucide-react';
+import {ArchiveClosingLines,ArchiveEstimator,ArchiveFilaments,ArchiveHeroOrbits,ArchiveIdeaObject,ArchiveProcess,ArchiveRibbons,useArchivePause} from './archive-home-details';
+import {ArchiveServiceVisual} from './archive-service-visual';
+import {projectSlug} from '../lib/portfolio';
 import {LeadSection,type LeadPrefill} from './lead-section';
-import {ProcessSteps} from './process-steps';
-import {directions} from './studio-directions';
-import {CabinetPreview} from './cabinet-preview';
-import {OfficeMap} from './office-map';
-import {HeroShowcase} from './hero-showcase';
 import {serviceCategoryUrl} from '../lib/services';
-import {contactEmail,telegramContacts} from '../lib/contact-links';
 import type {Content} from '../lib/app-shared';
-import {PartnershipArt} from './partnership-art';
-import newProject from '../assets/studio-motion-ribbon.webp?inline';
-import improveProject from '../assets/studio-interface-stack.webp?inline';
+import heroArt from '../assets/hero-sculpture.png';
+import companyArt from '../assets/redesign-company.webp';
+import sitesArt from '../assets/redesign-sites.webp';
+import botsArt from '../assets/redesign-bots.webp';
+import crmArt from '../assets/redesign-crm.webp';
+import aiArt from '../assets/redesign-ai.webp';
+import integrationsArt from '../assets/redesign-integrations.webp';
+import amoreternoArt from '../assets/redesign-work-amoreterno.webp';
+import holodilkaArt from '../assets/redesign-work-holodilka.webp';
+import wheelArt from '../assets/redesign-work-randweelore.webp';
+import xploreArt from '../assets/redesign-work-xplore.webp';
 import './home-layout.css';
 
-const taskTypes=[
-  {title:'Создать новый проект',description:'Сайт, Telegram-бот или CRM с нуля.',label:'Новый проект',art:newProject},
-  {title:'Доработать существующий',description:'Редизайн, интеграции или новые функции.',label:'Редизайн и доработки',art:improveProject},
+const masters=import.meta.glob<string>('../assets/redesign-*-4k.webp',{eager:true,query:'?url',import:'default'});
+const master=(name:string,preview:string)=>masters[`../assets/redesign-${name}-4k.webp`] ?? preview;
+const services=[
+  {kind:'sites',title:'Сайты и веб-сервисы',href:serviceCategoryUrl('Сайты'),art:sitesArt},
+  {kind:'bots',title:'Telegram-боты и Mini Apps',href:serviceCategoryUrl('Боты и автоматизация'),art:botsArt},
+  {kind:'crm',title:'CRM-системы',href:serviceCategoryUrl('CRM'),art:crmArt},
+  {kind:'ai',title:'ИИ-решения',href:serviceCategoryUrl('ИИ'),art:aiArt},
+  {kind:'integrations',title:'Интеграции',href:'/services?product=integrations',art:integrationsArt},
+] as const;
+const work=[
+  {slug:'amoreterno',src:amoreternoArt,width:1440,height:810,description:'Сайт студии свадебных приглашений',phone:false},
+  {slug:'holodilka',src:holodilkaArt,width:1440,height:810,description:'Каталог холодильного оборудования и комплектующих',phone:false},
+  {slug:'randweelore',src:wheelArt,width:535,height:501,description:'Мини-приложение для случайного выбора',phone:true},
+  {slug:'xplore',src:xploreArt,width:323,height:433,description:'Мини-приложение для развития навыков',phone:true},
 ];
-const productNames=['Сайты и веб-сервисы','Telegram-боты и Mini Apps','CRM и интеграции','AI-решения для бизнеса'];
-const benefits=['Работаем по договору','Согласуем смету заранее','Поддерживаем после запуска'];
-
-function WorkTile({project}:{project:PortfolioProject}) {
-  const url=projectUrl(project.url);
-  const bot=getBotScreens(url)?.[0];
-  const image=bot?.src || (url && casePreviews[url.hostname]) || project.image;
-  return <a className={'home-work-tile'+(bot?' home-work-bot':'')} href={'/portfolio/'+projectSlug(project)}>
-    <div className="home-work-media">{image && <img src={image} alt="" loading="lazy" decoding="async"/>}</div>
-    <div className="home-work-caption"><h3>{project.title}</h3><ArrowRight size={17} aria-hidden="true"/><p>{project.category}</p></div>
-  </a>;
-}
+const ease:Transition['ease']=[.22,1,.36,1];
 
 export function HomePage({content,openLogin,effectsPaused,prefill,onRequest}:{
   content:Content;openLogin:()=>void;effectsPaused:boolean;prefill?:LeadPrefill;
   onRequest:(service?:string,description?:string)=>void;
 }) {
-  const form=useRef<HTMLDetailsElement>(null);
-  const email=contactEmail(content.contacts.email || '');
-  const telegram=telegramContacts(content.contacts);
-  const projects=content.projects.filter(project=>project.confirmed===true && !!projectUrl(project.url)).slice(0,4);
+  const root=useRef<HTMLElement>(null);
+  const lastPrefill=useRef<LeadPrefill>(undefined);
+  const reduce=useArchivePause(effectsPaused);
+  const projects=work.flatMap(item=>{
+    const project=content.projects.find(project=>project.confirmed===true && projectSlug(project)===item.slug);
+    return project ? [{...item,title:project.title}] : [];
+  });
 
   useEffect(()=>{
     function goToSection() {
       const anchor=location.hash.slice(1);
-      if (!anchor || anchor==='home' || anchor==='cabinet') return;
-      if (anchor==='request' && form.current) form.current.open=true;
-      document.getElementById(anchor)?.scrollIntoView({behavior:'instant'});
+      if (anchor && anchor!=='cabinet') document.getElementById(anchor)?.scrollIntoView();
     }
     const frame=requestAnimationFrame(goToSection);
     window.addEventListener('hashchange',goToSection);
     return ()=>{cancelAnimationFrame(frame);window.removeEventListener('hashchange',goToSection);};
   },[]);
   useEffect(()=>{
-    if (!prefill || !form.current) return;
-    form.current.open=true;
-    form.current.scrollIntoView({block:'start',behavior:'instant'});
-    form.current.querySelector<HTMLInputElement>('input[name="name"]')?.focus({preventScroll:true});
-  },[prefill]);
+    const form=root.current?.querySelector('#request');
+    if (!prefill || !form || lastPrefill.current===prefill) return;
+    lastPrefill.current=prefill;
+    form.scrollIntoView({block:'start',behavior:reduce?'instant':'smooth'});
+    const name=form.querySelector<HTMLInputElement>('input[name="name"]');
+    if (!name?.matches(':focus')) name?.focus({preventScroll:true});
+  },[prefill,reduce]);
 
-  return <main id="main" className="soft-home home-layout">
-    <div className="home-opening">
-      <section className="studio-hero" id="home" aria-labelledby="hero-title">
-        <div className="studio-hero-grid">
-          <div className="studio-hero-copy" data-enter>
-            <h1 id="hero-title">
-              <span className="hero-line"><span>Создаём цифровые</span></span>{' '}
-              <span className="hero-line"><span>решения <em>для бизнеса</em></span></span>
-            </h1>
-            <p>Сайты, Telegram-боты и CRM. Разрабатываем, автоматизируем работу команды и поддерживаем проекты после запуска.</p>
-            <div className="studio-hero-actions">
-              <button className="btn purple" onClick={()=>onRequest()}>Обсудить проект <ArrowRight size={17} aria-hidden="true"/></button>
-              <a className="secondary-panel" href="/portfolio">Смотреть портфолио</a>
-            </div>
-            <ul className="studio-benefits">{benefits.map(text=><li key={text}><Check size={14} aria-hidden="true"/>{text}</li>)}</ul>
+  const entrance=(delay=0,offset=24)=>({
+    initial:reduce?false:{opacity:0,y:offset},
+    animate:{opacity:1,y:0},
+    transition:{duration:.85,delay,ease},
+  });
+  return <main className="archive-home" id="main" ref={root}>
+    <section className="archive-hero" id="home" aria-labelledby="archive-title">
+      <svg className="archive-outline-definitions" aria-hidden="true" width="0" height="0">
+        <filter id="archive-studio-outline" x="-4%" y="-15%" width="108%" height="130%" colorInterpolationFilters="sRGB">
+          <feMorphology in="SourceAlpha" operator="dilate" radius="1.65" result="outer"/>
+          <feMorphology in="SourceAlpha" operator="erode" radius="1.65" result="inner"/>
+          <feComposite in="outer" in2="inner" operator="out" result="edge"/>
+          <feFlood floodColor="#dcfaff"/>
+          <feComposite in2="edge" operator="in"/>
+        </filter>
+      </svg>
+      <ArchiveFilaments variant="hero"/>
+      <ArchiveHeroOrbits paused={reduce}/>
+      <img className="archive-hero-art archive-hero-sculpture" src={heroArt} alt="" width="1585" height="992" fetchPriority="high"/>
+      <h1 className="archive-wordmark" id="archive-title" aria-label="OVERTAKE DIGITAL STUDIO" data-enter>
+        <span className="archive-wordmark-name" translate="no" aria-hidden="true">
+          <motion.span {...entrance(.06)}>OVERT</motion.span>
+          <motion.span className="archive-wordmark-a" {...entrance(.06)}>A</motion.span>
+          <motion.span {...entrance(.06)}>KE</motion.span>
+        </span>
+        {' '}<motion.span className="archive-wordmark-studio" translate="no" {...entrance(.14,14)}>DIGITAL STUDIO</motion.span>
+      </h1>
+      <img className="archive-hero-art archive-hero-front" src={heroArt} alt="" width="1585" height="992"/>
+      <motion.div className="archive-hero-end" {...entrance(.22,12)}>
+        <button className="archive-action archive-mint" onClick={()=>onRequest()}>Обсудить проект</button>
+        <div className="archive-hero-caption"><strong>Цифровое агентство</strong><p>Разрабатываем сайты, Telegram-ботов и CRM</p></div>
+      </motion.div>
+    </section>
+
+    <div className="archive-day">
+      <section className="archive-container archive-company" id="about">
+        <ArchiveFilaments variant="company" paused={reduce}/>
+        <div className="archive-company-grid">
+          <div className="archive-company-copy">
+            <h2>О компании</h2>
+            <h3>Создаём цифровые продукты под задачи бизнеса</h3>
+            <p>OVERTAKE — цифровое агентство из Пскова. От точечной доработки до системы с несколькими интерфейсами и интеграциями.</p>
           </div>
-          <HeroShowcase paused={effectsPaused}/>
+          <img className="archive-company-art" src={companyArt} srcSet={`${companyArt} 1280w, ${master('company',companyArt)} 3840w`}
+            sizes="(max-width:670px) 85vw, 45vw" width="1280" height="1120" loading="lazy" decoding="async" alt=""/>
+        </div>
+        <ArchiveRibbons paused={reduce}/>
+      </section>
+
+      <section className="archive-services" id="services">
+        <ArchiveFilaments variant="services" paused={reduce}/>
+        <div className="archive-container">
+        <div className="archive-section-heading"><h2>Что мы создаём для бизнеса</h2><a className="archive-action archive-blue" href="/services">Открыть каталог</a></div>
+        <div className="archive-service-grid">{services.map(({kind,title,href,art})=>
+          <a className="archive-service" key={title} href={href}>
+            <h3>{title}</h3><span className="archive-service-arrow"><ArrowRight size={19} aria-hidden="true"/></span>
+            <ArchiveServiceVisual kind={kind} src={master(kind,art)} preview={art} paused={reduce}/>
+          </a>)}</div>
         </div>
       </section>
+
+      <section className="archive-idea" id="project-idea">
+        <ArchiveFilaments variant="idea" paused={reduce}/>
+        <ArchiveIdeaObject paused={reduce}/>
+        <div className="archive-idea-copy"><h2>Есть идея<br/> для проекта?</h2><p>Расскажите о задаче. Вместе определим, с чего начать.</p>
+          <button className="archive-action archive-mint" onClick={()=>onRequest()}>Обсудить проект</button></div>
+      </section>
+
+      <ArchiveProcess paused={reduce}/>
     </div>
 
-    <section className="section home-task-section" aria-labelledby="home-tasks">
-      <h2 id="home-tasks">С какой задачей к нам обращаются</h2>
-      <div className="home-task-options">{taskTypes.map(({title,description,label,art},index)=>
-        <Reveal key={label} delay={index*95}><button className="home-task-card" type="button" onClick={()=>onRequest(label)}>
-          <img src={art} alt="" loading="lazy" decoding="async"/>
-          <span className="home-task-copy"><strong>{title}</strong><span>{description}</span></span>
-          <ArrowRight className="home-task-arrow" size={18} aria-hidden="true"/>
-        </button></Reveal>
-      )}</div>
-    </section>
-
-    <div className="section home-project-board">
-      <div className="home-project-main">
-        <section className="home-solutions" id="services" aria-labelledby="home-solutions-title">
-          <div className="home-section-title"><h2 id="home-solutions-title">Что мы делаем</h2><a className="home-text-link" href="/services">Все решения <ArrowRight size={15}/></a></div>
-          <div className="home-product-grid">{directions.slice(0,4).map(({category,Icon},index)=>
-            <Reveal delay={index*55} key={category}><a className="home-product-card" href={serviceCategoryUrl(category)}>
-              <span className="home-product-icon"><Icon size={28} strokeWidth={1.6} aria-hidden="true"/></span>
-              <h3>{productNames[index]}</h3><ArrowRight size={15} aria-hidden="true"/>
-            </a></Reveal>
-          )}</div>
-        </section>
-        {projects.length>0 && <section className="home-work" id="work" aria-labelledby="home-work-title">
-          <div className="home-section-title"><h2 id="home-work-title">Портфолио</h2><a className="home-text-link" href="/portfolio">Все проекты <ArrowRight size={15}/></a></div>
-          <div className="home-work-grid">{projects.map((project,index)=>
-            <Reveal key={projectSlug(project)} delay={index*55}><WorkTile project={project}/></Reveal>
-          )}</div>
-        </section>}
-      </div>
-      <Reveal className="home-cabinet" delay={95}><aside id="client">
-        <div className="home-cabinet-copy"><h2>Проект под контролем</h2><p>Следите за этапами, переписывайтесь с командой и согласовывайте материалы в одном месте.</p>
-          <button className="secondary-panel" onClick={openLogin}>Войти в кабинет <ArrowRight size={15} aria-hidden="true"/></button>
-        </div>
-        <CabinetPreview paused={effectsPaused}/>
-      </aside></Reveal>
-    </div>
-
-    <ProcessSteps compact/>
-    <section className="section studio-about" id="about">
-      <PartnershipArt/>
-      <Reveal className="studio-about-copy" delay={80}>
-        <h2>О компании</h2>
-        <p>OVERTAKE — независимое цифровое агентство. Объединяем разработку, дизайн и продвижение, чтобы вести проект от идеи до запуска и поддержки.</p>
-        <a className="home-text-link" href="/about">Познакомиться с командой <ArrowRight size={15}/></a>
-      </Reveal>
-    </section>
-
-    <section className="section home-contacts" id="contacts" aria-labelledby="home-contacts-title">
-      <div className="home-contact-grid">
-        <div><h2 id="home-contacts-title">Контакты</h2><p>Поддержка 24/7</p>
-          <div className="home-contact-links">
-            <a href="tel:+79517506700"><Phone size={17}/> +7 (951) 750-67-00</a>
-            {telegram.map(channel=><a key={channel.url} href={channel.url} target="_blank" rel="noopener noreferrer"><Send size={17}/> {channel.label}</a>)}
-            {email && <a href={email}><Mail size={17}/> {content.contacts.email}</a>}
+    <section className="archive-calculator" id="calculator">
+      <ArchiveFilaments variant="calculator" paused={reduce}/>
+      <div className="archive-container archive-calculator-inner">
+        <div><h2>Рассчитайте<br/> стоимость проекта</h2><p>Выберите тип проекта, объём работ и дополнительные функции.</p>
+          <div className="archive-actions">
+            <a className="archive-action archive-mint" href="/calculator">Открыть калькулятор</a>
+            <button className="archive-action archive-outline" onClick={openLogin}>Войти в кабинет</button>
           </div>
-          <a className="home-text-link" href="/contacts">Адрес и запись на встречу <ArrowRight size={15}/></a>
         </div>
-        <OfficeMap address={content.contacts.address || ''} compact/>
+        <ArchiveEstimator paused={reduce}/>
       </div>
-      <details className="home-request" id="request" ref={form}>
-        <summary><span>Оставить заявку</span><ArrowDown size={18} aria-hidden="true"/></summary>
-        <LeadSection contacts={content.contacts} prefill={prefill} heading="Обсудим ваш проект" id="home-lead-form"/>
-      </details>
     </section>
+
+    <section className="archive-portfolio" id="work">
+      <ArchiveFilaments variant="portfolio" paused={reduce}/>
+      <div className="archive-container">
+        <div className="archive-section-heading"><h2>Портфолио</h2></div>
+        {projects.length>0 && <div className="archive-work-list">{projects.map(({slug,phone,src,width,height,title,description})=>
+          <a className="archive-case" key={slug} data-phone={phone} data-project={slug} href={'/portfolio/'+slug}>
+            <div className="archive-case-image">
+              {!phone && <img className="archive-case-stack" src={src} alt="" width={width} height={height} loading="lazy" decoding="async"/>}
+              <img src={src} srcSet={`${src} ${width}w, ${master('work-'+slug,src)} 3840w`}
+                sizes={phone?'(max-width:670px) 45vw, 21vw':'(max-width:670px) 94vw, 54vw'}
+                alt="" width={width} height={height} loading="lazy" decoding="async"/>
+            </div>
+            <div className="archive-case-copy"><h3>{title}</h3><p>{description}</p></div>
+          </a>)}</div>}
+      </div>
+    </section>
+
+    <div className="archive-contact" id="contacts">
+      <ArchiveClosingLines/>
+      <div className="archive-container">
+        <LeadSection contacts={content.contacts} prefill={prefill} heading={<>Давайте обсудим<br/> ваш проект</>} layout="home"/>
+      </div>
+    </div>
   </main>;
 }

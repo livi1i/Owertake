@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
-import {useInView,useReducedMotion} from 'motion/react';
+import {useInView,useReducedMotion} from 'framer-motion';
 import {Check,FileCheck2,LayoutDashboard,MessageSquare} from 'lucide-react';
 
 const stages = [

@@ -1,0 +1,20 @@
+.archive-background {
+  position:absolute;inset:0;z-index:-2;display:block;width:100%;height:100%;max-width:none;
+  object-fit:cover;object-position:center;pointer-events:none;user-select:none;
+}
+.archive-background[data-variant=portfolio] {object-position:left top}
+.archive-background[data-variant=footer] {object-position:left bottom}
+.archive-background[data-variant=contact] {
+  mask-image:linear-gradient(to bottom,transparent 2px,#000 80px,#000 calc(100% - 80px),transparent calc(100% - 2px));
+}
+.archive-background[data-variant=footer] {
+  mask-image:linear-gradient(to bottom,transparent 2px,#000 140px);
+}
+@media(max-width:670px) {
+  .archive-background[data-variant=company],
+  .archive-background[data-variant=process],
+  .archive-background[data-variant=contact] {object-position:left center}
+  .archive-background[data-variant=services] {object-position:45% center}
+  .archive-background[data-variant=idea] {object-position:35% center}
+  .archive-background[data-variant=portfolio] {object-position:left top}
+}

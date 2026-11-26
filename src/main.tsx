@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { LoadBoundary } from "./components/load-boundary";
-import { MotionConfig } from "motion/react";
+import {ArchiveBackground} from './components/archive-background';
+import { LazyMotion, MotionConfig, m, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
   Plus,
@@ -59,21 +60,12 @@ import {directions} from "./components/studio-directions";
 import {CalculatorArt} from "./components/calculator-art";
 import "./studio-finish.css";
 import "./studio-navigation.css";
+import "./overtake-design.css";
 import {api,services,type User,type Project,type Content} from "./lib/app-shared";
+import {Logo} from "./components/logo";
 const AboutPage = React.lazy(() => import("./components/about-page").then(m => ({default:m.AboutPage})));
 const HomePage = React.lazy(() => import("./components/home-page").then(m=>({default:m.HomePage})));
 const Dashboard = React.lazy(() => import("./components/dashboard").then(m=>({default:m.Dashboard})));
-function Logo() {
-  return (
-    <span className="logo">
-      <span className="logo-mark">
-        <i />
-        <i />
-      </span>
-      OVERTAKE<span className="logo-dot">®</span>
-    </span>
-  );
-}
 function PublicBriefRedirect() {
   useEffect(() => { location.replace("/#request"); },[]);
   return <main id="main" className="catalog-page site-route-loading"><a href="/#request">Перейти к форме заявки</a></main>;
@@ -163,21 +155,22 @@ function App() {
   };
   const catalogPath = location.pathname === "/services" || location.pathname.startsWith("/services/");
   const dashboard = route.startsWith("#cabinet") || ["/account","/admin"].includes(location.pathname);
+  const isHome = location.pathname === "/" && !dashboard;
   const knownRoute = ["/","/about","/account","/admin","/contacts","/faq","/brief","/calculator","/services","/portfolio",...Object.keys(legalTitles)].includes(location.pathname) || /^\/(services|portfolio)\/[a-z0-9-]+$/.test(location.pathname);
   const legalPath = legalTitles[location.pathname] ? location.pathname : "";
   return (
-    <MotionConfig reducedMotion="user">
+    <MotionConfig reducedMotion={effectsPaused ? "always" : "user"}>
       <PageScrollbar />
       <a className="skip" href="#main">
         Перейти к содержимому
       </a>
-      <header className="header">
+      <header className={isHome ? "header archive-nav" : "header overtake-nav"}>
         <a href="/#home" aria-label="OVERTAKE — главная">
           <Logo />
         </a>
         <nav className={menu ? "nav open" : "nav"} aria-label="Главное меню">
           <div className="product-nav">
-            <a href="/services" aria-current={catalogPath?"page":undefined}>Продукты и решения</a>
+            <a href="/services" aria-current={catalogPath?"page":undefined}>{isHome ? "Продукты" : "Продукты и решения"}</a>
             <details className="service-menu" ref={serviceMenu} onKeyDown={event => {
             if (event.key === "Escape" && event.currentTarget.open) {
               event.currentTarget.open = false;
@@ -207,19 +200,20 @@ function App() {
           <a href="/about" aria-current={location.pathname==="/about"?"page":undefined}>
             <span>О компании</span>
           </a>
-          <a href="/contacts" aria-current={location.pathname==="/contacts"?"page":undefined}>
+          <a className="nav-contacts" href="/contacts" aria-current={location.pathname==="/contacts"?"page":undefined}>
             <span>Контакты</span>
           </a>
         </nav>
         <div className="header-actions">
           <ThemePicker />
-          <HelpMenu contacts={content.contacts} onRequest={()=>order()} onOpen={()=>{
+          {!isHome && <HelpMenu contacts={content.contacts} onRequest={()=>order()} onOpen={()=>{
             setMenu(false);
             if (serviceMenu.current) serviceMenu.current.open=false;
-          }}/>
+          }}/>}
           <button className="login-link" aria-label={user ? "Личный кабинет" : "Вход"} onClick={openLogin}>
-            <UserRound size={16} aria-hidden="true"/><span className="login-label">{user ? "Кабинет" : "Вход"}</span>
+            <UserRound size={16} aria-hidden="true"/><span className="login-label">{user ? "Кабинет" : isHome ? "Вход в кабинет" : "Вход"}</span>
           </button>
+          {isHome && <a className="archive-header-contact" href="/contacts">Связаться с нами</a>}
           <button
             className="menu-toggle"
             aria-label={menu ? "Закрыть меню" : "Открыть меню"}
@@ -243,11 +237,13 @@ function App() {
       ) : (
         <React.Suspense fallback={<main id="main" className="catalog-page site-route-loading" role="status">Загружаем главную…</main>}><HomePage content={content} openLogin={openLogin} effectsPaused={effectsPaused} prefill={homeLead} onRequest={order}/></React.Suspense>
       )}
-      <footer className="studio-footer">
+      <footer className={isHome ? "studio-footer overtake-footer archive-footer" : "studio-footer overtake-footer"}>
+        {isHome && <ArchiveBackground variant="footer"/>}
         <div className="studio-footer-main">
           <div className="footer-brand"><a href="/" aria-label="OVERTAKE — главная"><Logo/></a><p>Цифровое агентство</p></div>
-          <nav aria-label="Основные страницы"><a href="/services">Продукты и решения</a><a href="/portfolio">Портфолио</a><a href="/about">О компании</a></nav>
-          <div className="footer-connect"><a href="tel:+79517506700">+7 (951) 750-67-00</a><a href="/contacts">Контакты</a><a href="/faq">Вопросы и ответы</a><a href="/legal">Реквизиты</a></div>
+          <nav aria-label="Агентство"><h2>Агентство</h2><a href="/services">Продукты и решения</a><a href="/portfolio">Портфолио</a><a href="/about">О компании</a></nav>
+          <nav aria-label="Начать проект"><h2>Начать проект</h2><a href="/calculator">Калькулятор</a><a href="/#request">Оставить заявку</a><a href="/account">Личный кабинет</a></nav>
+          <div className="footer-connect"><h2>Связаться</h2><a href="tel:+79517506700">+7 (951) 750-67-00</a><a href="/contacts">Контакты</a><a href="/faq">Вопросы и ответы</a><a href="/legal">Реквизиты</a></div>
         </div>
         <div className="studio-footer-legal">
           <span>© {new Date().getFullYear()} OVERTAKE</span>
@@ -261,9 +257,10 @@ function App() {
       <div className="notice-dock">
         <CookiePreferences/>
       </div>
-      <PriceMatch allowed={!dashboard && !modal && !legalPath && location.pathname !== "/brief" && knownRoute} onDiscuss={discussPrice}/>
+      <PriceMatch allowed={!isHome && !dashboard && !modal && !legalPath && location.pathname !== "/brief" && knownRoute} onDiscuss={discussPrice}/>
       {modal && (
         <Modal
+          effectsPaused={effectsPaused}
           close={() => setModal("")}
           title={
             modal === "auth"
@@ -397,16 +394,21 @@ function CaseDetail({
     </div>
   );
 }
+const loadDialogMotion = () => import("./components/dialog-motion").then(module => module.dialogMotion);
+
 function Modal({
   title,
   close,
   children,
+  effectsPaused,
 }: {
   title: string;
   close: () => void;
   children: React.ReactNode;
+  effectsPaused: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const reduce = useReducedMotion() || effectsPaused;
   useEffect(() => {
     const previous = document.activeElement as HTMLElement;
     document.body.style.overflow = "hidden";
@@ -441,19 +443,25 @@ function Modal({
     };
   }, []);
   return (
-    <div
+    <LazyMotion features={loadDialogMotion}><m.div
       className="modal-backdrop"
+      initial={reduce ? false : {opacity:0}}
+      animate={{opacity:1}}
+      transition={{duration:.18}}
       onClick={(e) => {
         if (e.target === e.currentTarget) close();
       }}
     >
-      <div
+      <m.div
         ref={ref}
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
         className="modal"
+        initial={reduce ? false : {y:12,scale:.985}}
+        animate={{y:0,scale:1}}
+        transition={{duration:.28,ease:[.22,1,.36,1]}}
       >
         <button
           className="modal-close"
@@ -462,11 +470,10 @@ function Modal({
         >
           <X />
         </button>
-        <span className="eyebrow muted">OVERTAKE / НАЧНЁМ С ГЛАВНОГО</span>
         <h2 id="modal-title">{title}</h2>
         {children}
-      </div>
-    </div>
+      </m.div>
+    </m.div></LazyMotion>
   );
 }
 function Auth({ onSuccess }: { onSuccess: () => void }) {

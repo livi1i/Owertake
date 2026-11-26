@@ -1,4 +1,5 @@
 import {useEffect,useRef} from 'react';
+import {motion,useReducedMotion} from 'framer-motion';
 import {Calculator,MessageCircle,X} from 'lucide-react';
 import {offerPrice,type PublicOffer} from '../lib/public-prices';
 
@@ -10,11 +11,13 @@ export function ProductDialog({product,close,order}:{
   product:ProductDetails;close:()=>void;order:(name:string,description?:string)=>void;
 }) {
   const dialog=useRef<HTMLDialogElement>(null);
+  const reduce=useReducedMotion() || document.documentElement.classList.contains('effects-paused');
   useEffect(()=>{dialog.current?.showModal();},[]);
   const quote=product.offers.length===1?product.offers[0]:undefined;
   return <dialog ref={dialog} className="product-dialog" aria-labelledby="product-dialog-title" onClose={close}
     onClick={event=>{if(event.currentTarget===event.target) event.currentTarget.close();}}>
-    <div className="product-dialog-content">
+    <motion.div className="product-dialog-content" initial={reduce?false:{opacity:0,y:10}} animate={{opacity:1,y:0}}
+      transition={{duration:.26,ease:[.22,1,.36,1]}}>
       <header><h2 id="product-dialog-title">{product.title}</h2><button type="button" aria-label="Закрыть описание" onClick={()=>dialog.current?.close()} autoFocus><X size={20}/></button></header>
       <p>{product.description}</p>
       {quote ? <>{quote.scope!==product.description && <p>{quote.scope}</p>}<strong className="product-dialog-price">{offerPrice(quote)}</strong></> :
@@ -29,6 +32,6 @@ export function ProductDialog({product,close,order}:{
         {product.available===false && <p>Приём заказов временно приостановлен.</p>}
         {product.slug && product.available!==false && <a className="secondary-panel" href={'/calculator?'+new URLSearchParams({service:product.slug})}><Calculator size={17}/> В калькулятор</a>}
       </div>
-    </div>
+    </motion.div>
   </dialog>;
 }

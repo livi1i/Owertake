@@ -3133,9 +3133,6 @@ h2 {
 .effects-paused .service-animation.is-playing * {
   animation-play-state: paused !important;
 }
-.motion-control {
-  color: var(--ui-muted,#9274ae) !important;
-}
 .section-sign {
   gap: 25px;
   margin-block: 8px 39px;

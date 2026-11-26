@@ -1,5 +1,5 @@
 import React,{useRef} from 'react';
-import {useInView,useReducedMotion} from 'motion/react';
+import {useInView,useReducedMotion} from 'framer-motion';
 import {ArrowUpRight,Sparkles,MoveUpRight} from 'lucide-react';
 import {BorderBeam} from './magicui/border-beam';
 import './project-invitation.css';

@@ -11,3 +11,5 @@ dist/
 *.sqlite-*
 *.pem
 *.key
+__pycache__/
+*.pyc

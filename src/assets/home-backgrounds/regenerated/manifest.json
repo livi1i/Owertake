@@ -1,0 +1,42 @@
+{
+  "method": "Built-in ImageGen, regenerated from original 01–09 PNG references",
+  "nativeDimensions": {
+    "hero": [
+      1586,
+      992
+    ],
+    "company": [
+      1672,
+      941
+    ],
+    "services": [
+      1448,
+      1086
+    ],
+    "idea": [
+      2172,
+      724
+    ],
+    "process": [
+      1774,
+      887
+    ],
+    "calculator": [
+      1774,
+      887
+    ],
+    "portfolio": [
+      1024,
+      1536
+    ],
+    "contact": [
+      1586,
+      992
+    ],
+    "footer": [
+      2172,
+      724
+    ]
+  },
+  "notes": "Requested larger canvas sizes were not guaranteed by the tool. These are native outputs, not upscaled 4K exports. Original PNGs preserved in parent directory."
+}

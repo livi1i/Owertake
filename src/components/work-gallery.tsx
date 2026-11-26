@@ -1,5 +1,5 @@
 import React,{useId,useState} from 'react';
-import {motion,useReducedMotion} from 'motion/react';
+import {motion,useReducedMotion} from 'framer-motion';
 import {ArrowUpRight,Plus} from 'lucide-react';
 import {portfolioConcepts,projectSlug} from '../lib/portfolio';
 import {ConceptVisual} from './concept-visual';

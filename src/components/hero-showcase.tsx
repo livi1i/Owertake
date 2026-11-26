@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import {useEffect,useRef,useState,type PointerEvent} from 'react';
-import {useInView,useReducedMotion} from 'motion/react';
+import {useInView,useReducedMotion} from 'framer-motion';
 import {Bot,CalendarCheck,FileCheck2,Kanban,LayoutDashboard,Workflow} from 'lucide-react';
 import calculator from '../assets/hero-calculator.webp?inline';
 import amoreterno from '../assets/hero-amoreterno.webp?inline';

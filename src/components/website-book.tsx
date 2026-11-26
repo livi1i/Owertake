@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion, useInView, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Pause, Play } from "lucide-react";
 import { WebsitePage, names } from "./website-pages";
 import { nextBookPage } from "./book-model";

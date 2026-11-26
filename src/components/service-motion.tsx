@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { useInView } from "motion/react";
+import { useInView } from "framer-motion";
 import { ArrowUpRight, Check, Send, Code2, Heart, Plus } from "lucide-react";
 export function ServiceMotion({ index }: { index: number }) {
   const ref = useRef<HTMLDivElement>(null);

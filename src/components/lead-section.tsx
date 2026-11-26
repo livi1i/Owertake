@@ -19,8 +19,8 @@ function validContact(method:Method,value:string) {
   return /^(?:(?:https:\/\/)?(?:m\.)?vk\.com\/|@)?[a-z\d_.-]{2,80}\/?$/i.test(value);
 }
 
-export function LeadSection({contacts={},prefill,heading='Обсудим ваш проект',introExtra,id='request'}:{
-  contacts?:Record<string,string>;prefill?:LeadPrefill;heading?:string;introExtra?:ReactNode;id?:string;
+export function LeadSection({contacts={},prefill,heading='Обсудим ваш проект',introExtra,id='request',layout='standard'}:{
+  contacts?:Record<string,string>;prefill?:LeadPrefill;heading?:ReactNode;introExtra?:ReactNode;id?:string;layout?:'standard'|'home';
 }) {
   const [method,setMethod] = useState<Method>('Телефон');
   const [service,setService] = useState('');
@@ -82,15 +82,20 @@ export function LeadSection({contacts={},prefill,heading='Обсудим ваш 
   }
 
   const selectOptions = service && !projectTypes.includes(service) ? [service,...projectTypes] : projectTypes;
+  const contactLinks = <div className="lead-contact"><span>Удобнее позвонить или написать?</span><a href="tel:+79517506700"><Phone size={13} aria-hidden="true"/> +7 (951) 750-67-00</a>
+    {telegram && <a href={contactTelegram(telegram)!} target="_blank" rel="noopener noreferrer"><Send size={13} aria-hidden="true"/> Telegram</a>}
+  </div>;
   return <section className="lead-section" id={id} aria-labelledby={id+"-title"}>
     <div className="lead-intro">
+      {layout==='home' && <div className="lead-brand" aria-hidden="true"><Logo/></div>}
       <h2 id={id+"-title"}>{heading}</h2>
       <p>Расскажите, что хотите изменить. Подберём решение и уточним, сколько займёт работа.</p>
-      <ol className="lead-steps">
+      {layout==='standard' && <ol className="lead-steps">
         <li><MessageSquare size={20}/><div><strong>Уточним задачу</strong><span>Свяжемся удобным для вас способом.</span></div></li>
         <li><ClipboardList size={20}/><div><strong>Подготовим предложение</strong><span>Опишем состав работ, стоимость и сроки.</span></div></li>
         <li><CheckCircle2 size={20}/><div><strong>Согласуем старт</strong><span>Зафиксируем договорённости и начнём работу.</span></div></li>
-      </ol>
+      </ol>}
+      {layout==='home' && contactLinks}
       {introExtra}
     </div>
     <div className="lead-surface">
@@ -99,7 +104,7 @@ export function LeadSection({contacts={},prefill,heading='Обсудим ваш 
       </div> :
       <form className="lead-fields" onSubmit={submit}>
         <div className="lead-fields-grid">
-          <label>Имя<input name="name" autoComplete="name" maxLength={80} required placeholder="Как к вам обращаться"/></label>
+          <label>Имя<input name="name" autoComplete="name" maxLength={80} required placeholder={layout==='home'?'Введите ваше имя':'Как к вам обращаться'}/></label>
           <StudioSelect label="Способ связи" value={method} onChange={value => setMethod(value as Method)} groups={[{choices:methods.map(value => ({value,label:value}))}]}/>
         </div>
         <label>{method === 'Почта' ? 'Электронная почта' : method === 'Телефон' ? 'Номер телефона' : 'Логин или ссылка на профиль'}
@@ -111,15 +116,14 @@ export function LeadSection({contacts={},prefill,heading='Обсудим ваш 
           <StudioSelect label="Что нужно" value={service} onChange={setService} placeholder="Выберите услугу" groups={[{choices:selectOptions.map(value => ({value,label:value}))}]}/>
           <StudioSelect label="Ориентир по бюджету" name="budget" value={budget} onChange={setBudget} groups={[{choices:budgets.map(value => ({value,label:value}))}]}/>
         </div>
-        <label>Коротко о задаче<textarea name="description" rows={prefill ? 7 : 4} minLength={10} maxLength={4400} value={description}
-          onChange={event => setDescription(event.target.value)} placeholder="Что должно получиться и когда это нужно?" required/></label>
+        <label>Коротко о задаче<textarea name="description" rows={layout==='home' ? (prefill?.description ? 6 : 3) : (prefill ? 7 : 4)} minLength={10} maxLength={4400} value={description}
+          onChange={event => setDescription(event.target.value)} placeholder={layout==='home'?'Опишите задачу, цели и важные детали':'Что должно получиться и когда это нужно?'} required/></label>
         <ConsentLabel purpose="для ответа на обращение"/>
         {error && <p role="alert" className="error">{error}</p>}
         <button className="btn purple" type="submit" disabled={busy}>{busy ? 'Отправляем…' : 'Отправить заявку'}</button>
       </form>}
-      <div className="lead-contact"><span>Удобнее позвонить или написать?</span><a href="tel:+79517506700"><Phone size={13}/> +7 (951) 750-67-00</a>
-        {telegram && <a href={contactTelegram(telegram)!} target="_blank" rel="noopener noreferrer"><Send size={13}/> Telegram</a>}
-      </div>
+      {layout==='standard' && contactLinks}
     </div>
   </section>;
 }
+import {Logo} from './logo';

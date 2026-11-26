@@ -1,0 +1,199 @@
+/* Shared site chrome and the visual language carried from the home page. */
+:root[data-theme=light] {
+  --paper:#edf7fd;
+  --ink:#091c33;
+  --muted:#36536d;
+  --line:#c8dfed;
+  --purple:#075b94;
+  --ui-surface:#f9fdff;
+  --ui-soft:#e3f2fb;
+  --ui-tint:#cfeaf7;
+  --studio-wash:#d3eefb;
+  --studio-primary:linear-gradient(145deg,#087dba,#064875);
+  --soft-card:linear-gradient(145deg,#fbfdff,#e6f4fc);
+}
+:root[data-theme=dark] {
+  --paper:#041a2d;
+  --ink:#eefaff;
+  --muted:#b3d4e5;
+  --line:#26516a;
+  --purple:#a0f4e3;
+  --ui-surface:#0b2940;
+  --ui-soft:#113b53;
+  --ui-tint:#174b61;
+  --studio-wash:#12374e;
+  --studio-primary:linear-gradient(145deg,#1475a4,#0a4265);
+  --soft-card:linear-gradient(145deg,#102f47,#092437);
+}
+html[data-theme] :focus-visible {outline:2px solid var(--purple);outline-offset:3px}
+html[data-theme] .header.overtake-nav {border-radius:100px;background:color-mix(in srgb,var(--ui-surface) 86%,transparent)}
+html[data-theme] .header.archive-nav {
+  position:absolute;display:flex;justify-content:space-between;align-items:center;
+  top:clamp(14px,2.1vw,38px);left:50%;transform:translateX(-50%);margin:0;
+  width:calc(100% - clamp(28px,7vw,114px));max-width:1680px;height:clamp(58px,6.6vw,92px);
+  padding:0;gap:clamp(8px,2.5vw,36px);color:#e5faff;background:none;border:0;box-shadow:none;
+  backdrop-filter:none;
+}
+html[data-theme] .archive-nav .logo {font-size:clamp(19px,2.35vw,37px)}
+html[data-theme] :is(.archive-nav,.overtake-footer,.lead-brand) .logo {color:#eefaff}
+html[data-theme] :is(.archive-nav,.overtake-footer,.lead-brand) .logo-mark i {background:#a6f9ee;height:18px;border-radius:2px}
+html[data-theme] :is(.archive-nav,.overtake-footer,.lead-brand) .logo-mark i:last-child {background:#c9c4ff}
+html[data-theme] .archive-nav .nav {
+  display:flex;gap:clamp(3px,.9vw,14px);border:1px solid #a1deef6b;border-radius:100px;padding:3px 8px;
+  background:#084261a3;box-shadow:inset 0 1px 13px #86e8ff40;backdrop-filter:blur(16px);
+}
+html[data-theme] .archive-nav .nav > a,html[data-theme] .archive-nav .product-nav > a,
+html[data-theme] .archive-nav .service-menu > summary {
+  color:#e4faff;min-height:44px;display:inline-flex;align-items:center;justify-content:center;
+  font-size:clamp(13px,1.12vw,18px);font-weight:620;padding:0 clamp(8px,1.3vw,24px);border-radius:100px;white-space:nowrap;
+}
+html[data-theme] .archive-nav .service-menu > summary {padding-inline:7px}
+html[data-theme] .archive-nav .service-menu > summary span {display:none}
+html[data-theme] .archive-nav :is(.nav > a,.product-nav > a,.service-menu > summary):is(:hover,:focus-visible) {background:#4384a269;color:#fff}
+html[data-theme] .archive-nav .nav > .nav-contacts {display:none}
+html[data-theme] .archive-nav .header-actions {gap:clamp(7px,1.4vw,25px)}
+html[data-theme] .header.archive-nav .theme-switch,html[data-theme] .header.archive-nav .login-link {
+  min-height:44px;color:#e3f9ff;background:#083a5a9c;border:1px solid #a6d6e5a1;box-shadow:inset 0 0 10px #43bcdf24;
+}
+html[data-theme] .header.archive-nav .login-link {font-size:clamp(12px,1.1vw,17px);white-space:nowrap;border-radius:100px}
+html[data-theme] .archive-nav .login-link svg {display:none}
+html[data-theme] .archive-nav .login-link .login-label {display:inline}
+html[data-theme] .archive-nav :is(.login-link,.theme-switch,.menu-toggle):is(:hover,:focus-visible) {color:white;background:#155a76}
+.archive-header-contact {
+  display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding-inline:clamp(13px,1.7vw,27px);
+  border-radius:100px;border:1px solid #37c6ae65;background:linear-gradient(135deg,#127d77,#056471);
+  color:#f0fffb;font-size:clamp(12px,1.05vw,17px);font-weight:700;white-space:nowrap;
+  box-shadow:inset 0 0 14px #4affc44a;transition:background .2s,transform .15s;
+}
+.archive-header-contact:hover {background:#116f72;transform:translateY(-1px)}
+html[data-theme] .archive-nav :where(a,button,summary):focus-visible {outline-color:#a6ffdf}
+
+html[data-theme] .overtake-footer {
+  color:#eafaFF;background:radial-gradient(ellipse at 87% 14%,#08798755,transparent 58%),linear-gradient(115deg,#034567,#04566a);
+  padding:clamp(38px,5.5vw,95px) clamp(20px,5vw,82px) 20px;
+}
+html[data-theme] .archive-footer {
+  position:relative;isolation:isolate;
+  border-radius:0;
+  margin:0;
+  overflow:clip;padding:0;
+  background:#03476c
+}
+.overtake-footer .studio-footer-main,.overtake-footer .studio-footer-legal {width:min(100%,1440px);margin-inline:auto}
+.overtake-footer .studio-footer-main {
+  display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr;gap:clamp(16px,3vw,58px);
+  align-items:start;padding-bottom:clamp(30px,5vw,76px)
+}
+.overtake-footer .studio-footer-main :is(nav,.footer-connect) {
+  grid-column:auto;display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0;
+}
+.overtake-footer .studio-footer-main h2 {font-size:clamp(17px,1.75vw,28px);line-height:1.16;letter-spacing:-.035em;margin:0 0 9px;color:#f3fcff}
+.overtake-footer .studio-footer-main h2::before {content:"";display:block;width:40px;height:3px;background:#a5fff2;margin-bottom:12px}
+.overtake-footer .studio-footer-main :is(nav,.footer-connect) a {color:#dcf4ff;font-size:clamp(14px,1.15vw,19px);line-height:1.35;padding:3px 0}
+.overtake-footer .studio-footer-main a:hover,.overtake-footer .studio-footer-legal a:hover {color:#b4ffdc;text-decoration:underline;text-underline-offset:4px}
+.overtake-footer .footer-brand {position:relative;isolation:isolate;align-self:center;gap:0}
+.overtake-footer .footer-brand::before,.overtake-footer .footer-brand::after {content:"";position:absolute;z-index:-1;top:50%;height:145px;width:40px;background:#52d8ff25;transform:translateY(-50%) skewX(-26deg);left:0;pointer-events:none}
+.overtake-footer .footer-brand::after {left:56px}
+.overtake-footer .studio-footer-main .logo {color:#effcff;font-size:clamp(22px,2.5vw,40px)}
+.overtake-footer .studio-footer-main .footer-brand p {color:#d4edf9;font-size:clamp(13px,1.05vw,17px)}
+.overtake-footer .logo-mark i {background:#90fff0}
+.overtake-footer .studio-footer-legal {border-top:1px solid #b8e4ed43;display:flex;align-items:center;gap:4px 17px;padding-top:13px;font-size:12px;color:#dfedf5}
+.overtake-footer .studio-footer-legal::before {display:none}
+.overtake-footer .studio-footer-legal a,.overtake-footer .motion-control {color:#effaff}
+.overtake-footer .motion-control {background:#003e5340;min-height:40px;border-color:#bcf5ec60}
+.overtake-footer :where(a,button):focus-visible {outline-color:#a6ffdf}
+html[data-theme] .archive-footer .studio-footer-main {
+  position:relative;isolation:isolate;width:100%;padding:clamp(40px,6.45vw,100px) clamp(24px,5.55vw,90px);
+  grid-template-columns:1.28fr 1fr 1.07fr 1fr;gap:clamp(18px,3vw,54px)
+}
+.archive-footer .studio-footer-main::before {
+  display:none
+}
+.archive-footer .footer-brand::before,.archive-footer .footer-brand::after {display:none}
+.archive-footer .studio-footer-main h2::before {background:#e2fff7;width:clamp(27px,4.2vw,70px)}
+.archive-footer .studio-footer-legal {
+  width:100%;padding:clamp(12px,1.9vw,28px) clamp(19px,3vw,46px);
+  background:transparent;font-size:clamp(10px,.87vw,14px)
+}
+html[data-theme] .archive-footer .motion-control {color:#eafaff;background:none;border-color:transparent}
+.archive-nav :where(a,button,summary),.archive-footer :where(a,button) {
+  transition:transform .18s cubic-bezier(.22,1,.36,1),color .18s,background-color .18s,border-color .18s
+}
+@media (hover:hover) {
+  .archive-nav :where(a,button,summary):hover,.archive-footer :where(a,button):hover {transform:translateY(-1px)}
+  .archive-nav :where(a,button,summary):active,.archive-footer :where(a,button):active {transform:scale(.98)}
+}
+
+html[data-theme] body:has(.overtake-nav) {
+  background:radial-gradient(ellipse at 98% 0%,var(--studio-wash),transparent 40rem),var(--paper);
+}
+html[data-theme] .page-banner,
+html[data-theme] .brief-heading {
+  background:radial-gradient(ellipse at 95% 0%,var(--studio-wash),transparent 65%),var(--soft-card);
+  border-color:var(--line);border-radius:clamp(22px,3vw,44px);
+  padding-block:clamp(27px,4vw,64px);
+}
+html[data-theme] .page-banner h1,html[data-theme] .brief-heading h1 {letter-spacing:-.062em;text-wrap:balance}
+html[data-theme] .page-banner p,html[data-theme] .brief-heading p {color:var(--muted)}
+html[data-theme] .page-banner :is(.btn.purple,.secondary-panel),html[data-theme] .overtake-nav .login-link {border-radius:100px}
+html[data-theme] :is(.catalog-filters,.quote-pills) button {min-height:44px}
+html[data-theme] .modal-backdrop {background:#01182caa;backdrop-filter:blur(9px);overscroll-behavior:contain}
+html[data-theme] .modal {
+  border-radius:clamp(20px,3vw,38px);border-color:var(--line);
+  box-shadow:0 0 0 4px #73d5ed42,0 24px 70px #001c3d66;
+  background:radial-gradient(ellipse at 100% 0%,var(--studio-wash),transparent 56%),var(--ui-surface);
+  color:var(--ink);overscroll-behavior:contain;
+}
+html[data-theme] .modal h2 {font-size:clamp(29px,4.2vw,48px);letter-spacing:-.055em;line-height:1.06;margin-top:8px}
+html[data-theme] .modal .modal-close {min-width:44px;min-height:44px;border-radius:50%}
+html[data-theme] .modal .auth-tabs {padding:4px;border-radius:100px}
+html[data-theme] .modal .auth-tabs button {min-height:44px;border-radius:100px}
+html[data-theme] .product-dialog {
+  border-radius:clamp(20px,3vw,34px);border-color:var(--line);overscroll-behavior:contain;
+  background:radial-gradient(ellipse at 100% 0%,var(--studio-wash),transparent 65%),var(--ui-surface);
+  box-shadow:0 0 0 4px #73d5ed42,0 24px 70px #001c3d66;
+}
+html[data-theme] .product-dialog[open] {animation:none}
+html[data-theme] .product-dialog::backdrop {background:#01182caa;backdrop-filter:blur(9px)}
+html[data-theme] .product-dialog header button {width:44px;height:44px;border-radius:50%}
+
+html[data-theme] .dashboard {gap:clamp(18px,3vw,38px)}
+html[data-theme] .dashboard-sidebar {border-radius:22px;background:var(--soft-card);border-color:var(--line)}
+html[data-theme] .dashboard-account {padding-bottom:15px;border-bottom:1px solid var(--line);margin-bottom:9px}
+html[data-theme] .dashboard-sidebar nav button {min-height:44px}
+html[data-theme] .dashboard-sidebar nav button.active {background:var(--ui-tint);color:var(--purple)}
+html[data-theme] .dashboard-main :is(.project-panel,.project-card,.dashboard-card,.crm-workspace,.dashboard-overview) {border-color:var(--line)}
+html[data-theme] .cabinet-entry-panel {min-height:clamp(320px,47vh,560px)}
+
+@media (max-width:900px) {
+  html[data-theme] .archive-nav .archive-header-contact {display:none}
+  html[data-theme] .archive-nav .nav.open .nav-contacts {display:inline-flex}
+  html[data-theme] .archive-nav .nav:not(.open) {display:none}
+  html[data-theme] .archive-nav .menu-toggle {display:grid;place-items:center;min-width:44px;min-height:44px;color:#e8fbff;background:#0b456a91;border:1px solid #9ed5e596;border-radius:50%}
+  html[data-theme] .archive-nav .nav.open {
+    position:absolute;left:0;right:0;top:calc(100% + 10px);width:auto;display:grid;gap:5px;
+    background:#08394cf5;border-radius:22px;padding:12px;max-height:70dvh;overflow-y:auto;overscroll-behavior:contain;
+  }
+  html[data-theme] .archive-nav .nav.open > a,html[data-theme] .archive-nav .nav.open :is(.product-nav > a,.service-menu > summary) {justify-content:flex-start}
+  html[data-theme] .archive-nav .service-menu > summary span {display:inline}
+  html[data-theme] .archive-nav .service-menu > summary {gap:7px;padding-inline:12px}
+  .overtake-footer .studio-footer-main {grid-template-columns:repeat(2,minmax(0,1fr))}
+  html[data-theme] .archive-footer .studio-footer-main {grid-template-columns:repeat(2,minmax(0,1fr))}
+  .overtake-footer .footer-brand {align-self:start;margin-top:8px}
+}
+@media (max-width:410px) {
+  html[data-theme] .archive-nav .login-link .login-label {display:none}
+  html[data-theme] .archive-nav .login-link svg {display:block}
+  html[data-theme] .archive-nav .login-link {justify-content:center;width:44px;padding:0}
+}
+@media (max-width:670px) {
+  html[data-theme] .archive-footer {margin:0;border-radius:0;border-top:0}
+}
+@media (max-width:350px) {
+  html[data-theme] .archive-nav .logo {font-size:16px;gap:5px}
+  html[data-theme] .archive-nav .logo-mark {width:23px}
+}
+@media (prefers-reduced-motion:reduce) {
+  .archive-nav :where(a,button,summary),.archive-footer :where(a,button) {transition:none!important;transform:none!important}
+}
+.effects-paused :is(.archive-nav,.archive-footer) :where(a,button,summary) {transition:none!important;transform:none!important}

@@ -1,3 +1,5 @@
+> Актуальная палитра: [OVERTAKE-DESIGN.md](./OVERTAKE-DESIGN.md), раздел «Обязательная палитра Overtake». Его цветовые правила заменяют старые палитры ниже. Главную страницу не менять.
+
 # Design System Master File
 
 > **LOGIC:** When building a specific page, first check `design-system/pages/[page-name].md`.
