@@ -1,8 +1,12 @@
+import {pricebook} from "../src/lib/public-prices.ts";
 import {readFile,writeFile,mkdir,cp,readdir} from 'node:fs/promises';
 import {randomBytes,createHash,createHmac} from 'node:crypto';
 const mode=process.argv[2]||'package';
 await mkdir('.local',{recursive:true});
-const seoPhp=(await readFile('server/timeweb-seo.php','utf8')).replace(/^<\?php\s*/, '');const apiPhp=(await readFile('server/timeweb-api.php','utf8')).replace('declare(strict_types=1);','declare(strict_types=1);\n'+seoPhp);
+const os5Prices=pricebook().flatMap(group=>group.offers).map(({amount,...item})=>({...item,minor:Math.round(amount*100)}));
+const os5PricePhp="const OS5_PRICEBOOK='"+Buffer.from(JSON.stringify(os5Prices)).toString('base64')+"';\n";
+const os5Php=(await readFile('server/timeweb-os5.php','utf8')).replace(/^<\?php\s*/, '');
+const seoPhp=(await readFile('server/timeweb-seo.php','utf8')).replace(/^<\?php\s*/, '');const apiPhp=(await readFile('server/timeweb-api.php','utf8')).replace('declare(strict_types=1);','declare(strict_types=1);\n'+os5PricePhp+os5Php+'\n'+seoPhp);
 const files={'client/index.html':(await readFile('dist/client/index.html')).toString('base64'),'api.php':Buffer.from(apiPhp).toString('base64')};for(const f of await readdir('dist/client/assets'))files['client/assets/'+f]=(await readFile('dist/client/assets/'+f)).toString('base64');
 if(mode==='release'){
  const manifest=JSON.stringify(files);

@@ -1,3 +1,4 @@
+import {os5,os5Error,os5Request} from "./os5.mjs";
 const enc = new TextEncoder();
 const json = (body, status = 200, headers = {}) =>
   Response.json(body, {
@@ -69,7 +70,7 @@ export async function api(req, env) {
         .all()
     ).results;
   try {
-    const requestLimit = /^\/api\/leads\/[\w-]+\/attachments$/.test(path) && req.method === "POST" ? 710000 : 20000;
+    const requestLimit = ((os5Request.test(path) && /\/(issue|signed)$/.test(path)) || /^\/api\/leads\/[\w-]+\/attachments$/.test(path)) && req.method === "POST" ? 710000 : 20000;
     if (!["GET", "HEAD"].includes(req.method)) {
       if (req.headers.get("origin") && req.headers.get("origin") !== url.origin)
         fail("Недопустимый источник запроса", 403);
@@ -97,6 +98,20 @@ export async function api(req, env) {
       } catch {
         fail("Некорректный запрос");
       }
+    }
+    if (path==="/api/os5/status" && req.method==="GET") return json({enabled:Boolean(env.OS5_PRICES)});
+    if (os5Request.test(path)) {
+      if (!env.OS5_PRICES) return json({error:'CRM 5.0 ещё не включена'},503);
+      const settings=await one("SELECT data FROM content WHERE id='public'");
+      const overrides=JSON.parse(settings?.data||'{}').prices||{};
+      const prices=Object.fromEntries(env.OS5_PRICES.map(item=>{
+        const configured=overrides[item.code];
+        const minor=typeof configured==='string'&&/^[0-9]{1,8}(?:\.[0-9]{1,2})?$/.test(configured)&&Number(configured)>0
+          ? Math.round(Number(configured)*100) : item.minor;
+        return [item.code,{...item,minor}];
+      }));
+      try {return await os5(req,path,user,body,db,prices,{fail,text,hex,json});}
+      catch(error){ return os5Error(error,json); }
     }
     const requireUser = () => {
       if (!user) fail("Войдите в аккаунт", 401);
@@ -348,17 +363,20 @@ export async function api(req, env) {
           "Заполните все поля, опишите задачу (от 10 символов) и подтвердите согласие",
         );
       const id = crypto.randomUUID();
-      await run(
-        "INSERT INTO leads(id,user_id,name,contact,service,description,created) VALUES (?,?,?,?,?,?,?)",
-        id,
-        user?.id || null,
-        name,
-        contact,
-        service,
-        description,
-        new Date().toISOString(),
-      );
-      await recordConsent(id, "inquiry");
+      const created = new Date().toISOString();
+      const sql="INSERT INTO leads(id,user_id,name,contact,service,description,created) VALUES (?,?,?,?,?,?,?)";
+      const args=[id,user?.id||null,name,contact,service,description,created];
+      if (env.OS5_PRICES) {
+        const consent={recordId:id,purpose:'inquiry',version:body.consentVersion==='2026-11-16.1'?body.consentVersion:'legacy-unspecified',accepted:true,created};
+        const mutations=[db.prepare(sql).bind(...args),db.prepare('INSERT INTO content(id,data) VALUES (?,?)').bind('consent:'+id,JSON.stringify(consent))];
+        if (typeof body.referral==='string' && /^[a-z0-9][a-z0-9-]{2,39}$/.test(body.referral)) {
+          mutations.push(db.prepare('INSERT INTO os5_referrals(request_id,partner_id,created) SELECT ?,id,? FROM os5_partners WHERE active=1 AND code=?')
+            .bind(id,created,body.referral));
+        }
+        await db.batch(mutations);
+      } else {
+        await run(sql,...args);await recordConsent(id,'inquiry');
+      }
       return json({ id });
     }
     if (path === "/api/leads" && req.method === "GET") {

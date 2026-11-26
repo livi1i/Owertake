@@ -17,13 +17,27 @@ try{
  $db=new PDO('sqlite:'.$private.'/data.sqlite',null,null,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_TIMEOUT=>10]);$db->exec('PRAGMA foreign_keys=ON');$db->exec('PRAGMA busy_timeout=10000');
  if(!one("SELECT name FROM sqlite_master WHERE name='users'")){$lock=fopen($private.'/schema.lock','c');flock($lock,LOCK_EX);if(!one("SELECT name FROM sqlite_master WHERE name='users'")){$db->beginTransaction();$db->exec(file_get_contents($private.'/schema.sql'));$db->commit();chmod($private.'/data.sqlite',0600);}flock($lock,LOCK_UN);fclose($lock);}
  $method=$_SERVER['REQUEST_METHOD'];$path=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH);$body=[];
- if(!str_starts_with($path,'/api/')){if(!in_array($method,['GET','HEAD'],true))reply(['error'=>'Метод не поддерживается'],405);if(function_exists('render_seo'))render_seo($path);reply(['error'=>'SEO module unavailable'],503);}
+ if(!str_starts_with($path,'/api/')){
+  if(!in_array($method,['GET','HEAD'],true))reply(['error'=>'Метод не поддерживается'],405);
+  if(preg_match('~^/cabinet(?:/[a-z-]+)?$~D',$path)&&function_exists('os5_enabled')&&os5_enabled()){
+   header('Content-Type: text/html; charset=utf-8');header('Cache-Control: private, no-store');header('X-Robots-Tag: noindex, nofollow');
+   header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
+   if($method==='GET')echo json_decode(file_get_contents($release.'/client/assets/os5-workspace-shell.js'),true,512,JSON_THROW_ON_ERROR);
+   exit;
+  }
+  if(function_exists('render_seo'))render_seo($path);
+  reply(['error'=>'SEO module unavailable'],503);
+ }
  if(!in_array($method,['GET','HEAD'],true)){
   if(!str_contains($_SERVER['CONTENT_TYPE']??'','application/json'))bad('Ожидается JSON',415);
   $origin=$_SERVER['HTTP_ORIGIN']??'';if($origin&&$origin!==$config['origin'])bad('Недопустимый источник запроса',403);
-  $requestLimit=$method==='POST'&&preg_match('~^/api/leads/[\w-]+/attachments$~',$path)?710000:20000;$raw=file_get_contents('php://input',false,null,0,$requestLimit+1);if(strlen($raw)>$requestLimit)bad('Запрос слишком большой',413);$body=json_decode($raw,true);if(!is_array($body))bad('Некорректный запрос');
+  $requestLimit=$method==='POST'&&preg_match('~^/api/(?:leads/[\w-]+/attachments|os5/invoices/[\w-]+/(?:issue|signed))$~',$path)?710000:20000;$raw=file_get_contents('php://input',false,null,0,$requestLimit+1);if(strlen($raw)>$requestLimit)bad('Запрос слишком большой',413);$body=json_decode($raw,true);if(!is_array($body))bad('Некорректный запрос');
  }
  $cookie=$_COOKIE['ot_session']??'';$user=$cookie?one('SELECT u.id,u.name,u.email,u.role FROM users u JOIN sessions s ON u.id=s.user_id WHERE s.token=? AND s.expires>?',[hash('sha256',$cookie),nowms()]):null;
+ if(preg_match('~^/api/os5(?:/|$)~',$path)){
+  if(!function_exists('os5_dispatch'))reply(['enabled'=>false],$path==='/api/os5/status'?200:503);
+  try{os5_dispatch($path,$method,$body);}catch(PDOException $error){os5_error($error);}
+ }
  if($path==='/api/admin/consents'&&$method==='GET'){admin();reply(['consents'=>array_map(fn($r)=>json_decode($r['data']),many("SELECT data FROM content WHERE id LIKE 'consent:%' ORDER BY id"))]);}
  if(in_array($path,['/api/services','/api/admin/services'],true)&&$method==='GET'){$isAdmin=$path==='/api/admin/services';if($isAdmin)admin();$items=array_map(fn($r)=>json_decode($r['data'],true),many("SELECT data FROM content WHERE id LIKE 'service:%'"));reply(['services'=>array_map(fn($s)=>!$isAdmin&&$s['status']==='Скрыта'?['slug'=>$s['slug'],'status'=>$s['status']]:$s,$items)]);}
  if($path==='/api/admin/services'&&$method==='PUT'){admin();$slug=$body['slug']??'';if(!is_string($slug)||strlen($slug)>60||!preg_match('~^[a-z0-9]+(-[a-z0-9]+)*$~D',$slug)||!in_array($body['status']??'',['Доступна','По согласованию','Временно недоступна','Скрыта'],true)||!in_array($body['category']??'',['Сайты','Боты и автоматизация','ИИ','Дизайн','Продвижение','Видео и 3D','Приложения','Сопровождение','CRM','Хостинг и домены'],true))bad('Проверьте адрес, направление и статус');$item=['slug'=>$slug,'category'=>$body['category'],'status'=>$body['status']];foreach(['name','description','includes','audience','options'] as $key){if(!is_string($body[$key]??null)||mb_strlen($body[$key])>($key==='name'?100:1500)||($key!=='options'&&!trim($body[$key])))bad('Заполните описание услуги');$item[$key]=trim($body[$key]);}query('INSERT INTO content(id,data) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',['service:'.$slug,json_encode($item,JSON_UNESCAPED_UNICODE)]);reply(['ok'=>true]);}
@@ -73,7 +87,18 @@ try{
  if($path==='/api/register'&&$method==='POST'){rate('auth',15);$name=txt($body['name']??'',80);$email=strtolower(txt($body['email']??'',200));$pass=$body['password']??null;if(!$name||!filter_var($email,FILTER_VALIDATE_EMAIL)||!is_string($pass)||mb_strlen($pass)<10||mb_strlen($pass)>128)bad('Укажите имя, почту и пароль от 10 до 128 символов');if(empty($body['consent']))bad('Необходимо согласие на обработку данных');if(one('SELECT id FROM users WHERE email=?',[$email]))bad('Не удалось зарегистрироваться с этой почтой');$salt=uid();$id=uid();query('INSERT INTO users(id,name,email,password,salt,created) VALUES (?,?,?,?,?,?)',[$id,$name,$email,hash_pbkdf2('sha256',$pass,$salt,100000,64),$salt,stamp()]);record_consent($id,'account');reply(['ok'=>true]);}
  if($path==='/api/login'&&$method==='POST'){rate('auth',15);$u=one('SELECT * FROM users WHERE email=?',[strtolower(txt($body['email']??'',200))]);$pass=is_string($body['password']??null)?$body['password']:'';$hashed=hash_pbkdf2('sha256',$pass,$u['salt']??'invalid',100000,64);if(!$u||!hash_equals($u['password'],$hashed))bad('Неверная почта или пароль',401);$token=bin2hex(random_bytes(48));query('INSERT INTO sessions(token,user_id,expires) VALUES (?,?,?)',[hash('sha256',$token),$u['id'],nowms()+604800000]);setcookie('ot_session',$token,['expires'=>time()+604800,'path'=>'/','secure'=>str_starts_with($config['origin'],'https:'),'httponly'=>true,'samesite'=>'Lax']);reply(['ok'=>true]);}
  if($path==='/api/logout'&&$method==='POST'){if($cookie)query('DELETE FROM sessions WHERE token=?',[hash('sha256',$cookie)]);setcookie('ot_session','',['expires'=>1,'path'=>'/','secure'=>str_starts_with($config['origin'],'https:'),'httponly'=>true,'samesite'=>'Lax']);reply(['ok'=>true]);}
- if($path==='/api/leads'&&$method==='POST'){rate('leads',10);$name=txt($body['name']??'',80);$contact=txt($body['contact']??'',200);$service=txt($body['service']??'',100);$description=txt($body['description']??'',5000);if(!$name||!$contact||!$service||mb_strlen($description)<10||empty($body['consent']))bad('Заполните поля, опишите задачу (от 10 символов) и подтвердите согласие');$id=uid();query('INSERT INTO leads(id,user_id,name,contact,service,description,created) VALUES (?,?,?,?,?,?,?)',[$id,$user['id']??null,$name,$contact,$service,$description,stamp()]);record_consent($id,'inquiry');reply(['id'=>$id]);}
+ if($path==='/api/leads'&&$method==='POST'){
+  rate('leads',10);$name=txt($body['name']??'',80);$contact=txt($body['contact']??'',200);$service=txt($body['service']??'',100);$description=txt($body['description']??'',5000);
+  if(!$name||!$contact||!$service||mb_strlen($description)<10||empty($body['consent']))bad('Заполните поля, опишите задачу (от 10 символов) и подтвердите согласие');
+  $id=uid();$os=function_exists('os5_enabled')&&os5_enabled();
+  $save=function()use($name,$contact,$service,$description,$id,$user,$body,$os){
+   query('INSERT INTO leads(id,user_id,name,contact,service,description,created) VALUES (?,?,?,?,?,?,?)',[$id,$user['id']??null,$name,$contact,$service,$description,stamp()]);
+   record_consent($id,'inquiry');
+   if($os&&is_string($body['referral']??null)&&preg_match('/^[a-z0-9][a-z0-9-]{2,39}$/D',$body['referral']))
+    query('INSERT INTO os5_referrals(request_id,partner_id,created) SELECT ?,id,? FROM os5_partners WHERE active=1 AND code=?',[$id,stamp(),$body['referral']]);
+  };
+  if($os)os5_atomic($save);else $save();reply(['id'=>$id]);
+ }
  if($path==='/api/leads'&&$method==='GET'){signedin();reply(['leads'=>$user['role']==='admin'?many('SELECT * FROM leads ORDER BY created DESC'):many('SELECT * FROM leads WHERE user_id=? ORDER BY created DESC',[$user['id']])]);}
  if(preg_match('~^/api/leads/([\w-]+)(/messages)?$~',$path,$m)){signedin();$lead=one('SELECT * FROM leads WHERE id=?',[$m[1]]);if(!$lead||($user['role']!=='admin'&&$lead['user_id']!==$user['id']))bad('Проект не найден',404);
   if(isset($m[2])){if($method==='GET')reply(['messages'=>many('SELECT m.id,m.text,m.created,u.name,u.role FROM messages m JOIN users u ON u.id=m.user_id WHERE m.lead_id=? ORDER BY m.created',[$lead['id']])]);if($method==='POST'){$value=txt($body['text']??'',3000);if(!$value)bad('Сообщение пустое');query('INSERT INTO messages(id,lead_id,user_id,text,created) VALUES (?,?,?,?,?)',[uid(),$lead['id'],$user['id'],$value,stamp()]);reply(['ok'=>true]);}}

@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/dev.mjs",
+    "dev:os5": "node scripts/dev.mjs --os5",
     "build": "tsc --noEmit && node scripts/build.mjs",
     "test": "node --test tests/*.test.mjs",
     "release:timeweb": "npm run build && node scripts/timeweb.mjs release",
