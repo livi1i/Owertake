@@ -7,10 +7,8 @@
     "dev:os5": "node scripts/dev.mjs --os5",
     "build": "tsc --noEmit && node scripts/build.mjs",
     "test": "node --test tests/*.test.mjs",
-    "release:timeweb": "npm run build && node scripts/timeweb.mjs release",
-    "package:timeweb": "npm run build && node scripts/timeweb.mjs package",
-    "publish:timeweb": "node scripts/timeweb-update.mjs",
-    "sync:timeweb": "node scripts/timeweb-update.mjs --watch"
+    "release:timeweb": "npm test && npm run build && node scripts/timeweb.mjs release",
+    "publish:timeweb": "node scripts/timeweb-update.mjs"
   },
   "dependencies": {
     "react": "^19.2.0",

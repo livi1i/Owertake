@@ -1,7 +1,8 @@
 import {pricebook} from "../src/lib/public-prices.ts";
-import {readFile,writeFile,mkdir,cp,readdir} from 'node:fs/promises';
-import {randomBytes,createHash,createHmac} from 'node:crypto';
-const mode=process.argv[2]||'package';
+import {readFile,writeFile,mkdir,readdir} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+const mode=process.argv[2]||'release';
+if(!['release','deploy'].includes(mode))throw Error('Initial-install package retired. Use npm run release:timeweb for application-only updates.');
 await mkdir('.local',{recursive:true});
 const os5Prices=pricebook().flatMap(group=>group.offers).map(({amount,...item})=>({...item,minor:Math.round(amount*100)}));
 const os5PricePhp="const OS5_PRICEBOOK='"+Buffer.from(JSON.stringify(os5Prices)).toString('base64')+"';\n";
@@ -14,12 +15,8 @@ if(mode==='release'){
  const path='.local/overtake-release-'+id+'.json';
  await writeFile(path,manifest);
  console.log('Prepared '+path+' (application files only)');
+ const {preparePanelRelease}=await import('./timeweb-panel.mjs');
+ await preparePanelRelease(path,id);
  process.exit(0);
 }
-let config;try{config=JSON.parse(await readFile('.local/timeweb-config.json','utf8'))}catch{if(mode==='deploy')throw Error('Existing Timeweb deployment config is required in .local/timeweb-config.json.');config={origin:'https://helmerzy.tw1.ru',admin_key:(await readFile('.local/ADMIN-SETUP.txt','utf8')).trim(),deploy_key:randomBytes(32).toString('hex')};await writeFile('.local/timeweb-config.json',JSON.stringify(config))}
-if(mode==='deploy'){
- const routingProbe=await fetch(config.origin+'/api/health',{headers:{'Cache-Control':'no-cache'}});if(!routingProbe.ok||routingProbe.headers.get('x-overtake-router')!=='seo-v1')throw Error('Before deploying this version, update public_html/index.php from the prepared package: the current router does not support SEO responses. No files were uploaded.');
- const raw=JSON.stringify({timestamp:Math.floor(Date.now()/1000),nonce:randomBytes(16).toString('hex'),files});const signature=createHmac('sha256',config.deploy_key).update(raw).digest('hex');const r=await fetch(config.origin+'/_overtake-deploy.php',{method:'POST',headers:{'Content-Type':'application/json','X-Overtake-Signature':signature},body:raw});const body=await r.text();if(!r.ok)throw Error('Deploy failed: '+r.status+' '+body);console.log(body);process.exit(0);
-}
-const version=createHash('sha256').update(JSON.stringify(files)).digest('hex').slice(0,16);const base='.local/timeweb-package';await mkdir(base+'/public_html',{recursive:true});await mkdir(base+'/overtake-private/releases/'+version+'/client/assets',{recursive:true});for(const [name,b64] of Object.entries(files))await writeFile(base+'/overtake-private/releases/'+version+'/'+name,Buffer.from(b64,'base64'));
-await writeFile(base+'/overtake-private/current',version);await writeFile(base+'/overtake-private/config.json',JSON.stringify(config));await cp('drizzle/0000_initial.sql',base+'/overtake-private/schema.sql');await cp('server/timeweb-index.php',base+'/public_html/index.php');await cp('server/timeweb-deploy.php',base+'/public_html/_overtake-deploy.php');await writeFile(base+'/public_html/.htaccess','Options -Indexes\nDirectoryIndex index.php\nRewriteEngine On\nRewriteRule ^_overtake-deploy\\.php$ - [L]\nRewriteRule ^ index.php [L]\n');console.log('Prepared '+base+' (contains private deployment credentials; keep out of Git)');
+throw Error('Direct HTTP deployment is unavailable for this installation (8 MB limit). Run npm run release:timeweb and follow TIMEWEB.md. No upload performed.');
