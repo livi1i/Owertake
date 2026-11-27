@@ -96,7 +96,8 @@ export async function os5(request, path, user, body, db, prices, {fail,text,hex,
       return json({preferences:{theme,accent,layout,density}});
     }
   }
-  if (section==='projects' && !id && method==='GET') return json({projects:await all(`SELECT p.id,p.title,p.created,c.name client_name
+  if (section==='projects' && !id && method==='GET') return json({projects:await all(`SELECT p.id,p.title,p.created,c.name client_name,
+    (SELECT COUNT(*) FROM os5_milestones m WHERE m.project_id=p.id AND m.approved_at IS NOT NULL) AS completed_count
     FROM os5_projects p JOIN os5_clients c ON c.id=p.client_id WHERE ?=1 OR (?=1 AND p.owner_id=?) OR EXISTS
     (SELECT 1 FROM os5_memberships m WHERE m.project_id=p.id AND m.user_id=?) ORDER BY p.created DESC`,Number(owner),Number(manager),user.id,user.id)});
   if (section==='projects' && id) {
@@ -165,6 +166,15 @@ export async function os5(request, path, user, body, db, prices, {fail,text,hex,
       return json({id:key},201);
     }
   }
+  if ((owner||manager) && method==='POST' && section==='support' && id && action==='resolve') {
+    const ticket=await get('os5_support',id);
+    await getProject(ticket.project_id);
+    if (typeof body.resolved!=='boolean') fail('Укажите статус обращения');
+    await mutate(command('UPDATE os5_support SET resolved_at=? WHERE id=? AND EXISTS (SELECT 1 FROM os5_projects WHERE id=os5_support.project_id AND (?=1 OR owner_id=?))',
+      body.resolved?os5Stamp():null,id,Number(owner),user.id),command(`INSERT INTO os5_audit(actor_id,entity,entity_id,action,created)
+        SELECT ?,'support',?,?,? WHERE changes()=1`,user.id,id,body.resolved?'resolved':'reopened',os5Stamp()));
+    return json({ok:true});
+  }
   if (section==='invoices' && id && action==='pdf' && method==='GET') {
     await canReadInvoice(id);
     const row=await one('SELECT number,pdf FROM os5_invoices WHERE id=? AND issued_at IS NOT NULL AND revoked_at IS NULL',id);
@@ -174,8 +184,50 @@ export async function os5(request, path, user, body, db, prices, {fail,text,hex,
       'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff',
     }});
   }
+  if ((owner||manager) && method==='GET' && !id && section==='staff') {
+    return json({items:await all("SELECT id,name FROM users WHERE role IN ('admin','manager') ORDER BY name,id")});
+  }
+  if ((owner||manager) && method==='GET' && !id && section==='requests') {
+    return json({items:await all(`SELECT l.id,l.user_id,l.name,l.contact,l.service,l.description,l.status,l.created,
+      d.id AS deal_id,p.name AS partner_name,w.stage,w.responsible_id,u.name AS responsible_name,COALESCE(w.version,0) AS version,
+      EXISTS(SELECT 1 FROM content c WHERE c.id='consent:'||l.id) AS consent_recorded
+      FROM leads l LEFT JOIN os5_lead_workflow w ON w.lead_id=l.id LEFT JOIN users u ON u.id=w.responsible_id
+      LEFT JOIN os5_deals d ON d.request_id=l.id LEFT JOIN os5_referrals r ON r.request_id=l.id
+      LEFT JOIN os5_partners p ON p.id=r.partner_id
+      WHERE ?=1 OR w.responsible_id=? ORDER BY l.created DESC`,Number(owner),user.id)});
+  }
+  if ((owner||manager) && method==='POST' && section==='requests' && id && ['assign','stage'].includes(action)) {
+    await get('leads',id);
+    const state=await one('SELECT * FROM os5_lead_workflow WHERE lead_id=?',id);
+    const responsible=state?.responsible_id??null;
+    if (!owner&&responsible!==user.id) os5NotFound();
+    if (action==='assign'&&responsible!==user.id&&!(owner&&!responsible))
+      fail('Передать лид может только его ответственный',403);
+    const assigning=action==='assign';
+    const stage=assigning?(state?.stage||'new'):options(body.stageId,['new','contact','qualified','closed']);
+    const target=assigning?required(body.userId,'Ответственный'):responsible;
+    if (assigning&&!await one("SELECT 1 FROM users WHERE id=? AND role IN ('admin','manager')",target))
+      fail('Выберите сотрудника',400);
+    if (!assigning&&await one('SELECT 1 FROM os5_deals WHERE request_id=?',id))
+      fail('Лид уже переведён в сделку',409);
+    const version=state?.version??0;
+    if (body.version!==version) fail('Карточка изменилась. Обновите воронку',409);
+    const result=await mutate(command(`INSERT INTO os5_lead_workflow(lead_id,responsible_id,stage,version)
+        SELECT ?,?,?,1 WHERE (?=1 OR NOT EXISTS(SELECT 1 FROM os5_deals WHERE request_id=?))
+        ON CONFLICT(lead_id) DO UPDATE SET responsible_id=excluded.responsible_id,stage=excluded.stage,version=os5_lead_workflow.version+1
+        WHERE os5_lead_workflow.version=?`,id,target,stage,Number(assigning),id,version),
+      command(`INSERT INTO os5_audit(actor_id,entity,entity_id,action,detail,created)
+        SELECT ?,'request',?,?,?,? WHERE changes()=1`,user.id,id,assigning?'assigned':'stage',
+        JSON.stringify(assigning?{from:responsible,to:target}:{from:state?.stage||'new',to:stage}),os5Stamp()));
+    if (!(result[0].meta?.changes??result[0].changes)) fail('Карточка изменилась. Обновите воронку',409);
+    return json({ok:true});
+  }
+  if (manager && method==='GET' && !id && section==='infrastructure') {
+    return json({items:await all(`SELECT i.* FROM os5_infrastructure i JOIN os5_projects p ON p.id=i.project_id
+      WHERE p.owner_id=? ORDER BY i.renewed_until,i.id`,user.id)});
+  }
   if (manager && method==='GET' && !id && section==='stages') return json({items:await all('SELECT * FROM os5_stages ORDER BY position,id')});
-  if (manager && method==='GET' && !id && section==='deals') return json({items:await all(`SELECT d.id,d.title,d.stage_id,d.version,
+  if (manager && method==='GET' && !id && section==='deals') return json({items:await all(`SELECT d.id,d.title,d.stage_id,d.version,d.owner_id,d.request_id,d.created,
     c.name AS client_name,p.id AS project_id FROM os5_deals d JOIN os5_clients c ON c.id=d.client_id
     LEFT JOIN os5_projects p ON p.deal_id=d.id WHERE d.owner_id=? AND d.archived_at IS NULL ORDER BY d.created DESC`,user.id)});
   if (manager && method==='GET' && !id && section==='support') return json({items:await all(`SELECT s.id,s.project_id,s.kind,s.subject,s.body,s.created,s.resolved_at
@@ -192,7 +244,7 @@ export async function os5(request, path, user, body, db, prices, {fail,text,hex,
     if (!(result[0].meta?.changes ?? result[0].changes)) fail('Сделка уже изменилась',409);
     return json({ok:true});
   }
-  staff();
+  if (!(manager && method==='POST' && section==='deals' && id && action==='assign')) staff();
   if (section==='requests' && !action && (method==='POST'&&!id || method==='PUT'&&id)) {
     const args=[required(body.name,'Имя',80),required(body.contact,'Контакт',200),
       required(body.service,'Услуга',100),required(body.description,'Описание',5000)];
@@ -210,9 +262,6 @@ export async function os5(request, path, user, body, db, prices, {fail,text,hex,
   }
   if (method==='GET' && !id) {
     const lists={
-      requests:`SELECT l.id,l.user_id,l.name,l.contact,l.service,l.description,l.status,l.created,d.id AS deal_id,p.name AS partner_name,
-        CASE WHEN EXISTS (SELECT 1 FROM content c WHERE c.id='consent:'||l.id) THEN 1 ELSE 0 END AS consent_recorded FROM leads l
-        LEFT JOIN os5_deals d ON d.request_id=l.id LEFT JOIN os5_referrals r ON r.request_id=l.id LEFT JOIN os5_partners p ON p.id=r.partner_id ORDER BY l.created DESC`,
       clients:'SELECT * FROM os5_clients WHERE archived_at IS NULL ORDER BY created DESC',
       deals:`SELECT d.*,c.name AS client_name,p.id AS project_id FROM os5_deals d JOIN os5_clients c ON c.id=d.client_id
         LEFT JOIN os5_projects p ON p.deal_id=d.id WHERE d.archived_at IS NULL ORDER BY d.created DESC`,
@@ -305,7 +354,8 @@ export async function os5(request, path, user, body, db, prices, {fail,text,hex,
     if (account.role==='admin') fail('Роль владельца нельзя менять из CRM',403);
     if (role==='manager' && await one('SELECT 1 FROM os5_memberships WHERE user_id=?',id))
       fail('Для работы менеджера используйте отдельную учётную запись',409);
-    if (role==='client' && (await one('SELECT 1 FROM os5_deals WHERE owner_id=? AND archived_at IS NULL',id) ||
+    if (role==='client' && (await one('SELECT 1 FROM os5_lead_workflow WHERE responsible_id=?',id) ||
+      await one('SELECT 1 FROM os5_deals WHERE owner_id=? AND archived_at IS NULL',id) ||
       await one('SELECT 1 FROM os5_projects WHERE owner_id=?',id))) fail('Сначала переназначьте записи менеджера',409);
     const basis=required(body.basis,'Основание изменения роли',1200);
     await mutate(command("UPDATE users SET role=? WHERE id=? AND role<>'admin'",role,id),command('DELETE FROM sessions WHERE user_id=?',id),
@@ -314,9 +364,11 @@ export async function os5(request, path, user, body, db, prices, {fail,text,hex,
   }
   if (method==='POST' && section==='deals' && id && action==='assign') {
     const deal=await get('os5_deals',id);
+    if (!owner&&deal.owner_id!==user.id) os5NotFound();
     const target=required(body.userId,'Ответственный');
     if (!await one("SELECT 1 FROM users WHERE id=? AND role IN ('admin','manager')",target)) os5NotFound();
     if (deal.stage_id==='won' || deal.archived_at) fail('Передача завершённой сделки не поддерживается',409);
+    if (body.version!==undefined&&body.version!==deal.version) fail('Сделка уже изменилась',409);
     const result=await mutate(command("UPDATE os5_deals SET owner_id=?,version=version+1 WHERE id=? AND version=? AND stage_id<>'won' AND archived_at IS NULL",
       target,id,deal.version),command(`INSERT INTO os5_audit(actor_id,entity,entity_id,action,detail,created)
       SELECT ?,'deal',?,'assigned',?,? WHERE changes()=1`,user.id,id,JSON.stringify({ownerId:target}),os5Stamp()));
@@ -355,8 +407,9 @@ export async function os5(request, path, user, body, db, prices, {fail,text,hex,
     const client=await get('os5_clients',required(body.clientId,'Клиент'));
     if (client.archived_at) fail('Восстановите клиента перед созданием сделки',409);
     const title=required(body.title||source?.service,'Название сделки'),key=os5Id();
-    await mutate(command(`INSERT INTO os5_deals(id,request_id,client_id,owner_id,stage_id,title,created) VALUES (?,?,?,?,'new',?,?)
-        ON CONFLICT(request_id) DO NOTHING`,key,requestId,client.id,user.id,title,os5Stamp()),
+    await mutate(command(`INSERT INTO os5_deals(id,request_id,client_id,owner_id,stage_id,title,created)
+        VALUES (?,?,?,COALESCE((SELECT responsible_id FROM os5_lead_workflow WHERE lead_id=?),?),'new',?,?)
+        ON CONFLICT(request_id) DO NOTHING`,key,requestId,client.id,requestId,user.id,title,os5Stamp()),
       command(`INSERT INTO os5_audit(actor_id,entity,entity_id,action,created) SELECT ?,'deal',id,'created',?
         FROM os5_deals WHERE id=?`,user.id,os5Stamp(),key));
     const deal=requestId?await one('SELECT id FROM os5_deals WHERE request_id=?',requestId):{id:key};

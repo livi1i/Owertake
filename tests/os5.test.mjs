@@ -35,7 +35,8 @@ async function fixture(t) {
 test('OS5 migration is additive, repeatable and preserves public content and original records',()=>{
   const db=database();
   db.sqlite.exec("INSERT INTO content VALUES ('public','{}'); INSERT INTO leads(id,name,contact,service,description,created) VALUES('legacy','Name','Contact','Site','Description','2026-11-25')");
-  const migration=readFileSync(new URL('../drizzle/0001_os5.sql',import.meta.url),'utf8');
+  const migration=['0001_os5.sql','0002_os5_lead_workflow.sql']
+    .map(name=>readFileSync(new URL('../drizzle/'+name,import.meta.url),'utf8')).join('\n');
   db.sqlite.exec(migration);
   db.sqlite.exec(migration);
   assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM os5_stages').get().n,8);
@@ -43,6 +44,40 @@ test('OS5 migration is additive, repeatable and preserves public content and ori
   assert.equal(db.sqlite.prepare("SELECT data FROM content WHERE id='public'").get().data,'{}');
   assert.deepEqual(db.sqlite.prepare('PRAGMA foreign_key_check').all(),[]);
   db.sqlite.close();
+});
+
+test('OS5 lead stages and handover observe ownership and optimistic versions',async t=>{
+  const {account,call,db}=await fixture(t);
+  const admin=await account('admin-leads@example.test','admin');
+  const first=await account('first-manager@example.test','manager');
+  const second=await account('second-manager@example.test','manager');
+  const visitor=await account('visitor-leads@example.test');
+  const lead=(await call('leads','POST',{name:'Visitor',contact:'visitor@example.test',service:'CRM',
+    description:'Discuss a new CRM project',consent:true})).data.id;
+  const route='requests/'+lead;
+  assert.equal((await second.os('requests')).data.items.length,0);
+  assert.equal((await visitor.os(route+'/assign','POST',{userId:visitor.id,version:0})).status,403);
+  assert.equal((await admin.os(route+'/assign','POST',{userId:first.id,version:0})).status,200);
+  assert.equal((await admin.os(route+'/assign','POST',{userId:second.id,version:1})).status,403);
+  assert.equal((await second.os(route+'/assign','POST',{userId:second.id,version:1})).status,404);
+  assert.equal((await first.os(route+'/stage','POST',{stageId:'qualified',version:1})).status,200);
+  assert.equal((await first.os(route+'/assign','POST',{userId:visitor.id,version:2})).status,400);
+  assert.equal((await first.os(route+'/assign','POST',{userId:second.id,version:1})).status,409);
+  assert.equal((await first.os(route+'/assign','POST',{userId:second.id,version:2})).status,200);
+  assert.equal((await first.os(route+'/stage','POST',{stageId:'closed',version:3})).status,404);
+  assert.deepEqual((await first.os('requests')).data.items,[]);
+  const [visible]=(await second.os('requests')).data.items;
+  assert.equal(visible.stage,'qualified');
+  assert.equal(visible.responsible_id,second.id);
+  const client=(await admin.os('clients','POST',customer)).data.id;
+  const deal=(await admin.os(route+'/convert','POST',{clientId:client})).data.id;
+  assert.equal((await second.os('deals')).data.items[0].id,deal);
+  assert.equal((await second.os(route+'/stage','POST',{stageId:'closed',version:3})).status,409);
+  assert.equal((await first.os('deals/'+deal+'/assign','POST',{userId:first.id,version:1})).status,404);
+  assert.equal((await second.os('deals/'+deal+'/assign','POST',{userId:first.id,version:1})).status,200);
+  assert.equal((await first.os('deals')).data.items[0].id,deal);
+  assert.equal(db.sqlite.prepare("SELECT status FROM leads WHERE id=?").get(lead).status,'Заявка получена');
+  assert.equal(db.sqlite.prepare("SELECT count(*) AS n FROM os5_audit WHERE entity_id=? AND action='assigned'").get(lead).n,2);
 });
 
 test('OS5 workspace settings and staff edits are persisted and isolated',async t=>{
@@ -158,6 +193,7 @@ test('OS5 links original request, unique customer, approved brief, price snapsho
   assert.equal((await os('projects/'+id+'/milestones/1','PUT',{})).status,200);
   assert.equal((await manager.os('projects/'+id+'/milestones/1','POST',{})).status,403);
   assert.equal((await clientAccount.os('projects/'+id+'/milestones/1','POST',{})).status,200);
+  assert.equal((await clientAccount.os('projects')).data.projects[0].completed_count,1);
   const ticket=await clientAccount.os('projects/'+id+'/support','POST',{kind:'defect',subject:'Broken button',body:'Details for the agency'});
   assert.equal(ticket.status,201);
   const projectView=await clientAccount.os('projects/'+id);
@@ -168,6 +204,10 @@ test('OS5 links original request, unique customer, approved brief, price snapsho
   assert.equal((await other.os('projects/'+id+'/support','POST',{kind:'defect',subject:'Foreign project',body:'Must not be saved'})).status,404);
   assert.equal((await other.os('support/'+ticket.data.id+'/messages')).status,404);
   assert.equal((await manager.os('support/'+ticket.data.id+'/messages','POST',{body:'Checking the defect'})).status,201);
+  assert.equal((await clientAccount.os('support/'+ticket.data.id+'/resolve','POST',{resolved:true})).status,403);
+  assert.equal((await manager.os('support/'+ticket.data.id+'/resolve','POST',{resolved:true})).status,200);
+  assert.ok((await clientAccount.os('projects/'+id)).data.support[0].resolved_at);
+  assert.equal((await manager.os('support/'+ticket.data.id+'/resolve','POST',{resolved:false})).status,200);
   assert.equal((await clientAccount.os('support/'+ticket.data.id+'/messages')).data.messages[0].body,'Checking the defect');
   assert.equal((await os('overview')).data.counts.received,690000);
   const consultation=await clientAccount.os('projects/'+id+'/support','POST',{kind:'question',subject:'Consultation',body:'How do I update the site?'});

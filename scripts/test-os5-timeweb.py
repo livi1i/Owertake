@@ -1,7 +1,7 @@
 """Exercise the packaged Timeweb CRM against an isolated SQLite database."""
 from argparse import ArgumentParser
 from base64 import b64decode, b64encode
-from contextlib import ExitStack
+from contextlib import ExitStack, closing
 from pathlib import Path
 import hashlib
 import json
@@ -24,7 +24,8 @@ files = json.loads(args.manifest.read_text(encoding="utf-8"))
 assert "api.php" in files
 assert "client/index.html" in files
 schema = (args.root / "drizzle/0000_initial.sql").read_text(encoding="utf-8-sig")
-migration = (args.root / "drizzle/0001_os5.sql").read_text(encoding="utf-8-sig")
+migration = "\n".join((args.root / "drizzle" / name).read_text(encoding="utf-8-sig")
+    for name in ("0001_os5.sql", "0002_os5_lead_workflow.sql"))
 router = (args.root / "server/timeweb-index.php").read_bytes()
 role_email = {"admin": "owner@example.test", "client": "client@example.test", "unrelated": "other@example.test", "manager":"manager@example.test"}
 password = "OS5-test-account-only-2026"
@@ -51,7 +52,7 @@ with tempfile.TemporaryDirectory(prefix="overtake-os5-qa-") as temporary, ExitSt
     (public / "index.php").write_bytes(router)
     subprocess.run([args.php, "-l", str(release / "api.php")], check=True)
     database = private / "data.sqlite"
-    with sqlite3.connect(database) as db:
+    with closing(sqlite3.connect(database)) as db, db:
         db.execute("PRAGMA foreign_keys=ON")
         db.executescript(schema)
         db.execute("INSERT INTO content VALUES('public', ?)", (json.dumps({"projects":[],"contacts":{},"prices":{"P26-7":"7000"}}),))
@@ -144,6 +145,17 @@ with tempfile.TemporaryDirectory(prefix="overtake-os5-qa-") as temporary, ExitSt
         manager=login("manager")
         os5("org",cookie=manager,status=403)
         assert not os5("deals",cookie=manager)["items"]
+        lead=os5("requests","POST",{"name":"Lead fixture","contact":"lead@example.test","service":"CRM",
+            "description":"Lead handover in local tests","consent":True},status=201)["id"]
+        route="requests/"+lead
+        os5(route+"/assign","POST",{"userId":"manager","version":0},cookie=client,status=403)
+        os5(route+"/assign","POST",{"userId":"manager","version":0})
+        os5(route+"/assign","POST",{"userId":"admin","version":1},status=403)
+        os5(route+"/stage","POST",{"stageId":"qualified","version":1},cookie=manager)
+        assert os5("requests",cookie=manager)["items"][0]["stage"]=="qualified"
+        os5(route+"/assign","POST",{"userId":"admin","version":2},cookie=manager)
+        assert not os5("requests",cookie=manager)["items"]
+        os5(route+"/stage","POST",{"stageId":"closed","version":3},cookie=manager,status=404)
         os5("deals/"+deal+"/assign","POST",{"userId":"manager"})
         assigned=os5("deals",cookie=manager)["items"][0]
         os5("deals/"+deal+"/stage","POST",{"stageId":"contact","version":assigned["version"]},cookie=manager)
@@ -182,15 +194,19 @@ with tempfile.TemporaryDirectory(prefix="overtake-os5-qa-") as temporary, ExitSt
         os5("projects/"+project+"/milestones/1","POST",{},cookie=client,status=409)
         os5("projects/"+project+"/milestones/1","PUT",{})
         os5("projects/"+project+"/milestones/1","POST",{},cookie=client)
-        os5("projects/"+project+"/support","POST",{"kind":"defect","subject":"Defect","body":"Synthetic defect detail"},cookie=client,status=201)
+        assert os5("projects",cookie=client)["projects"][0]["completed_count"]==1
+        support=os5("projects/"+project+"/support","POST",{"kind":"defect","subject":"Defect","body":"Synthetic defect detail"},cookie=client,status=201)["id"]
+        os5("support/"+support+"/resolve","POST",{"resolved":True},cookie=client,status=403)
+        os5("support/"+support+"/resolve","POST",{"resolved":True},cookie=manager)
+        assert os5("projects/"+project,cookie=client)["support"][0]["resolved_at"]
         os5("projects/"+project,cookie=unrelated,status=404)
         call("/api/os5/"+path+"/pdf",cookie=unrelated,status=404)
         pdf,_=call("/api/os5/"+path+"/pdf",cookie=client)
         assert pdf.startswith(b"%PDF-")
         assert len(os5("partners")["items"])==1
-        with sqlite3.connect(database) as db:
+        with closing(sqlite3.connect(database)) as db:
             assert not db.execute("PRAGMA foreign_key_check").fetchall()
             assert db.execute("SELECT count(*) FROM os5_projects").fetchone()==(1,)
             assert db.execute("SELECT count(*) FROM os5_tasks").fetchone()==(1,)
         stop()
-        print("PASS: isolated PHP blank migration twice, lead/referral, deduplication, role checks, immutable PDF gates, full payment, idempotent project, milestone, defect, PDF isolation")
+        print("PASS: isolated PHP migration, lead stages and handover, role checks, billing gates, milestone, service resolution and PDF isolation")

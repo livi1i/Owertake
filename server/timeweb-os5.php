@@ -120,7 +120,9 @@ function os5_dispatch(string $path,string $method,array $body): never {
         }
     }
     if ($section==='projects') {
-        if (!$id&&$method==='GET') reply(['projects'=>many('SELECT p.id,p.title,p.created,c.name AS client_name FROM os5_projects p JOIN os5_clients c ON c.id=p.client_id
+        if (!$id&&$method==='GET') reply(['projects'=>many('SELECT p.id,p.title,p.created,c.name AS client_name,
+            (SELECT COUNT(*) FROM os5_milestones m WHERE m.project_id=p.id AND m.approved_at IS NOT NULL) AS completed_count
+            FROM os5_projects p JOIN os5_clients c ON c.id=p.client_id
             WHERE CAST(? AS INTEGER)=1 OR (CAST(? AS INTEGER)=1 AND p.owner_id=?) OR EXISTS(SELECT 1 FROM os5_memberships m WHERE m.project_id=p.id AND m.user_id=?) ORDER BY p.created DESC',[(int)$owner,(int)$manager,$user['id'],$user['id']])]);
         if ($id) {
             $project=os5_project($id);
@@ -202,13 +204,59 @@ function os5_dispatch(string $path,string $method,array $body): never {
         if (!$row) bad('Запись не найдена',404);
         os5_download($row['pdf'],$row['number'].'.pdf');
     }
+    if (($owner||$manager)&&$method==='GET'&&!$id&&$section==='staff')
+        reply(['items'=>many("SELECT id,name FROM users WHERE role IN ('admin','manager') ORDER BY name,id")]);
+    if (($owner||$manager)&&$method==='GET'&&!$id&&$section==='requests') {
+        reply(['items'=>many("SELECT l.id,l.user_id,l.name,l.contact,l.service,l.description,l.status,l.created,
+          d.id AS deal_id,p.name AS partner_name,w.stage,w.responsible_id,u.name AS responsible_name,COALESCE(w.version,0) AS version,
+          EXISTS(SELECT 1 FROM content c WHERE c.id='consent:'||l.id) AS consent_recorded
+          FROM leads l LEFT JOIN os5_lead_workflow w ON w.lead_id=l.id LEFT JOIN users u ON u.id=w.responsible_id
+          LEFT JOIN os5_deals d ON d.request_id=l.id LEFT JOIN os5_referrals r ON r.request_id=l.id
+          LEFT JOIN os5_partners p ON p.id=r.partner_id WHERE CAST(? AS INTEGER)=1 OR w.responsible_id=? ORDER BY l.created DESC",[(int)$owner,$user['id']])]);
+    }
+    if (($owner||$manager)&&$method==='POST'&&$section==='requests'&&$id&&in_array($action,['assign','stage'],true)) {
+        os5_atomic(function()use($id,$owner,$user,$action,$body){
+            os5_get('leads',$id);
+            $state=one('SELECT * FROM os5_lead_workflow WHERE lead_id=?',[$id]);
+            $responsible=$state['responsible_id']??null;
+            if (!$owner&&$responsible!==$user['id']) bad('Запись не найдена',404);
+            $assigning=$action==='assign';
+            if ($assigning&&$responsible!==$user['id']&&!($owner&&!$responsible))
+                bad('Передать лид может только его ответственный',403);
+            $oldStage=$state['stage']??'new';
+            $stage=$assigning?$oldStage:os5_choice($body['stageId']??null,['new','contact','qualified','closed']);
+            $target=$assigning?os5_string($body['userId']??null,'Ответственный'):$responsible;
+            if ($assigning&&!one("SELECT 1 FROM users WHERE id=? AND role IN ('admin','manager')",[$target]))
+                bad('Выберите сотрудника');
+            if (!$assigning&&one('SELECT 1 FROM os5_deals WHERE request_id=?',[$id])) bad('Лид уже переведён в сделку',409);
+            $version=(int)($state['version']??0);
+            if (($body['version']??null)!==$version) bad('Карточка изменилась. Обновите воронку',409);
+            query("INSERT INTO os5_lead_workflow(lead_id,responsible_id,stage,version) VALUES(?,?,?,1)
+                ON CONFLICT(lead_id) DO UPDATE SET responsible_id=excluded.responsible_id,stage=excluded.stage,version=os5_lead_workflow.version+1",[$id,$target,$stage]);
+            os5_audit('request',$id,$assigning?'assigned':'stage',$assigning?['from'=>$responsible,'to'=>$target]:['from'=>$oldStage,'to'=>$stage]);
+        });
+        reply(['ok'=>true]);
+    }
+    if (($owner||$manager)&&$method==='POST'&&$section==='support'&&$id&&$action==='resolve') {
+        $resolved=$body['resolved']??null;
+        if (!is_bool($resolved)) bad('Укажите статус обращения');
+        os5_atomic(function()use($id,$resolved){
+            $ticket=os5_get('os5_support',$id);
+            os5_project($ticket['project_id']);
+            query('UPDATE os5_support SET resolved_at=? WHERE id=?',[$resolved?stamp():null,$id]);
+            os5_audit('support',$id,$resolved?'resolved':'reopened');
+        });
+        reply(['ok'=>true]);
+    }
     if ($manager&&$method==='GET'&&!$id) {
         if ($section==='stages') reply(['items'=>many('SELECT * FROM os5_stages ORDER BY position,id')]);
-        if ($section==='deals') reply(['items'=>many('SELECT d.id,d.title,d.stage_id,d.version,c.name AS client_name,p.id AS project_id
+        if ($section==='deals') reply(['items'=>many('SELECT d.id,d.title,d.stage_id,d.version,d.owner_id,d.request_id,d.created,c.name AS client_name,p.id AS project_id
              FROM os5_deals d JOIN os5_clients c ON c.id=d.client_id LEFT JOIN os5_projects p ON p.deal_id=d.id
              WHERE d.owner_id=? AND d.archived_at IS NULL ORDER BY d.created DESC',[$user['id']])]);
         if ($section==='support') reply(['items'=>many('SELECT s.id,s.project_id,s.kind,s.subject,s.body,s.created,s.resolved_at
             FROM os5_support s JOIN os5_projects p ON p.id=s.project_id WHERE p.owner_id=? ORDER BY s.created DESC',[$user['id']])]);
+        if ($section==='infrastructure') reply(['items'=>many('SELECT i.* FROM os5_infrastructure i JOIN os5_projects p ON p.id=i.project_id
+            WHERE p.owner_id=? ORDER BY i.renewed_until,i.id',[$user['id']])]);
     }
     if ($manager&&$method==='POST'&&$section==='deals'&&$id&&$action==='stage') {
         $target=os5_get('os5_stages',os5_string($body['stageId']??null,'Этап'));
@@ -222,6 +270,7 @@ function os5_dispatch(string $path,string $method,array $body): never {
         });
         reply(['ok'=>true]);
     }
+    if ($manager&&$method==='POST'&&$section==='deals'&&$id&&$action==='assign') os5_owner_action($method,$section,$id,$action,$body);
     admin();
     if ($section==='requests'&&!$action&&(($method==='POST'&&!$id)||($method==='PUT'&&$id))) {
         $args=[os5_string($body['name']??null,'Имя',80),os5_string($body['contact']??null,'Контакт',200),
@@ -246,10 +295,6 @@ function os5_dispatch(string $path,string $method,array $body): never {
     }
     if ($method==='GET'&&!$id) {
         $lists=[
-            'requests'=>"SELECT l.id,l.user_id,l.name,l.contact,l.service,l.description,l.status,l.created,d.id AS deal_id,p.name AS partner_name,
-                CASE WHEN EXISTS(SELECT 1 FROM content c WHERE c.id='consent:'||l.id) THEN 1 ELSE 0 END AS consent_recorded FROM leads l
-                LEFT JOIN os5_deals d ON d.request_id=l.id LEFT JOIN os5_referrals r ON r.request_id=l.id
-                LEFT JOIN os5_partners p ON p.id=r.partner_id ORDER BY l.created DESC",
             'clients'=>'SELECT * FROM os5_clients WHERE archived_at IS NULL ORDER BY created DESC',
             'deals'=>'SELECT d.*,c.name AS client_name,p.id AS project_id FROM os5_deals d JOIN os5_clients c ON c.id=d.client_id LEFT JOIN os5_projects p ON p.deal_id=d.id WHERE d.archived_at IS NULL ORDER BY d.created DESC',
             'stages'=>'SELECT * FROM os5_stages ORDER BY position,id',
@@ -359,8 +404,9 @@ function os5_owner_action(string $method,?string $section,?string $id,?string $a
             if ($client['archived_at']) bad('Восстановите клиента перед созданием сделки',409);
             $title=os5_string(($body['title']??'')?:($source['service']??null),'Название сделки');
             $key=uid();
+            $assigned=$requestId?one('SELECT responsible_id FROM os5_lead_workflow WHERE lead_id=?',[$requestId]):null;
             query("INSERT INTO os5_deals(id,request_id,client_id,owner_id,stage_id,title,created) VALUES(?,?,?,?,'new',?,?)",
-                [$key,$requestId,$client['id'],$user['id'],$title,stamp()]);
+                [$key,$requestId,$client['id'],$assigned['responsible_id']??$user['id'],$title,stamp()]);
             os5_audit('deal',$key,'created');
             return ['id'=>$key,'existing'=>false];
         });
@@ -373,7 +419,7 @@ function os5_owner_action(string $method,?string $section,?string $id,?string $a
             $account=os5_get('users',$id);
             if ($account['role']==='admin') bad('Роль владельца нельзя менять из CRM',403);
             if ($role==='manager'&&one('SELECT 1 FROM os5_memberships WHERE user_id=?',[$id])) bad('Для менеджера используйте отдельную учётную запись',409);
-            if ($role==='client'&&(one('SELECT 1 FROM os5_deals WHERE owner_id=? AND archived_at IS NULL',[$id])||one('SELECT 1 FROM os5_projects WHERE owner_id=?',[$id])))
+            if ($role==='client'&&(one('SELECT 1 FROM os5_lead_workflow WHERE responsible_id=?',[$id])||one('SELECT 1 FROM os5_deals WHERE owner_id=? AND archived_at IS NULL',[$id])||one('SELECT 1 FROM os5_projects WHERE owner_id=?',[$id])))
                 bad('Сначала переназначьте записи менеджера',409);
             query('UPDATE users SET role=? WHERE id=?',[$role,$id]);
             query('DELETE FROM sessions WHERE user_id=?',[$id]);
@@ -383,10 +429,12 @@ function os5_owner_action(string $method,?string $section,?string $id,?string $a
     }
     if ($method==='POST'&&$id&&$section==='deals'&&$action==='assign') {
         $target=os5_string($body['userId']??null,'Ответственный');
-        os5_atomic(function()use($id,$target){
-            if (!one("SELECT 1 FROM users WHERE id=? AND role IN ('admin','manager')",[$target])) bad('Запись не найдена',404);
+        os5_atomic(function()use($id,$target,$body,$user){
             $deal=os5_get('os5_deals',$id);
+            if ($user['role']!=='admin'&&$deal['owner_id']!==$user['id']) bad('Запись не найдена',404);
+            if (!one("SELECT 1 FROM users WHERE id=? AND role IN ('admin','manager')",[$target])) bad('Запись не найдена',404);
             if ($deal['stage_id']==='won'||$deal['archived_at']) bad('Передача завершённой сделки не поддерживается',409);
+            if (isset($body['version'])&&$body['version']!==(int)$deal['version']) bad('Сделка уже изменилась',409);
             query('UPDATE os5_deals SET owner_id=?,version=version+1 WHERE id=?',[$target,$id]);
             os5_audit('deal',$id,'assigned',['ownerId'=>$target]);
         });

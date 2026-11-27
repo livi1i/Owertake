@@ -13,7 +13,11 @@ export function database(path = ":memory:", {os5=false} = {}) {
         "utf8",
       ),
     );
-  if (os5) sqlite.exec('BEGIN IMMEDIATE;\n'+readFileSync(new URL('../drizzle/0001_os5.sql',import.meta.url),'utf8')+'\nCOMMIT;');
+  if (os5) {
+    const migrations = ['0001_os5.sql','0002_os5_lead_workflow.sql']
+      .map(name=>readFileSync(new URL('../drizzle/'+name,import.meta.url),'utf8'));
+    sqlite.exec('BEGIN IMMEDIATE;\n'+migrations.join('\n')+'\nCOMMIT;');
+  }
   return {
     sqlite,
     async batch(commands) {

@@ -5,14 +5,21 @@ const projectStages = [
 ].map(([id,label]) => ({id,label}));
 
 export const defaultAppearance = {theme:'light',accent:'blue',layout:'left',density:'comfort'};
+export const leadStages=[
+  {id:'new',label:'Новые'},
+  {id:'contact',label:'На связи'},
+  {id:'qualified',label:'Квалифицированы'},
+  {id:'closed',label:'Закрыты'},
+  {id:'converted',label:'Переведены в сделки',locked:true},
+];
 export const S = {
   user:null, appearance:{...defaultAppearance}, profile:{name:'',email:'',phone:'',tz:'Europe/Moscow'},
-  organization:{}, notify:{}, clients:[], requests:[], deals:[], dealStages:[], projects:[],
+  organization:{}, notify:{}, clients:[], requests:[], deals:[], dealStages:[], projects:[], staff:[],
   projectStages, briefs:[], quotes:[], docs:[], payments:[], partners:[], accounts:[],
   sessions:[], loginHistory:[], notifications:[], tasks:[], services:[], mail:[], support:[],
   infrastructure:[], archive:[], events:[], counts:{},
 };
-export const ui = {page:'overview',tab:'',pop:'',modal:'',clientPortal:false,activeProject:''};
+export const ui = {page:'overview',tab:'',pop:'',modal:'',clientPortal:false,activeProject:'',leadFilter:'all'};
 export const clientPages=['client-portal','client-support','client-documents','client-infra','client-settings'];
 
 export const id = value => /^[a-zA-Z0-9_-]{1,120}$/.test(value ?? '') ? value : '';
@@ -48,15 +55,20 @@ const portalCollection = {
 const ownerCollection = {
   overview:['overview','requests','tasks','audit','stages','deals'],
   tasks:['tasks','deals'], notifications:['notifications'],
-  requests:['requests','clients','deals','stages'], deals:['deals','clients','stages','invoices','briefs','quotes','prices','users'],
+  requests:['requests','clients','deals','stages','staff'], deals:['deals','clients','stages','invoices','briefs','quotes','prices','staff'],
   clients:['clients','deals','stages','projects'], partners:['partners'],
   projects:['projects','clients','users'], briefs:['briefs','deals','prices'],
   support:['support','projects','clients'], infrastructure:['infrastructure','projects','clients'],
+  'client-service':['support','infrastructure','projects'],
   documents:['invoices','deals','quotes','clients','payments'],payments:['payments','invoices','clients','deals'],
   mail:['mail','clients','audit'], analytics:['analytics'],services:['prices'],users:['users','projects','audit'],
   settings:['preferences','org'],archive:['archive'],
 };
-const managerCollection = {overview:['deals','projects','stages'], deals:['deals','stages'],projects:['projects'],support:['support','projects'],settings:['preferences']};
+const managerCollection = {
+  overview:['requests','deals','projects','stages'],requests:['requests','staff','deals','stages'],
+  deals:['deals','stages','staff'],projects:['projects'],support:['support','projects'],
+  infrastructure:['infrastructure','projects'],'client-service':['support','infrastructure','projects'],settings:['preferences'],
+};
 
 export async function pageData(page) {
   const role=S.user.role;
@@ -106,9 +118,12 @@ export function applyData(result) {
   if (data('requests')) S.requests=data('requests').map(row=>({
     id:id(row.id),name:row.name,contact:row.contact,description:row.description,service:row.service,
     source:row.partner_name?'Партнёр · '+row.partner_name:'Форма заявки',
-    status:row.deal_id?'В работе':row.status==='new'||!row.status?'Новая':'В работе',
+    stage:row.deal_id?'converted':row.stage||'new',
+    status:leadStages.find(stage=>stage.id===(row.deal_id?'converted':row.stage||'new'))?.label,
+    ownerId:id(row.responsible_id),ownerName:row.responsible_name,version:Number(row.version??0),
     dealId:id(row.deal_id),date:iso(row.created),
   }));
+  if (data('staff')) S.staff=data('staff').map(row=>({id:id(row.id),name:row.name}));
   if (data('stages')) S.dealStages=data('stages').map(row=>({id:id(row.id),label:row.title,terminal:Boolean(row.terminal)}));
   if (data('briefs')) S.briefs=data('briefs').map(row=>({
     id:id(row.id),dealId:id(row.deal_id),template:'Бриф · v'+Number(row.revision),
@@ -155,12 +170,13 @@ export function applyData(result) {
   if (data('infrastructure')) S.infrastructure=data('infrastructure').map(infraRow);
   if (result.projects) S.projects=result.projects.projects.map(row=>{
     const detail=result.projectDetails?.find(item=>item.project.id===row.id);
-    const milestones=detail?.milestones||[], done=milestones.filter(step=>step.approved_at).length;
+    const milestones=detail?.milestones||[];
+    const done=detail?milestones.filter(step=>step.approved_at).length:Number(row.completed_count??0);
     const domain=detail?.infrastructure.find(item=>item.kind==='domain');
     const hosting=detail?.infrastructure.find(item=>item.kind==='hosting');
     return {id:id(row.id),title:row.title,clientId:id(detail?.project.client_id),clientName:row.client_name,
       created:iso(row.created),milestones,documents:detail?.documents||[],details:detail,
-      invoiceId:id(detail?.documents[0]?.id), progress: Math.round(done/Math.max(1,milestones.length)*100),
+      invoiceId:id(detail?.documents[0]?.id), progress: Math.round(done/6*100),
       stage:projectStages[done].id,domain:domain?.title,domainUntil:iso(domain?.renewed_until),
       hosting:hosting?.title,hostingUntil:iso(hosting?.renewed_until)};
   });

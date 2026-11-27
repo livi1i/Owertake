@@ -1,8 +1,9 @@
 import {createTemplates} from './templates.js';
-import {S,ui,clientPages,defaultAppearance,applyData,pageData,os,request,get,id,minor,rubles} from './model.js';
+import {S,ui,clientPages,defaultAppearance,applyData,pageData,os,request,get,id,minor,rubles,leadStages} from './model.js';
 import {playEntrance,refreshBrand,toggleMotion} from './brand.js';
+import {mayAssignLead,pipelineView} from './pipeline.js';
 
-const managerPages=['overview','deals','projects','support','settings'];
+const managerPages=['overview','requests','deals','projects','client-service','support','infrastructure','settings'];
 const owner=()=>S.user?.role==='admin';
 const allowedPages=()=>ui.clientPortal?clientPages:owner()?view.nav.flatMap(([,items])=>items.map(([key])=>key)):managerPages;
 const staffNav=()=>view.nav.map(([label,items])=>[label,items.filter(([key])=>allowedPages().includes(key))]).filter(([,items])=>items.length);
@@ -48,8 +49,12 @@ async function refresh() {
   const result=await pageData(ui.page);
   if (owner()&&ui.page!=='notifications') result.notifications=await os('notifications');
   if (read!==latestRead) return;
+  const currentBoard=document.querySelector('.pipeline-board');
+  const boardOffset=currentBoard?.scrollLeft??0;
   applyData(result);
   view.render();
+  const nextBoard=document.querySelector('.pipeline-board');
+  if (nextBoard&&currentBoard) nextBoard.scrollLeft=boardOffset;
 }
 function accountRows() {
   const {esc,icon}=view;
@@ -62,13 +67,13 @@ function overview() {
   const steps=S.dealStages.map(stage=>({label:stage.label,value:S.deals.filter(deal=>deal.stage===stage.id).length}));
   const top=Math.max(1,...steps.map(step=>step.value));
   return '<section class="workspace-masthead" data-workspace-background="services">'+head('Рабочий стол','Заявки, сделки, проекты и задачи команды.',
-    btn(icon('plus')+' Новая заявка','add:request','primary'))+
-    '</section><div class="metric-grid">'+metric('Заявки','Новые обращения',owner()?S.requests.length:'—','inbox')+
+    btn(icon('plus')+' Новый лид','add:request','primary'))+
+    '</section><div class="metric-grid">'+metric('Лиды',owner()?'Входящие обращения':'Ваши обращения',S.requests.length,'inbox')+
     metric('Открытые сделки','Перейти в воронку',S.counts.deals??S.deals.filter(deal=>!['won','lost'].includes(deal.stage)).length,'deal')+
     metric('Активные проекты','Этапы и согласования',S.counts.projects??S.projects.length,'folder','green')+
     metric('Задачи на контроле','Незакрытые задачи',owner()?S.tasks.filter(task=>!task.done).length:'—','tasks','peach')+'</div>'+
-    '<div class="grid two"><div class="card"><div class="card-head"><div><div class="card-title">Новые обращения</div><div class="card-sub">Выберите заявку, чтобы посмотреть и связать её со сделкой</div></div>'+
-    btn('Все заявки','go:requests','soft sm')+'</div>'+
+    '<div class="grid two"><div class="card"><div class="card-head"><div><div class="card-title">Последние лиды</div><div class="card-sub">Контакты и этап обработки обращения</div></div>'+
+    btn('Воронка лидов','go:requests','soft sm')+'</div>'+
     (S.requests.slice(0,6).map(row=>'<div class="list-item"><div class="list-round">'+icon('inbox')+'</div><div><b>'+esc(row.name)+'</b><small>'+esc(row.contact)+' · '+esc(row.source)+'</small></div>'+
       tag(row.status,'peach')+btn('Открыть','detail:request:'+row.id,'sm')+'</div>').join('')||'<div class="empty">Нет новых обращений</div>')+
     '</div><div class="card"><div class="card-head"><div class="card-title">Нужны действия</div>'+btn('Мои задачи','go:tasks','soft sm')+'</div>'+
@@ -89,7 +94,30 @@ function analyticsSection(key) {
   }[key]||[];
   return cards.length?'<div class="metric-grid">'+cards.map(([title,value,icon])=>metric(title,'Данные CRM',value,icon)).join('')+'</div>':'<div class="card"><div class="empty">Для этой разбивки источник ещё не настроен.</div></div>';
 }
-const view=createTemplates({S,ui,refresh,notify,showError,allowedPages,staffNav,accountRows,overview,analyticsSection,onlyClientProjects,supported,refreshBrand,playEntrance});
+function clientService() {
+  const {head,metric,table,esc,btn}=view;
+  const open=S.support.filter(row=>row.status!=='Закрыто');
+  const today=new Intl.DateTimeFormat('sv-SE',{timeZone:S.profile.tz,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  const upcoming=new Date(today+'T00:00:00Z');
+  upcoming.setUTCDate(upcoming.getUTCDate()+30);
+  const due=S.infrastructure.filter(row=>row.until&&row.until<=upcoming.toISOString().slice(0,10));
+  const project=row=>get('projects',row.projectId)?.title||'—';
+  return head('Обслуживание клиентов','Обращения по проектам и продление доменов и хостинга.',
+      btn('Новое обращение','add:support','primary'))+
+    '<div class="metric-grid service-metrics">'+metric('Открытые обращения','Ожидают решения',open.length,'support')+
+    metric('Продления','Просрочены или в ближайшие 30 дней',due.length,'globe')+
+    metric('Активные записи','Домены и хостинг',S.infrastructure.length,'server')+'</div>'+
+    '<div class="grid equal service-panels"><section class="card"><div class="card-head"><h2 class="card-title">Очередь обращений</h2>'+
+    btn('Все обращения','go:support','soft sm')+'</div>'+
+    table(['Тема','Проект','Тип'],open.map(row=>'<tr><td>'+btn(esc(row.title),'detail:support:'+row.id,'sm')+'</td><td>'+
+      esc(project(row))+'</td><td>'+esc(row.type)+'</td></tr>'))+'</section>'+
+    '<section class="card"><div class="card-head"><h2 class="card-title">Ближайшие продления</h2>'+
+    btn('Домены и хостинг','go:infrastructure','soft sm')+'</div>'+
+    table(['Услуга','Проект','До'],due.map(row=>'<tr><td>'+esc(row.name)+'</td><td>'+esc(project(row))+
+      '</td><td>'+esc(row.until)+'</td></tr>'))+'</section></div>';
+}
+const view=createTemplates({S,ui,refresh,notify,showError,allowedPages,staffNav,accountRows,overview,analyticsSection,
+  onlyClientProjects,supported,refreshBrand,playEntrance,pipeline:type=>pipelineView(view,type),clientService});
 const {esc,btn,field,selection,textarea,wrapper,openModal,tag,table,icon,money}=view;
 const opts=(rows,label='title')=>[['','— Выберите —'],...rows.map(row=>[row.id,row[label]])];
 const briefOpts=()=>opts(S.briefs.filter(row=>row.approved).map(row=>({...row,label:(get('deals',row.dealId)?.title||row.dealId)+' · '+row.template})),'label');
@@ -133,15 +161,19 @@ async function detail(type,key) {
       (deal.stage!=='won'?wrapper('stageMove',selection('Этап сделки','stage',S.dealStages.filter(row=>row.id!=='won').map(row=>[row.id,row.label]),deal.stage),key):'')+
       (briefs.length?'<div class="card">'+table(['Бриф','Статус'],briefs.map(row=>'<tr><td>'+btn(row.template,'detail:brief:'+row.id,'sm')+'</td><td>'+tag(row.status)+'</td></tr>'))+'</div>':'')+
       actions(owner()?btn('Бриф','newBrief:'+key,'soft'):'',owner()?btn('Смета','newQuote:'+key,'soft'):'',
-        owner()?btn('Назначить','assign:'+key,'soft'):'',doc?btn('Счёт-договор','detail:doc:'+doc.id,'soft'):'',
+        deal.stage!=='won'&&(owner()||deal.ownerId===S.user.id)?btn('Сменить ответственного','assign:'+key,'soft'):'',doc?btn('Счёт-договор','detail:doc:'+doc.id,'soft'):'',
         owner()?btn('Передать в проекты','convert:'+key,'primary'):'',btn('В архив','archive:deals:'+key,'danger'));
-    return opened('Сделка',key,body);
+    return opened('Сделка',deal.title,body);
   }
   if (type==='request') {
     const row=get('requests',key);
     if (!row) return;
-    return opened('Заявка',key,display([['Имя',row.name],['Контакт',row.contact],['Услуга',row.service],['Описание',row.description],['Источник',row.source]])+
-      actions(btn(row.dealId?'Открыть сделку':'В сделку','requestToDeal:'+key,'primary'),btn('Изменить','edit:request:'+key,'soft')));
+    return opened('Лид','',display([['Имя',row.name],['Контакт',row.contact],['Услуга',row.service],
+      ['Описание',row.description],['Источник',row.source],['Этап',row.status],['Ответственный',row.ownerName||'Без ответственного']])+
+      actions(owner()||get('deals',row.dealId)?btn(row.dealId?'Открыть сделку':'В сделку','requestToDeal:'+key,'primary'):'',
+        row.dealId?'':btn('Перенести','chooseStage:requests:'+key,'soft'),
+        mayAssignLead(row)?btn(row.ownerId?'Сменить ответственного':'Назначить ответственного','assignLead:'+key,'soft'):'',
+        btn('Изменить','edit:request:'+key,'soft')));
   }
   if (type==='client') {
     const row=get('clients',key);
@@ -190,7 +222,8 @@ async function detail(type,key) {
     const {messages}=await os('support/'+key+'/messages');
     return opened(row.title,'Обращение',display([['Сообщение',row.body],['Тип',row.type]])+
       '<div class="card">'+messages.map(message=>'<div class="list-item"><div><b>'+esc(message.author)+'</b><small>'+esc(message.body)+'</small></div></div>').join('')+'</div>'+
-      wrapper('reply',textarea('Ответ','body'),key));
+      wrapper('reply',textarea('Ответ','body'),key)+
+      (ui.clientPortal?'':actions(btn(row.status==='Закрыто'?'Открыть снова':'Завершить обращение','resolveSupport:'+key,'soft'))));
   }
   if (type==='mail') {
     const row=get('mail',key);
@@ -220,9 +253,9 @@ async function saved(message='Сохранено', after) {
   if (after) await after();
   notify(message);
 }
-async function move(key,stage) {
-  const deal=get('deals',key);
-  if (stage!==deal.stage) await os('deals/'+key+'/stage','POST',{stageId:stage,version:deal.version});
+async function move(type,key,stage) {
+  const record=get(type,key);
+  if (record&&stage!==record.stage) await os(type+'/'+key+'/stage','POST',{stageId:stage,version:record.version});
 }
 function fieldText(type, title, label, key) {
   return form(type,title,textarea(label,'basis'),{key,label:'Подтвердить'});
@@ -303,7 +336,26 @@ async function onAction(el) {
     dealDraft={...Object.fromEntries(new FormData(document.querySelector('form[data-form="convertRequest"]'))),requestId:type};
     return view.formOpen('client','',{name:get('requests',type)?.name});
   }
-  if (verb==='assign') return form('assign','Назначить ответственного',choice('Сотрудник','userId',S.accounts.filter(row=>row.role!=='customer'),'','name'),{key:type});
+  if (verb==='assign'||verb==='assignLead') {
+    const record=get(verb==='assignLead'?'requests':'deals',type);
+    if (verb==='assignLead'&&!mayAssignLead(record)) return;
+    if (!S.staff.length) applyData({staff:await os('staff')});
+    return form(verb,'Ответственный',choice('Сотрудник','userId',S.staff,record.ownerId,'name'),{key:type});
+  }
+  if (verb==='chooseStage') {
+    const isLead=type==='requests';
+    const record=get(type,key);
+    if (!record) return;
+    const stages=isLead?leadStages.filter(row=>!row.locked):S.dealStages.filter(row=>row.id!=='won');
+    return form(isLead?'leadStageMove':'stageMove','Перенести карточку',
+      selection('Этап','stage',stages.map(row=>[row.id,row.label]),record.stage),
+      {key,label:'Перенести',desc:isLead?record.service:record.title});
+  }
+  if (verb==='resolveSupport') {
+    const closed=get('support',type).status==='Закрыто';
+    await os('support/'+type+'/resolve','POST',{resolved:!closed});
+    return saved(closed?'Обращение открыто снова':'Обращение завершено');
+  }
   if (verb==='newBrief') return view.formOpen('brief','',{dealId:type});
   if (verb==='newQuote') return newQuote(type);
   if (verb==='quoteLine') {
@@ -416,8 +468,15 @@ async function submit(element) {
   else if (type==='edittask') await os('tasks/'+key,'PUT',{title:data.title,dueOn:data.due});
   else if (type==='editinfra') await os('infrastructure/'+key,'PUT',{renewedUntil:data.until});
   else if (type==='edituser') await os('users/'+key+'/role','POST',data);
-  else if (type==='stageMove') {await move(key,data.stage);return saved('Этап обновлён',()=>detail('deal',key));}
-  else if (type==='assign') await os('deals/'+key+'/assign','POST',{userId:data.userId});
+  else if (type==='stageMove'||type==='leadStageMove') {
+    await move(type==='stageMove'?'deals':'requests',key,data.stage);
+    return saved('Карточка перенесена');
+  }
+  else if (type==='assign'||type==='assignLead') {
+    const resource=type==='assign'?'deals':'requests';
+    await os(resource+'/'+key+'/assign','POST',{userId:data.userId,version:get(resource,key).version});
+    return saved('Ответственный назначен');
+  }
   else if (type==='quote') {
     const lines=Object.keys(data).filter(key=>key.startsWith('lineCode')).map(key=>({code:data[key],quantity:Number(data['lineQuantity'+key.slice(8)])}));
     await os('quotes','POST',{briefId:data.briefId,lines});
@@ -460,6 +519,11 @@ document.addEventListener('submit',event=>{
 });
 document.addEventListener('change',event=>{
   if (event.target.name==='activeProject') {ui.activeProject=id(event.target.value);refresh().catch(showError);}
+  if (event.target.name==='leadFilter') {
+    ui.leadFilter=event.target.value;
+    view.render();
+    document.querySelector('[name="leadFilter"]')?.focus({preventScroll:true});
+  }
 });
 document.addEventListener('input',event=>{
   if (event.target.id!=='directory-search') return;
@@ -485,20 +549,45 @@ document.addEventListener('keydown',event=>{
   }
   if (event.target.matches('.deal-card[data-action]')&&['Enter',' '].includes(event.key)) {event.preventDefault();event.target.click();}
 });
+let draggedCard;
+let dropLane;
+function clearDropLane() {
+  dropLane?.classList.remove('dragover');
+  dropLane=null;
+}
 document.addEventListener('dragstart',event=>{
-  const card=event.target.closest('[data-drag-type="deal"]');
-  if (card) event.dataTransfer.setData('application/overtake-deal',card.dataset.dragId);
-  else if(event.target.closest('[data-drag-type="project"]'))event.preventDefault();
+  const card=event.target.closest('.pipeline-card[draggable="true"]');
+  if (!card||!event.dataTransfer) return;
+  draggedCard={type:card.dataset.dragType,key:card.dataset.dragId,element:card};
+  card.classList.add('pipeline-dragging');
+  event.dataTransfer.effectAllowed='move';
+  event.dataTransfer.setData('text/plain',draggedCard.key);
 });
 document.addEventListener('dragover',event=>{
-  if (event.target.closest('[data-pipeline="deals"]')&&event.dataTransfer.types.includes('application/overtake-deal')) event.preventDefault();
+  const lane=event.target.closest('.pipeline-lane[data-locked="false"]');
+  if (!lane||lane.dataset.pipeline!==draggedCard?.type) {
+    clearDropLane();
+    return;
+  }
+  event.preventDefault();
+  event.dataTransfer.dropEffect='move';
+  if (dropLane!==lane) {clearDropLane();dropLane=lane;lane.classList.add('dragover');}
+});
+document.addEventListener('dragleave',event=>{
+  if (dropLane&&!dropLane.contains(event.relatedTarget)) clearDropLane();
+});
+document.addEventListener('dragend',()=>{
+  clearDropLane();
+  draggedCard?.element.classList.remove('pipeline-dragging');
+  draggedCard=null;
 });
 document.addEventListener('drop',event=>{
-  const lane=event.target.closest('[data-pipeline="deals"]');
-  const key=id(event.dataTransfer.getData('application/overtake-deal'));
-  if (!lane||!get('deals',key)) return;
+  const lane=event.target.closest('.pipeline-lane[data-locked="false"]');
+  const active=draggedCard;
+  clearDropLane();
+  if (!active||!lane||lane.dataset.pipeline!==active.type) return;
   event.preventDefault();
-  run(async()=>{await move(key,lane.dataset.stage);await saved('Этап обновлён');});
+  run(async()=>{await move(active.type,active.key,lane.dataset.stage);await saved('Карточка перенесена');});
 });
 function currentPage() {
   const key=new URLSearchParams(location.search).get('view')||location.pathname.split('/')[2];
