@@ -226,7 +226,7 @@ function App() {
             if (serviceMenu.current) serviceMenu.current.open=false;
           }}/>}
           <button className="login-link" aria-label={user ? "Личный кабинет" : "Вход"} onClick={openLogin}>
-            <UserRound size={16} aria-hidden="true"/><span className="login-label">{user ? "Кабинет" : isHome ? "Вход в кабинет" : "Вход"}</span>
+            <UserRound size={16} aria-hidden="true"/><span className="login-label">{user ? "Кабинет" : "Вход"}</span>
           </button>
           {isHome && <a className="archive-header-contact" href="/contacts">Связаться с нами</a>}
           <button
