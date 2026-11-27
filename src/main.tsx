@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useId, useState, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { LoadBoundary } from "./components/load-boundary";
 import {ArchiveBackground} from './components/archive-background';
 import { LazyMotion, MotionConfig, m, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
+  CircleAlert,
   Plus,
   Minus,
   Menu,
@@ -494,8 +495,20 @@ function Modal({
 function Auth({ onSuccess }: { onSuccess: () => void }) {
   const [tab, setTab] = useState("login"),
     [error, setError] = useState(""),
+    [fieldErrors, setFieldErrors] = useState<Record<string, string>>({}),
     [busy, setBusy] = useState(false),
     [info, setInfo] = useState("");
+  const errorId = useId();
+  const errorProps = (name: string) => ({
+    "aria-invalid": fieldErrors[name] ? true : undefined,
+    "aria-describedby": fieldErrors[name] ? `${errorId}-${name}` : undefined,
+  });
+  const feedback = (name: string) => fieldErrors[name] && (
+    <p className="auth-feedback auth-field-feedback" id={`${errorId}-${name}`} role="alert">
+      <CircleAlert size={16} aria-hidden="true" />
+      <span>{fieldErrors[name]}</span>
+    </p>
+  );
   return (
     <>
       <div className="auth-tabs">
@@ -504,6 +517,7 @@ function Auth({ onSuccess }: { onSuccess: () => void }) {
           onClick={() => {
             setTab("login");
             setError("");
+            setFieldErrors({});
           }}
         >
           Войти
@@ -513,17 +527,50 @@ function Auth({ onSuccess }: { onSuccess: () => void }) {
           onClick={() => {
             setTab("register");
             setError("");
+            setFieldErrors({});
           }}
         >
           Создать аккаунт
         </button>
       </div>
       <form
+        className="auth-form"
+        noValidate
+        onChange={({ target }) => {
+          if (!(target instanceof HTMLInputElement)) return;
+          if (error) setError("");
+          if (fieldErrors[target.name]) {
+            setFieldErrors((previous) => ({ ...previous, [target.name]: "" }));
+          }
+        }}
         onSubmit={async (e) => {
           e.preventDefault();
+          if (busy) return;
           setError("");
+          const form = e.currentTarget;
+          const messages: Record<string, string> = {
+            name: "Укажите ваше имя.",
+            email: "Введите электронную почту.",
+            password: "Введите пароль.",
+            consent: "Подтвердите согласие на обработку данных.",
+          };
+          const errors: Record<string, string> = {};
+          let firstInvalid: HTMLInputElement | undefined;
+          for (const name of Object.keys(messages)) {
+            const field = form.elements.namedItem(name);
+            if (!(field instanceof HTMLInputElement) || field.validity.valid) continue;
+            errors[name] = field.validity.typeMismatch ? "Проверьте формат почты, например name@example.com."
+              : field.validity.tooShort ? "Введите пароль из 10 символов или больше."
+              : messages[name];
+            firstInvalid ??= field;
+          }
+          setFieldErrors(errors);
+          if (firstInvalid) {
+            firstInvalid.focus();
+            return;
+          }
           setBusy(true);
-          const f = Object.fromEntries(new FormData(e.currentTarget));
+          const f = Object.fromEntries(new FormData(form));
           try {
             if (tab === "register") {
               await api("register", { ...f, consent: !!f.consent, consentVersion: LEGAL_VERSION });
@@ -543,30 +590,38 @@ function Auth({ onSuccess }: { onSuccess: () => void }) {
         }}
       >
         {tab === "register" && (
-          <label>
-            Ваше имя
-            <input name="name" autoComplete="name" required maxLength={80} />
-          </label>
+          <div>
+            <label>Ваше имя<input name="name" autoComplete="name" required maxLength={80} {...errorProps("name")} /></label>
+            {feedback("name")}
+          </div>
         )}
-        <label>
-          Электронная почта
-          <input name="email" type="email" autoComplete="email" required />
-        </label>
-        <label>
-          Пароль
-          <input
-            name="password"
-            type="password"
-            autoComplete={tab === "login" ? "current-password" : "new-password"}
-            required
-            minLength={tab === "register" ? 10 : 1}
-            maxLength={128}
-          />
-        </label>
+        <div>
+          <label>
+            Электронная почта
+            <input name="email" type="email" autoComplete="email" required spellCheck={false} {...errorProps("email")} />
+          </label>
+          {feedback("email")}
+        </div>
+        <div>
+          <label>
+            Пароль
+            <input
+              name="password"
+              type="password"
+              autoComplete={tab === "login" ? "current-password" : "new-password"}
+              required
+              minLength={tab === "register" ? 10 : 1}
+              maxLength={128}
+              {...errorProps("password")}
+            />
+          </label>
+          {feedback("password")}
+        </div>
         {tab === "register" && (
           <>
             <small className="muted">Не менее 10 символов.</small>
-            <ConsentLabel purpose="для создания аккаунта" />
+            <ConsentLabel purpose="для создания аккаунта" {...errorProps("consent")} />
+            {feedback("consent")}
           </>
         )}
         {info && (
@@ -575,8 +630,9 @@ function Auth({ onSuccess }: { onSuccess: () => void }) {
           </p>
         )}
         {error && (
-          <p className="error" role="alert">
-            {error}
+          <p className="auth-feedback auth-server-feedback" role="alert">
+            <CircleAlert size={16} aria-hidden="true" />
+            <span>{error}</span>
           </p>
         )}
         <button className="btn purple full" disabled={busy}>

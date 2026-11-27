@@ -148,6 +148,26 @@ html[data-theme] .modal h2 {font-size:clamp(29px,4.2vw,48px);letter-spacing:-.05
 html[data-theme] .modal .modal-close {min-width:44px;min-height:44px;border-radius:50%}
 html[data-theme] .modal .auth-tabs {padding:4px;border-radius:100px}
 html[data-theme] .modal .auth-tabs button {min-height:44px;border-radius:100px}
+.auth-form {
+  --auth-warning-ink:#8b3548;
+  --auth-warning-line:#bd6375;
+  --auth-warning-wash:#fcebef;
+}
+html[data-theme=dark] .auth-form {
+  --auth-warning-ink:#ffd2dc;
+  --auth-warning-line:#d98198;
+  --auth-warning-wash:#492839;
+}
+.auth-form .auth-feedback {
+  display:flex;align-items:flex-start;gap:8px;
+  padding:8px 11px;border:1px solid color-mix(in srgb,var(--auth-warning-line) 38%,transparent);
+  border-radius:12px;color:var(--auth-warning-ink);background:var(--auth-warning-wash);
+  font-size:clamp(12px,1.4vw,14px);line-height:1.45;overflow-wrap:anywhere;
+}
+.auth-feedback svg {flex:none;margin-top:1px}
+.auth-field-feedback {margin:6px 0 0}
+.auth-server-feedback {margin:12px 0}
+html[data-theme] .modal .auth-form input[aria-invalid=true] {border-color:var(--auth-warning-line)}
 html[data-theme] .product-dialog {
   border-radius:clamp(20px,3vw,34px);border-color:var(--line);overscroll-behavior:contain;
   background:radial-gradient(ellipse at 100% 0%,var(--studio-wash),transparent 65%),var(--ui-surface);
