@@ -166,7 +166,7 @@ export function applyData(result) {
   });
   if (result.projectDetails && S.user.role==='client') {
     ui.activeProject=result.selectedProject;
-    S.support=result.projectDetails.flatMap(detail=>detail.support.map(supportRow));
+    S.support=result.projectDetails.flatMap(detail=>detail.support.map(row=>supportRow({...row,project_id:detail.project.id})));
     S.infrastructure=result.projectDetails.flatMap(detail=>detail.infrastructure.map(row=>infraRow({...row,project_id:detail.project.id})));
     S.docs=result.projectDetails.flatMap(detail=>detail.documents.map(row=>({id:id(row.id),number:row.number,signedVerified:true})));
   }

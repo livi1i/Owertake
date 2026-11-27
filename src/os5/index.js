@@ -1,5 +1,6 @@
 import {createTemplates} from './templates.js';
 import {S,ui,clientPages,defaultAppearance,applyData,pageData,os,request,get,id,minor,rubles} from './model.js';
+import {playEntrance,refreshBrand,toggleMotion} from './brand.js';
 
 const managerPages=['overview','deals','projects','support','settings'];
 const owner=()=>S.user?.role==='admin';
@@ -60,9 +61,9 @@ function overview() {
   const {head,icon,btn,metric,esc,tag,rawEvents}=view;
   const steps=S.dealStages.map(stage=>({label:stage.label,value:S.deals.filter(deal=>deal.stage===stage.id).length}));
   const top=Math.max(1,...steps.map(step=>step.value));
-  return head('Рабочий стол','Главное по заявкам, сделкам, проектам и задачам — без лишних переходов.',
+  return '<section class="workspace-masthead" data-workspace-background="services">'+head('Рабочий стол','Заявки, сделки, проекты и задачи команды.',
     btn(icon('plus')+' Новая заявка','add:request','primary'))+
-    '<div class="metric-grid">'+metric('Заявки','Новые обращения',owner()?S.requests.length:'—','inbox')+
+    '</section><div class="metric-grid">'+metric('Заявки','Новые обращения',owner()?S.requests.length:'—','inbox')+
     metric('Открытые сделки','Перейти в воронку',S.counts.deals??S.deals.filter(deal=>!['won','lost'].includes(deal.stage)).length,'deal')+
     metric('Активные проекты','Этапы и согласования',S.counts.projects??S.projects.length,'folder','green')+
     metric('Задачи на контроле','Незакрытые задачи',owner()?S.tasks.filter(task=>!task.done).length:'—','tasks','peach')+'</div>'+
@@ -88,7 +89,7 @@ function analyticsSection(key) {
   }[key]||[];
   return cards.length?'<div class="metric-grid">'+cards.map(([title,value,icon])=>metric(title,'Данные CRM',value,icon)).join('')+'</div>':'<div class="card"><div class="empty">Для этой разбивки источник ещё не настроен.</div></div>';
 }
-const view=createTemplates({S,ui,refresh,notify,showError,allowedPages,staffNav,accountRows,overview,analyticsSection,onlyClientProjects,supported});
+const view=createTemplates({S,ui,refresh,notify,showError,allowedPages,staffNav,accountRows,overview,analyticsSection,onlyClientProjects,supported,refreshBrand,playEntrance});
 const {esc,btn,field,selection,textarea,wrapper,openModal,tag,table,icon,money}=view;
 const opts=(rows,label='title')=>[['','— Выберите —'],...rows.map(row=>[row.id,row[label]])];
 const briefOpts=()=>opts(S.briefs.filter(row=>row.approved).map(row=>({...row,label:(get('deals',row.dealId)?.title||row.dealId)+' · '+row.template})),'label');
@@ -270,6 +271,7 @@ async function onAction(el) {
     return view.render();
   }
   if (verb==='directory') return view.directory();
+  if (verb==='toggleMotion') return toggleMotion();
   if (verb==='flowInfo') return view.flowInfo();
   if (verb==='pop') return view.pop(el.dataset.value);
   if (verb==='closePop') {ui.pop='';return view.renderPop();}
@@ -469,6 +471,14 @@ document.addEventListener('input',event=>{
   }
 });
 document.addEventListener('keydown',event=>{
+  const dialog=document.querySelector('#modal-root .modal');
+  if (dialog&&event.key==='Tab') {
+    const focusable=[...dialog.querySelectorAll('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled)')]
+      .filter(control=>!control.closest('[hidden]')&&control.getClientRects().length);
+    const first=focusable[0],last=focusable.at(-1);
+    if (event.shiftKey&&document.activeElement===first) {event.preventDefault();last?.focus();}
+    else if (!event.shiftKey&&document.activeElement===last) {event.preventDefault();first?.focus();}
+  }
   if (event.key==='Escape') {ui.pop='';view.renderPop();view.closeModal();}
   if (S.user&&(event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k') {
     event.preventDefault();view.directory();document.getElementById('directory-search')?.focus();
@@ -504,10 +514,22 @@ window.addEventListener('popstate',()=>{
 async function start() {
   const {user}=await request('me');
   if (!user) {
-    document.getElementById('app').innerHTML='<main class="workspace"><div class="page-head"><div><div class="eyebrow">OVERTAKE WORKSPACE 5.0</div><h1>Вход в рабочую систему</h1></div></div>'+
-      '<div class="card">'+wrapper('login',field('Email','email','','email','required autocomplete="username"')+
-        field('Пароль','password','','password','required autocomplete="current-password"')).replace('Создать запись','Войти')+
-      '<a class="cell-link" href="/">На сайт OVERTAKE</a> · <a class="cell-link" href="/account">Создать аккаунт</a></div></main>';
+    document.getElementById('app').innerHTML=`<main id="content" class="workspace workspace-login" tabindex="-1">
+      <div class="workspace-login-art" data-workspace-background="hero">
+        <a href="/" aria-label="На сайт OVERTAKE"><span data-workspace-logo></span></a>
+        <span class="eyebrow">Рабочее пространство</span>
+        <p>Проекты, документы и переписка с командой OVERTAKE.</p>
+      </div>
+      <div class="workspace-login-main"><section class="card" aria-labelledby="workspace-login-title" data-workspace-intro>
+        <h1 id="workspace-login-title">Вход в кабинет</h1>
+        <form data-form="login"><div class="form-grid">
+          ${field('Электронная почта','email','','email','required autocomplete="username" spellcheck="false"')}
+          ${field('Пароль','password','','password','required autocomplete="current-password"')}
+        </div><div class="form-actions"><button class="btn primary" type="submit">Войти</button></div></form>
+        <div class="workspace-login-links"><a href="/">На сайт OVERTAKE</a><a href="/account">Создать аккаунт</a></div>
+      </section></div>
+    </main>`;
+    refreshBrand('login','light');
     return;
   }
   S.user=user;

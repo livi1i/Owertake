@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {api} from '../server/api.mjs';
 import {database} from '../scripts/local-db.mjs';
 import {pricebook} from '../src/lib/public-prices.ts';
+import {S as workspaceState,applyData} from '../src/os5/model.js';
 
 const prices=pricebook().flatMap(group=>group.offers).map(({amount,...item})=>({...item,minor:Math.round(amount*100)}));
 const pdf=mark=>Buffer.from('%PDF-1.4\n% '+mark+'\n%%EOF\n').toString('base64');
@@ -159,6 +160,11 @@ test('OS5 links original request, unique customer, approved brief, price snapsho
   assert.equal((await clientAccount.os('projects/'+id+'/milestones/1','POST',{})).status,200);
   const ticket=await clientAccount.os('projects/'+id+'/support','POST',{kind:'defect',subject:'Broken button',body:'Details for the agency'});
   assert.equal(ticket.status,201);
+  const projectView=await clientAccount.os('projects/'+id);
+  assert.equal(projectView.status,200);
+  workspaceState.user={role:'client'};
+  applyData({projectDetails:[projectView.data],selectedProject:id});
+  assert.equal(workspaceState.support.find(row=>row.id===ticket.data.id)?.projectId,id);
   assert.equal((await other.os('projects/'+id+'/support','POST',{kind:'defect',subject:'Foreign project',body:'Must not be saved'})).status,404);
   assert.equal((await other.os('support/'+ticket.data.id+'/messages')).status,404);
   assert.equal((await manager.os('support/'+ticket.data.id+'/messages','POST',{body:'Checking the defect'})).status,201);
