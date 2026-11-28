@@ -35,7 +35,7 @@ async function fixture(t) {
 test('OS5 migration is additive, repeatable and preserves public content and original records',()=>{
   const db=database();
   db.sqlite.exec("INSERT INTO content VALUES ('public','{}'); INSERT INTO leads(id,name,contact,service,description,created) VALUES('legacy','Name','Contact','Site','Description','2026-11-25')");
-  const migration=['0001_os5.sql','0002_os5_lead_workflow.sql']
+  const migration=['0001_os5.sql','0002_os5_lead_workflow.sql','0003_os5_maintenance.sql']
     .map(name=>readFileSync(new URL('../drizzle/'+name,import.meta.url),'utf8')).join('\n');
   db.sqlite.exec(migration);
   db.sqlite.exec(migration);
@@ -188,6 +188,19 @@ test('OS5 links original request, unique customer, approved brief, price snapsho
   assert.equal((await other.os('invoices/'+invoice+'/pdf')).status,404);
   assert.equal((await clientAccount.os('projects/'+id+'/milestones/3','POST',{})).status,409);
   assert.equal((await manager.os('projects/'+id)).status,200);
+  const plan=(await os('maintenance','POST',{projectId:id,title:'Website care',monthlyMinutes:120})).data.id;
+  assert.ok(plan);
+  assert.equal((await manager.os('maintenance','POST',{projectId:id,title:'Unapproved plan',monthlyMinutes:120})).status,403);
+  assert.equal((await other.os('maintenance')).data.items.length,0);
+  assert.equal((await clientAccount.os('maintenance/'+plan)).status,403);
+  const workedOn=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Moscow'});
+  const work={workedOn,minutes:75,note:'Updated dependencies and checked forms'};
+  assert.equal((await manager.os('maintenance/'+plan+'/work','POST',work)).status,201);
+  assert.equal((await manager.os('maintenance/'+plan+'/work','POST',{...work,minutes:1.5})).status,400);
+  assert.equal((await clientAccount.os('maintenance')).data.items[0].used_minutes,75);
+  assert.equal((await os('maintenance/'+plan)).data.work[0].note,work.note);
+  assert.equal((await os('maintenance/'+plan,'PUT',{active:false})).status,200);
+  assert.equal((await manager.os('maintenance/'+plan+'/work','POST',work)).status,409);
   assert.equal((await manager.os('invoices/'+invoice+'/pdf')).status,404);
   assert.equal((await clientAccount.os('projects/'+id+'/milestones/1','POST',{})).status,409);
   assert.equal((await os('projects/'+id+'/milestones/1','PUT',{})).status,200);

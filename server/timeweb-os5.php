@@ -84,6 +84,65 @@ function os5_dispatch(string $path,string $method,array $body): never {
     [,,, $section,$id,$action,$sub]=array_pad(explode('/',$path),7,null);
     $owner=$user['role']==='admin';
     $manager=$user['role']==='manager';
+    if ($section==='maintenance') {
+        $today=(new DateTimeImmutable('now',new DateTimeZone('Europe/Moscow')))->format('Y-m-d');
+        $period=substr($today,0,7).'-01';
+        if (!$id&&$method==='GET') reply(['items'=>many('
+          SELECT m.*,p.title AS project_title,c.name AS client_name,
+            (SELECT COALESCE(SUM(w.minutes),0) FROM os5_maintenance_work w WHERE w.plan_id=m.id AND w.worked_on>=? AND w.worked_on<=?) AS used_minutes
+          FROM os5_maintenance_plans m JOIN os5_projects p ON p.id=m.project_id
+          JOIN os5_clients c ON c.id=p.client_id WHERE CAST(? AS INTEGER)=1 OR (CAST(? AS INTEGER)=1 AND p.owner_id=?) OR
+            (CAST(? AS INTEGER)=0 AND EXISTS(SELECT 1 FROM os5_memberships a WHERE a.project_id=p.id AND a.user_id=?))
+          ORDER BY m.active DESC,m.created DESC',
+          [$period,$today,(int)$owner,(int)$manager,$user['id'],(int)$manager,$user['id']])]);
+        if (!$owner&&!$manager) bad('Требуются права сотрудника',403);
+        $minutes=static function(mixed $value,int $max): int {
+            if (!is_int($value)||$value<1||$value>$max) bad('Укажите допустимое целое число минут');
+            return $value;
+        };
+        if (!$id&&$method==='POST') {
+            if (!$owner) bad('Требуются права владельца',403);
+            $project=os5_project(os5_string($body['projectId']??null,'Проект'));
+            $title=os5_string($body['title']??null,'Название услуги');
+            $limit=$minutes($body['monthlyMinutes']??null,44640);
+            $key=uid();
+            os5_atomic(function()use($key,$project,$title,$limit){
+                query('INSERT INTO os5_maintenance_plans(id,project_id,title,monthly_minutes,created) VALUES (?,?,?,?,?)',
+                    [$key,$project['id'],$title,$limit,stamp()]);
+                os5_audit('maintenance',$key,'created',['projectId'=>$project['id']]);
+            });
+            reply(['id'=>$key],201);
+        }
+        if ($id) {
+            $plan=os5_get('os5_maintenance_plans',$id);
+            if ($manager&&!one('SELECT id FROM os5_projects WHERE id=? AND owner_id=?',[$plan['project_id'],$user['id']])) bad('Запись не найдена',404);
+            if (!$action&&$method==='GET') reply(['work'=>many('SELECT w.*,u.name AS actor_name
+              FROM os5_maintenance_work w LEFT JOIN users u ON u.id=w.actor_id WHERE w.plan_id=?
+              ORDER BY w.worked_on DESC,w.created DESC',[$id])]);
+            if (!$action&&$method==='PUT') {
+                if (!$owner) bad('Требуются права владельца',403);
+                $active=$body['active']??null;
+                if (!is_bool($active)) bad('Укажите состояние обслуживания');
+                os5_atomic(function()use($id,$active){
+                    query('UPDATE os5_maintenance_plans SET active=? WHERE id=?',[(int)$active,$id]);
+                    os5_audit('maintenance',$id,$active?'resumed':'paused');
+                });
+                reply(['ok'=>true]);
+            }
+            if ($action==='work'&&$method==='POST') {
+                $workedOn=os5_date($body['workedOn']??null);
+                if ($workedOn>$today) bad('Дата работ не может быть в будущем');
+                $key=uid();
+                query('INSERT INTO os5_maintenance_work(id,plan_id,actor_id,worked_on,minutes,note,created)
+                  SELECT ?,id,?,?,?,?,? FROM os5_maintenance_plans WHERE id=? AND active=1
+                  AND (CAST(? AS INTEGER)=1 OR EXISTS(SELECT 1 FROM os5_projects p WHERE p.id=project_id AND p.owner_id=?))',
+                  [$key,$user['id'],$workedOn,$minutes($body['minutes']??null,1440),os5_string($body['note']??null,'Выполненные работы',2000),stamp(),$id,(int)$owner,$user['id']]);
+                if (!one('SELECT id FROM os5_maintenance_work WHERE id=?',[$key])) bad('Обслуживание приостановлено или доступ изменился',409);
+                reply(['id'=>$key],201);
+            }
+        }
+        bad('Запись не найдена',404);
+    }
     if (in_array($section,['profile','alert-settings'],true)&&!$id) {
         $key='os5:'.$section.':'.$user['id'];
         $previous=json_decode(one('SELECT data FROM content WHERE id=?',[$key])['data']??'{}',true,512,JSON_THROW_ON_ERROR);

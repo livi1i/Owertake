@@ -226,7 +226,7 @@ button,input,select,textarea,a {touch-action: manipulation}
 .pipeline-list td {min-width:110px}
 .pipeline-list td:last-child {min-width:150px}
 .service-metrics {grid-template-columns:repeat(3,minmax(0,1fr))}
-.service-panels {align-items:start}
+.service-panels {display:grid;gap:16px;align-items:start}
 .service-panels .card-head {flex-wrap:wrap;gap:8px}
 .service-panels td .btn {max-width:100%;white-space:normal;text-align:left}
 td {overflow-wrap:anywhere}
@@ -255,7 +255,16 @@ tr:hover td,.theme-dark tr:hover td {background:var(--surface2)}
 .tabs button {min-height:38px;white-space:nowrap;color:var(--sub)}
 .tabs button.active {color:var(--accent);background:var(--surface);box-shadow:none}
 :is(.input,.select,.textarea) {color:var(--ink);background:var(--surface);border-color:var(--line);border-radius:12px;min-height:44px}
-:is(.input,.select,.textarea):focus-visible {border-color:var(--focus)}
+:is(.input,.select,.textarea):focus {
+  outline:1px solid var(--focus);
+  outline-offset:-1px;
+}
+.account-row > svg {flex:none}
+.account-row .avatar {flex:none}
+.account-row .account-identity {min-width:0;overflow-wrap:anywhere}
+.account-identity small {display:block;color:var(--sub)}
+.account-row.account-current:hover {background:transparent}
+.modal .field a {color:var(--accent);text-decoration:underline;text-underline-offset:2px}
 :is(.input,.textarea)::placeholder {color:var(--soft)}
 .modal-cover {background:#021b3ebd;padding:clamp(12px,3vw,32px);overscroll-behavior:contain}
 .modal {max-height:calc(100dvh - 30px);border-radius:22px;overscroll-behavior:contain}

@@ -25,7 +25,7 @@ assert "api.php" in files
 assert "client/index.html" in files
 schema = (args.root / "drizzle/0000_initial.sql").read_text(encoding="utf-8-sig")
 migration = "\n".join((args.root / "drizzle" / name).read_text(encoding="utf-8-sig")
-    for name in ("0001_os5.sql", "0002_os5_lead_workflow.sql"))
+    for name in ("0001_os5.sql", "0002_os5_lead_workflow.sql", "0003_os5_maintenance.sql"))
 router = (args.root / "server/timeweb-index.php").read_bytes()
 role_email = {"admin": "owner@example.test", "client": "client@example.test", "unrelated": "other@example.test", "manager":"manager@example.test"}
 password = "OS5-test-account-only-2026"
@@ -188,6 +188,14 @@ with tempfile.TemporaryDirectory(prefix="overtake-os5-qa-") as temporary, ExitSt
         assert os5("overview")["counts"]["received"]==700000
         os5("projects/"+project,cookie=client,status=404)
         os5("projects/"+project+"/memberships","POST",{"userId":"client","basis":"Representative verified in fixture"})
+        plan=os5("maintenance","POST",{"projectId":project,"title":"Website care","monthlyMinutes":120},status=201)["id"]
+        assert os5("maintenance",cookie=client)["items"][0]["id"]==plan
+        os5("maintenance/"+plan,cookie=client,status=403)
+        work={"workedOn":"2024-01-01","minutes":55,"note":"Synthetic maintenance"}
+        os5("maintenance/"+plan+"/work","POST",work,cookie=manager,status=201)
+        assert os5("maintenance/"+plan)["work"][0]["minutes"]==55
+        os5("maintenance/"+plan,"PUT",{"active":False})
+        os5("maintenance/"+plan+"/work","POST",work,cookie=manager,status=409)
         view=os5("projects/"+project,cookie=client)
         assert len(view["milestones"])==6 and len(view["documents"])==1
         assert not os5("projects/"+project,cookie=manager)["documents"]

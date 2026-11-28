@@ -3,7 +3,7 @@ import {S,ui,clientPages,defaultAppearance,applyData,pageData,os,request,get,id,
 import {playEntrance,refreshBrand,toggleMotion} from './brand.js';
 import {mayAssignLead,pipelineView} from './pipeline.js';
 
-const managerPages=['overview','requests','deals','projects','client-service','support','infrastructure','settings'];
+const managerPages=['overview','requests','deals','projects','client-service','service-requests','support','infrastructure','settings'];
 const owner=()=>S.user?.role==='admin';
 const allowedPages=()=>ui.clientPortal?clientPages:owner()?view.nav.flatMap(([,items])=>items.map(([key])=>key)):managerPages;
 const staffNav=()=>view.nav.map(([label,items])=>[label,items.filter(([key])=>allowedPages().includes(key))]).filter(([,items])=>items.length);
@@ -16,7 +16,7 @@ const supported=action=>{
   if (verb==='add') return type==='support'||(owner()&&['request','client','deal','partner','brief','task','infra','doc','payment','mail','membership'].includes(type));
   if (verb==='edit') return owner()&&['task','request','deal','client','brief','infra','mail','user'].includes(type);
   if (verb==='taskDone') return owner();
-  return !['accountSwitch','purge','sessionRevoke','security'].includes(verb);
+  return !['purge','sessionRevoke','security'].includes(verb);
 };
 
 let toastTimer;
@@ -28,7 +28,7 @@ function notify(message) {
   toastTimer=setTimeout(()=>el.classList.remove('visible'),3600);
 }
 function showError(error) {
-  if (error.status===401 && S.user) return location.reload();
+  if (error.status===401 && S.user && error.path!=='login') return location.reload();
   const target=document.querySelector('#modal-root .modal');
   if (target) {
     let alert=target.querySelector('[data-form-error]');
@@ -58,9 +58,12 @@ async function refresh() {
 }
 function accountRows() {
   const {esc,icon}=view;
-  return '<div class="account-row"><span class="avatar">'+esc(S.profile.name.slice(0,1))+'</span><span><b>'+
-    esc(S.profile.name)+'</b><small style="display:block">'+esc(S.profile.email)+'</small></span>'+icon('check')+'</div>'+
-    '<div class="divider"></div><button class="account-row" data-action="accountLogout">'+icon('logout')+'<span>Выйти</span></button>';
+  return `<div class="account-row account-current"><span class="avatar">${esc(S.profile.name.slice(0,1))}</span>
+    <span class="account-identity"><b>${esc(S.profile.name)}</b><small>${esc(S.profile.email)}</small></span>${icon('check')}</div>
+    <div class="divider"></div>
+    <button type="button" class="account-row" data-action="accountSwitch">${icon('users')}<span>Сменить аккаунт</span></button>
+    <button type="button" class="account-row" data-action="accountCreate">${icon('plus')}<span>Добавить аккаунт</span></button>
+    <button type="button" class="account-row" data-action="accountLogout">${icon('logout')}<span>Выйти</span></button>`;
 }
 function overview() {
   const {head,icon,btn,metric,esc,tag,rawEvents}=view;
@@ -94,23 +97,40 @@ function analyticsSection(key) {
   }[key]||[];
   return cards.length?'<div class="metric-grid">'+cards.map(([title,value,icon])=>metric(title,'Данные CRM',value,icon)).join('')+'</div>':'<div class="card"><div class="empty">Для этой разбивки источник ещё не настроен.</div></div>';
 }
+const todayInMoscow=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Moscow',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+function duration(minutes) {
+  if (minutes<60) return minutes+' мин';
+  return Math.floor(minutes/60)+' ч'+(minutes%60?' '+minutes%60+' мин':'');
+}
+function maintenanceTable() {
+  const {table,esc,btn,tag}=view;
+  if (!S.maintenance.length) return '<p class="muted">Регулярные услуги пока не подключены.</p>';
+  return table(['Услуга','Клиент и проект','Лимит','Использовано','Статус'],S.maintenance.map(plan=>{
+    const title=esc(plan.title);
+    const used=Number(plan.used_minutes);
+    return '<tr><td>'+(ui.clientPortal?'<b>'+title+'</b>':btn(title,'maintenanceDetail:'+plan.id,'sm'))+
+      '</td><td><b>'+esc(plan.client_name)+'</b><br>'+esc(plan.project_title)+'</td><td>'+duration(plan.monthly_minutes)+
+      '</td><td>'+duration(used)+(used>plan.monthly_minutes?' '+tag('Сверх лимита','peach'):'')+'</td><td>'+
+      (plan.active?tag('Активно','green'):tag('На паузе','gray'))+'</td></tr>';
+  }));
+}
 function clientService() {
   const {head,metric,table,esc,btn}=view;
-  const open=S.support.filter(row=>row.status!=='Закрыто');
-  const today=new Intl.DateTimeFormat('sv-SE',{timeZone:S.profile.tz,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  if (ui.clientPortal) return head('Обслуживание','Подключённые услуги, лимиты и использованное время за календарный месяц.')+
+    '<section class="card">'+maintenanceTable()+'</section>';
+  const today=todayInMoscow();
   const upcoming=new Date(today+'T00:00:00Z');
   upcoming.setUTCDate(upcoming.getUTCDate()+30);
   const due=S.infrastructure.filter(row=>row.until&&row.until<=upcoming.toISOString().slice(0,10));
   const project=row=>get('projects',row.projectId)?.title||'—';
-  return head('Обслуживание клиентов','Обращения по проектам и продление доменов и хостинга.',
-      btn('Новое обращение','add:support','primary'))+
-    '<div class="metric-grid service-metrics">'+metric('Открытые обращения','Ожидают решения',open.length,'support')+
+  return head('Обслуживание','Регулярные услуги по проектам, учёт времени и продления.',
+      owner()?btn('Добавить обслуживание','maintenanceAdd','primary'):'')+
+    '<div class="metric-grid service-metrics">'+metric('Действующие услуги','Регулярное обслуживание',S.maintenance.filter(plan=>plan.active).length,'support')+
     metric('Продления','Просрочены или в ближайшие 30 дней',due.length,'globe')+
     metric('Активные записи','Домены и хостинг',S.infrastructure.length,'server')+'</div>'+
-    '<div class="grid equal service-panels"><section class="card"><div class="card-head"><h2 class="card-title">Очередь обращений</h2>'+
-    btn('Все обращения','go:support','soft sm')+'</div>'+
-    table(['Тема','Проект','Тип'],open.map(row=>'<tr><td>'+btn(esc(row.title),'detail:support:'+row.id,'sm')+'</td><td>'+
-      esc(project(row))+'</td><td>'+esc(row.type)+'</td></tr>'))+'</section>'+
+    '<div class="service-panels"><section class="card"><div class="card-head"><div><h2 class="card-title">Регулярные услуги</h2>'+
+    '<p class="card-sub">Лимиты и списания за календарный месяц, по Москве.</p></div></div>'+
+    maintenanceTable()+'</section>'+
     '<section class="card"><div class="card-head"><h2 class="card-title">Ближайшие продления</h2>'+
     btn('Домены и хостинг','go:infrastructure','soft sm')+'</div>'+
     table(['Услуга','Проект','До'],due.map(row=>'<tr><td>'+esc(row.name)+'</td><td>'+esc(project(row))+
@@ -130,6 +150,17 @@ const form=(type,title,fields,{key='',desc='',label='Сохранить'}={})=>{
   openModal(title,desc,body,'wide');
 };
 
+function accountForm(create, email='', created=false) {
+  const fields=(create?field('Имя','name','','text','required maxlength="80" autocomplete="name"'):'')+
+    field('Электронная почта','email',email,'email','required maxlength="200" autocomplete="username"')+
+    field('Пароль','password','','password',create?'required minlength="10" maxlength="128" autocomplete="new-password"':'required autocomplete="current-password"')+
+    (create?check('Согласен с <a href="/personal-data-consent" target="_blank" rel="noopener">обработкой персональных данных</a> и <a href="/privacy" target="_blank" rel="noopener">политикой конфиденциальности</a>','consent'):'');
+  form(create?'accountCreate':'accountSwitch',create?'Добавить аккаунт':'Сменить аккаунт',fields,{
+    label:create?'Создать аккаунт':'Войти',
+    desc:create?'Зарегистрируйте новый клиентский аккаунт.':created?'Аккаунт создан. Введите новый пароль для входа.':'Войдите с почтой и паролем другого аккаунта.',
+  });
+}
+
 function add(type,preset='') {
   if (type==='request') return form(type,'Новая заявка',field('Имя заказчика','name','','text','required')+
     field('Контакт','contact','','text','required')+field('Услуга или название задачи','service','','text','required')+textarea('Описание','description')+
@@ -144,7 +175,8 @@ function add(type,preset='') {
     choice('Пользователь','userId',S.accounts.filter(row=>row.role==='customer'),'','email')+textarea('Основание проверки полномочий','basis'));
   if (type==='mail') return form(type,'Новое письмо',field('Получатель','to','','email','required')+field('Тема','subject',preset,'text','required')+
     textarea('Текст письма','body'),{label:'Сохранить черновик',desc:'Отправка станет доступна после подключения почтового сервиса.'});
-  view.formOpen(type,'',type==='deal'?{clientId:preset}:type==='support'?{projectId:preset||ui.activeProject}:type==='brief'?{template:preset||'Сайт'}:{});
+  view.formOpen(type,'',type==='deal'?{clientId:preset}:type==='support'?{projectId:preset||ui.activeProject,
+    oneOff:['service-requests','client-requests'].includes(ui.page)}:type==='brief'?{template:preset||'Сайт'}:{});
 }
 const display=(rows)=>'<div class="card">'+rows.map(([label,value])=>'<div class="list-item"><div><b>'+esc(label)+'</b><small>'+esc(value||'—')+'</small></div></div>').join('')+'</div>';
 const actions=(...buttons)=>'<div class="form-actions">'+buttons.join('')+'</div>';
@@ -306,7 +338,19 @@ async function onAction(el) {
   if (verb==='directory') return view.directory();
   if (verb==='toggleMotion') return toggleMotion();
   if (verb==='flowInfo') return view.flowInfo();
-  if (verb==='pop') return view.pop(el.dataset.value);
+  if (verb==='pop') {
+    view.pop(el.dataset.value);
+    if (ui.pop==='bell') {
+      const visibleUnread=S.notifications.slice(0,3).filter(row=>!row.read);
+      await readNotifications(visibleUnread);
+      if (visibleUnread.length) {
+        const restoreFocus=document.activeElement===el;
+        view.render();
+        if (restoreFocus) document.querySelector('[data-action="pop"][data-value="bell"]')?.focus({preventScroll:true});
+      }
+    }
+    return;
+  }
   if (verb==='closePop') {ui.pop='';return view.renderPop();}
   if (verb==='closeModal') {
     const draft=dealDraft;
@@ -390,8 +434,7 @@ async function onAction(el) {
   if (verb==='restore') {await os(get('archive',type).collection+'/'+type+'/restore','POST',{});return saved('Восстановлено');}
   if (verb==='taskDone') {await os('tasks/'+type+'/done','POST',{done:!get('tasks',type).done});return saved('Задача обновлена');}
   if (verb==='read'||verb==='readAll') {
-    const keys=verb==='read'?[type]:S.notifications.filter(row=>!row.read).map(row=>row.id);
-    for (const key of keys) await os('notifications/'+key+'/read','POST',{});
+    await readNotifications(S.notifications.filter(row=>!row.read&&(verb==='readAll'||row.id===type)));
     await refresh();
     if (verb==='read') {
       if (ui.page!=='requests') applyData({requests:await os('requests')});
@@ -416,16 +459,62 @@ async function onAction(el) {
   }
   if (verb==='briefTemplate') return view.formOpen('brief','',{template:type});
   if (verb==='mailTpl') return add('mail','OVERTAKE · '+type);
+  if (verb==='maintenanceAdd'&&owner()) return form(verb,'Добавить обслуживание',
+    choice('Проект','projectId',S.projects,'','title')+
+    field('Название услуги','title','','text','required maxlength="200"')+
+    field('Лимит в месяц, мин','monthlyMinutes','','number','required min="1" max="44640" step="1"'),
+    {desc:'Например, для поддержки сайта 2 часа в месяц укажите 120 минут.'});
+  if (verb==='maintenanceDetail') return maintenanceDetail(type);
+  if (verb==='maintenanceWork') return form(verb,'Записать выполненные работы',
+    field('Дата работ','workedOn',todayInMoscow(),'date','required max="'+todayInMoscow()+'"')+
+    field('Минуты','minutes','','number','required min="1" max="1440" step="1"')+
+    textarea('Что сделали','note'),{key:type,label:'Записать время'});
+  if (verb==='maintenanceToggle'&&owner()) {
+    await os('maintenance/'+type,'PUT',{active:!get('maintenance',type).active});
+    return saved('Статус обслуживания обновлён',()=>maintenanceDetail(type));
+  }
+  if (verb==='accountSwitch'||verb==='accountCreate') return accountForm(verb==='accountCreate');
   if (verb==='accountLogout') {await request('logout','POST',{});return location.assign('/');}
+}
+async function maintenanceDetail(key) {
+  const plan=get('maintenance',key);
+  if (!plan) return;
+  const {work}=await os('maintenance/'+key);
+  return opened(plan.title,plan.client_name+' · '+plan.project_title,
+    display([['Лимит в месяц',duration(plan.monthly_minutes)],['Использовано в этом месяце',duration(Number(plan.used_minutes))],
+      ['Остаток',duration(Math.max(0,plan.monthly_minutes-Number(plan.used_minutes)))],['Статус',plan.active?'Активно':'На паузе']])+
+    '<div class="card"><h3 class="card-title">Журнал работ</h3>'+
+    table(['Дата','Работа','Сотрудник','Время'],work.map(row=>'<tr><td>'+esc(row.worked_on)+'</td><td>'+esc(row.note)+
+      '</td><td>'+esc(row.actor_name||'—')+'</td><td>'+duration(row.minutes)+'</td></tr>'))+'</div>'+
+    actions(plan.active?btn('Записать время','maintenanceWork:'+key,'primary'):'',
+      owner()?btn(plan.active?'Приостановить':'Возобновить','maintenanceToggle:'+key,'soft'):''));
+}
+async function readNotifications(rows) {
+  for (const row of rows) {
+    await os('notifications/'+row.id+'/read','POST',{});
+    row.read=true;
+  }
 }
 function viewResult(result) {applyData({preferences:result});}
 
 async function submit(element) {
   const data=Object.fromEntries(new FormData(element));
   const type=element.dataset.form,key=element.dataset.id;
-  if (type==='login') {
+  if (type==='login'||type==='accountSwitch') {
     await request('login','POST',{email:data.email,password:data.password});
-    return location.reload();
+    return type==='accountSwitch'?location.assign('/cabinet'):location.reload();
+  }
+  if (type==='accountCreate') {
+    await request('register','POST',{name:data.name,email:data.email,password:data.password,consent:data.consent==='on'});
+    return accountForm(false,data.email,true);
+  }
+  if (type==='maintenanceAdd') {
+    await os('maintenance','POST',{...data,monthlyMinutes:Number(data.monthlyMinutes)});
+    return saved('Обслуживание добавлено');
+  }
+  if (type==='maintenanceWork') {
+    await os('maintenance/'+key+'/work','POST',{...data,minutes:Number(data.minutes)});
+    return saved('Время записано',()=>maintenanceDetail(key));
   }
   if (type==='client') {
     const payload={...data,kind:data.kind==='individual'?'person':data.kind,taxId:data.inn};

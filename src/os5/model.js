@@ -17,10 +17,10 @@ export const S = {
   organization:{}, notify:{}, clients:[], requests:[], deals:[], dealStages:[], projects:[], staff:[],
   projectStages, briefs:[], quotes:[], docs:[], payments:[], partners:[], accounts:[],
   sessions:[], loginHistory:[], notifications:[], tasks:[], services:[], mail:[], support:[],
-  infrastructure:[], archive:[], events:[], counts:{},
+  infrastructure:[], maintenance:[], archive:[], events:[], counts:{},
 };
 export const ui = {page:'overview',tab:'',pop:'',modal:'',clientPortal:false,activeProject:'',leadFilter:'all'};
-export const clientPages=['client-portal','client-support','client-documents','client-infra','client-settings'];
+export const clientPages=['client-portal','client-maintenance','client-requests','client-support','client-documents','client-infra','client-settings'];
 
 export const id = value => /^[a-zA-Z0-9_-]{1,120}$/.test(value ?? '') ? value : '';
 const iso = value => /^\d{4}-\d{2}-\d{2}/.test(value ?? '') ? value.slice(0,10) : '';
@@ -41,7 +41,7 @@ export async function request(path,method='GET',body) {
   const result=await response.json().catch(()=>({}));
   if (!response.ok) {
     const error=new Error(result.error||'Сервер не смог выполнить действие');
-    throw Object.assign(error,{status:response.status, result});
+    throw Object.assign(error,{status:response.status, result, path});
   }
   return result;
 }
@@ -49,7 +49,7 @@ export const os = (path,method,body) => request('os5/'+path,method,body);
 export const get = (group,key) => S[group]?.find(record=>record.id===key);
 
 const portalCollection = {
-  'client-portal':['projects'],'client-support':['projects'],
+  'client-portal':['projects'],'client-maintenance':['maintenance'],'client-support':['projects'],'client-requests':['projects'],
   'client-documents':['projects'],'client-infra':['projects'],'client-settings':['preferences'],
 };
 const ownerCollection = {
@@ -58,16 +58,16 @@ const ownerCollection = {
   requests:['requests','clients','deals','stages','staff'], deals:['deals','clients','stages','invoices','briefs','quotes','prices','staff'],
   clients:['clients','deals','stages','projects'], partners:['partners'],
   projects:['projects','clients','users'], briefs:['briefs','deals','prices'],
-  support:['support','projects','clients'], infrastructure:['infrastructure','projects','clients'],
-  'client-service':['support','infrastructure','projects'],
+  support:['support','projects','clients'],'service-requests':['support','projects'],infrastructure:['infrastructure','projects','clients'],
+  'client-service':['maintenance','infrastructure','projects'],
   documents:['invoices','deals','quotes','clients','payments'],payments:['payments','invoices','clients','deals'],
   mail:['mail','clients','audit'], analytics:['analytics'],services:['prices'],users:['users','projects','audit'],
   settings:['preferences','org'],archive:['archive'],
 };
 const managerCollection = {
   overview:['requests','deals','projects','stages'],requests:['requests','staff','deals','stages'],
-  deals:['deals','stages','staff'],projects:['projects'],support:['support','projects'],
-  infrastructure:['infrastructure','projects'],'client-service':['support','infrastructure','projects'],settings:['preferences'],
+  deals:['deals','stages','staff'],projects:['projects'],support:['support','projects'],'service-requests':['support','projects'],
+  infrastructure:['infrastructure','projects'],'client-service':['maintenance','infrastructure','projects'],settings:['preferences'],
 };
 
 export async function pageData(page) {
@@ -167,6 +167,7 @@ export function applyData(result) {
   }));
   if (data('audit')) S.events=data('audit').map(row=>({text:row.entity+' · '+row.action,date:iso(row.created)})).reverse();
   if (data('support')) S.support=data('support').map(supportRow);
+  if (data('maintenance')) S.maintenance=data('maintenance');
   if (data('infrastructure')) S.infrastructure=data('infrastructure').map(infraRow);
   if (result.projects) S.projects=result.projects.projects.map(row=>{
     const detail=result.projectDetails?.find(item=>item.project.id===row.id);

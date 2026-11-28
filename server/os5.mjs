@@ -61,6 +61,57 @@ export async function os5(request, path, user, body, db, prices, {fail,text,hex,
     if (!await one(`SELECT 1 FROM os5_projects p JOIN os5_memberships m ON m.project_id=p.id
       JOIN os5_invoices i ON i.id=p.invoice_id WHERE i.id=? AND m.user_id=? AND i.issued_at IS NOT NULL AND i.revoked_at IS NULL`,invoiceId,user.id)) os5NotFound();
   };
+  if (section==='maintenance') {
+    const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Moscow',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+    const period=today.slice(0,7)+'-01';
+    if (!id&&method==='GET') return json({items:await all(`
+      SELECT m.*,p.title AS project_title,c.name AS client_name,
+        (SELECT COALESCE(SUM(w.minutes),0) FROM os5_maintenance_work w WHERE w.plan_id=m.id AND w.worked_on>=? AND w.worked_on<=?) AS used_minutes
+      FROM os5_maintenance_plans m JOIN os5_projects p ON p.id=m.project_id
+      JOIN os5_clients c ON c.id=p.client_id WHERE ?=1 OR (?=1 AND p.owner_id=?) OR
+        (?=0 AND EXISTS(SELECT 1 FROM os5_memberships a WHERE a.project_id=p.id AND a.user_id=?))
+      ORDER BY m.active DESC,m.created DESC`,period,today,Number(owner),Number(manager),user.id,Number(manager),user.id)});
+    if (!owner&&!manager) fail('Требуются права сотрудника',403);
+    const minutes = (value,max) => {
+      if (!Number.isInteger(value)||value<1||value>max) fail('Укажите допустимое целое число минут');
+      return value;
+    };
+    if (!id&&method==='POST') {
+      staff();
+      const project=await getProject(body.projectId);
+      const key=os5Id();
+      await mutate(command('INSERT INTO os5_maintenance_plans(id,project_id,title,monthly_minutes,created) VALUES (?,?,?,?,?)',
+        key,project.id,required(body.title,'Название услуги'),minutes(body.monthlyMinutes,44640),os5Stamp()),
+        commandAudit('maintenance',key,'created',{projectId:project.id}));
+      return json({id:key},201);
+    }
+    if (id) {
+      const plan=await get('os5_maintenance_plans',id);
+      if (manager&&!await one('SELECT id FROM os5_projects WHERE id=? AND owner_id=?',plan.project_id,user.id)) os5NotFound();
+      if (!action&&method==='GET') return json({work:await all(`SELECT w.*,u.name AS actor_name
+        FROM os5_maintenance_work w LEFT JOIN users u ON u.id=w.actor_id WHERE w.plan_id=?
+        ORDER BY w.worked_on DESC,w.created DESC`,id)});
+      if (!action&&method==='PUT') {
+        staff();
+        if (typeof body.active!=='boolean') fail('Укажите состояние обслуживания');
+        await mutate(command('UPDATE os5_maintenance_plans SET active=? WHERE id=?',Number(body.active),id),
+          commandAudit('maintenance',id,body.active?'resumed':'paused'));
+        return json({ok:true});
+      }
+      if (action==='work'&&method==='POST') {
+        const workedOn=date(body.workedOn);
+        if (workedOn>today) fail('Дата работ не может быть в будущем');
+        const key=os5Id();
+        await mutate(command(`INSERT INTO os5_maintenance_work(id,plan_id,actor_id,worked_on,minutes,note,created)
+          SELECT ?,id,?,?,?,?,? FROM os5_maintenance_plans WHERE id=? AND active=1
+          AND (?=1 OR EXISTS(SELECT 1 FROM os5_projects p WHERE p.id=project_id AND p.owner_id=?))`,
+          key,user.id,workedOn,minutes(body.minutes,1440),required(body.note,'Выполненные работы',2000),os5Stamp(),id,Number(owner),user.id));
+        if (!await one('SELECT id FROM os5_maintenance_work WHERE id=?',key)) fail('Обслуживание приостановлено или доступ изменился',409);
+        return json({id:key},201);
+      }
+    }
+    os5NotFound();
+  }
   if (['profile','alert-settings'].includes(section) && !id) {
     const key='os5:'+section+':'+user.id;
     const previous=JSON.parse((await one('SELECT data FROM content WHERE id=?',key))?.data||'{}');

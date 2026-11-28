@@ -14,7 +14,7 @@ export function database(path = ":memory:", {os5=false} = {}) {
       ),
     );
   if (os5) {
-    const migrations = ['0001_os5.sql','0002_os5_lead_workflow.sql']
+    const migrations = ['0001_os5.sql','0002_os5_lead_workflow.sql','0003_os5_maintenance.sql']
       .map(name=>readFileSync(new URL('../drizzle/'+name,import.meta.url),'utf8'));
     sqlite.exec('BEGIN IMMEDIATE;\n'+migrations.join('\n')+'\nCOMMIT;');
   }
